@@ -15,9 +15,7 @@ GNU General Public License for more details.
 
 #ifndef BASEMENU_H
 #define BASEMENU_H
-#ifdef CS16CLIENT
-#include "../public/cl_dll/IGameClientExports.h"
-#endif
+#include "../cl_dll/IGameClientExports.h"
 #include "enginecallback_menu.h"
 #include "keydefs.h"
 #include "Primitive.h"

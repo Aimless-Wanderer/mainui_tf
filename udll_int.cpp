@@ -13,7 +13,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 GNU General Public License for more details.
 */
 
-#include "IGameClientExports.h"
+#include "../cl_dll/IGameMenuExports.h"
 #include "extdll_menu.h"
 #include "BaseMenu.h"
 #include "Utils.h"
@@ -23,6 +23,7 @@ ui_enginefuncs_t EngFuncs::engfuncs;
 ui_textfuncs_t	EngFuncs::textfuncs;
 #endif
 ui_globalvars_t	*gpGlobals;
+IGameClientExports *g_pClient;
 CMenu gMenu;
 
 static UI_FUNCTIONS gFunctionTable = 
@@ -148,7 +149,8 @@ public:
 
 	void Key( int key, int down ) override
 	{
-		uiStatic.client.KeyEvent( key, down );
+		//uiStatic.client.KeyEvent( key, down );
+		down ? uiStatic.client.KeyUpEvent( key ) : uiStatic.client.KeyDownEvent ( key );
 	}
 
 	void MouseMove( int x, int y ) override
@@ -195,12 +197,12 @@ public:
 
 	void SetupScoreboard( int xstart, int xend, int ystart, int yend, unsigned int color, bool drawStroke ) override
 	{
-		UI_SetupScoreboard( xstart, xend, ystart, yend, color, drawStroke );
+		//UI_SetupScoreboard( xstart, xend, ystart, yend, color, drawStroke );
 	}
 
 	void DrawScoreboard( void ) override
 	{
-		UI_DrawScoreboard();
+		//UI_DrawScoreboard();
 	}
 
 	void DrawSpectatorMenu( void ) override
