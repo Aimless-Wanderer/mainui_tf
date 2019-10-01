@@ -9,11 +9,11 @@ the Free Software Foundation, either version 3 of the License, or
 
 This program is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 GNU General Public License for more details.
 */
 
-
+#include "IGameClientExports.h"
 #include "extdll_menu.h"
 #include "BaseMenu.h"
 #include "Utils.h"
@@ -101,4 +101,113 @@ extern "C" EXPORT int GetExtAPI( int version, UI_EXTENDED_FUNCTIONS *pFunctionTa
 
 	return TRUE;
 }
+
+static class CGameMenuExports : public IGameMenuExports
+{
+public:
+	bool Initialize( CreateInterfaceFn factory ) override
+	{
+		g_pClient = (IGameClientExports*)factory( GAMECLIENTEXPORTS_INTERFACE_VERSION, NULL );
+
+		return g_pClient ? true : false;
+	}
+
+	const char *L( const char *szStr ) override
+	{
+		return ::L( szStr );
+	}
+
+	bool IsActive() override
+	{
+		return uiStatic.client.IsActive() && !uiStatic.menu.IsActive();
+	}
+
+	bool IsMainMenuActive() override
+	{
+		return uiStatic.menu.IsActive();
+	}
+
+	void Key( int key, int down ) override
+	{
+		uiStatic.client.KeyEvent( key, down );
+	}
+
+	void MouseMove( int x, int y ) override
+	{
+		uiStatic.cursorX = x;
+		uiStatic.cursorY = y;
+		uiStatic.client.MouseEvent( x, y );
+	}
+
+	HFont BuildFont( CFontBuilder &builder ) override
+	{
+		return builder.Create();
+	}
+
+	void GetCharABCWide( HFont font, int ch, int &a, int &b, int &c ) override
+	{
+		g_FontMgr.GetCharABCWide( font, ch, a, b, c );
+	}
+
+	int  GetFontTall( HFont font ) override
+	{
+		return g_FontMgr.GetFontTall( font );
+	}
+
+	int  GetCharacterWidth(HFont font, int ch, int charH ) override
+	{
+		return g_FontMgr.GetCharacterWidthScaled( font, ch, charH );
+	}
+
+	void GetTextSize( HFont font, const char *text, int *wide, int *height = 0, int size = -1 ) override
+	{
+		g_FontMgr.GetTextSize( font, text, wide, height, size );
+	}
+
+	int	 GetTextHeight( HFont font, const char *text, int size = -1 ) override
+	{
+		return g_FontMgr.GetTextHeight( font, text, size );
+	}
+
+	int  DrawCharacter( HFont font, int ch, int x, int y, int charH, const unsigned int color, bool forceAdditive = false ) override
+	{
+		return g_FontMgr.DrawCharacter( font, ch, Point( x, y ), charH, color, forceAdditive );
+	}
+
+	void SetupScoreboard( int xstart, int xend, int ystart, int yend, unsigned int color, bool drawStroke ) override
+	{
+		UI_SetupScoreboard( xstart, xend, ystart, yend, color, drawStroke );
+	}
+
+	void DrawScoreboard( void ) override
+	{
+		UI_DrawScoreboard();
+	}
+
+	void DrawSpectatorMenu( void ) override
+	{
+	}
+
+	void ShowVGUIMenu( int menuType, int param1, int param2 ) override
+	{
+		/*
+		switch( menuType )
+		{
+		case MENU_TEAM: UI_JoinGame_Show( param1, param2 ); break;
+		case MENU_CLASS_T: UI_JoinClassT_Show( param1, param2 ); break;
+		case MENU_CLASS_CT: UI_JoinClassCT_Show( param1, param2 ); break;
+		case MENU_BUY: UI_BuyMenu_Show( param1, param2 ); break;
+		case MENU_BUY_PISTOL: UI_BuyMenu_Pistol_Show( param1, param2 ); break;
+		case MENU_BUY_SHOTGUN: UI_BuyMenu_Shotgun_Show( param1, param2 ); break;
+		case MENU_BUY_RIFLE: UI_BuyMenu_Rifle_Show( param1, param2 ); break;
+		case MENU_BUY_SUBMACHINEGUN: UI_BuyMenu_Submachine_Show( param1, param2 ); break;
+		case MENU_BUY_MACHINEGUN: UI_BuyMenu_Machinegun_Show( param1, param2 ); break;
+		case MENU_BUY_ITEM: UI_BuyMenu_Item_Show( param1, param2 ); break;
+		}
+		*/
+	}
+} s_Menu;
+
+EXPOSE_SINGLE_INTERFACE_GLOBALVAR(CGameMenuExports, IGameMenuExports, GAMEMENUEXPORTS_INTERFACE_VERSION, s_Menu );
+
 #endif // XASH_DISABLE_FWGS_EXTENSIONS

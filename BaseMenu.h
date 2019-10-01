@@ -62,9 +62,7 @@ GNU General Public License for more details.
 // =====================================================================
 // Main menu interface
 
-#ifdef CS16CLIENT
 extern IGameClientExports *g_pClient;
-#endif
 extern cvar_t	*ui_precache;
 extern cvar_t	*ui_showmodels;
 extern cvar_t   *ui_show_window_stack;
