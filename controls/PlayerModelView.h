@@ -38,7 +38,7 @@ public:
 
 	HIMAGE hPlayerImage;
 
-	ref_viewpass_t refdef;
+	ref_menu_params_t refdef;
 	cl_entity_t *ent;
 
 	bool bDrawAsPlayer;
