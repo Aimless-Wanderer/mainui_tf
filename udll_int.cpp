@@ -209,8 +209,12 @@ public:
 	{
 	}
 
-	void ShowVGUIMenu( int menuType, int param1, int param2 ) override
+	void ShowVGUIMenu( int menuType ) override
 	{
+		switch( menuType )
+		{
+			case MENU_TEAM: UI_TeamMenu_Show(); break;
+		}
 		/*
 		switch( menuType )
 		{

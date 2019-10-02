@@ -4,6 +4,7 @@ CPP_SOURCES = \
 	$(wildcard font/*.cpp) \
 	$(wildcard menus/*.cpp) \
 	$(wildcard menus/dynamic/*.cpp) \
+	$(wildcard menus/client/*.cpp) \
 	$(wildcard model/*.cpp) \
 	$(wildcard controls/*.cpp) \
 	../common/interface.cpp
@@ -14,6 +15,7 @@ INCLUDES = \
 	-Ifont \
 	-Icontrols \
 	-Imenus \
+	-Imenus/client \
 	-Imodel \
 	-I../../xash3d/common \
 	-I../../xash3d/engine \
