@@ -1,0 +1,32 @@
+CPP_SOURCES = \
+	$(wildcard *.cpp) \
+	$(wildcard miniutl/*.cpp) \
+	$(wildcard font/*.cpp) \
+	$(wildcard menus/*.cpp) \
+	$(wildcard menus/dynamic/*.cpp) \
+	$(wildcard model/*.cpp) \
+	$(wildcard controls/*.cpp) \
+	../common/interface.cpp
+
+INCLUDES = \
+	-I. \
+	-Iminiutl \
+	-Ifont \
+	-Icontrols \
+	-Imenus \
+	-Imodel \
+	-I../../xash3d/common \
+	-I../../xash3d/engine \
+	-I../../xash3d/pm_shared
+
+FLAGS = -m32 -g -std=gnu++11 -fno-rtti
+OBJS = $(CPP_SOURCES:.cpp=.o)
+
+%.o : %.cpp
+	$(CXX) $(FLAGS) $(INCLUDES) -c $< -o $@
+
+all : $(OBJS)
+	$(CXX) $(FLAGS) $(OBJS) -o menu.dll -shared -Wl,--no-undefined
+
+clean:
+	-cmd /c del $(subst /,\,$(OBJS))
