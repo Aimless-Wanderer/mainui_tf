@@ -17,9 +17,9 @@ INCLUDES = \
 	-Imenus \
 	-Imenus/client \
 	-Imodel \
-	-I../../xash3d/common \
-	-I../../xash3d/engine \
-	-I../../xash3d/pm_shared
+	-I../../xash3d-fwgs/common \
+	-I../../xash3d-fwgs/engine \
+	-I../../xash3d-fwgs/pm_shared
 
 FLAGS = -m32 -g -std=gnu++11 -fno-rtti
 OBJS = $(CPP_SOURCES:.cpp=.o)

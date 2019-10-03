@@ -103,6 +103,8 @@ extern "C" EXPORT int GetExtAPI( int version, UI_EXTENDED_FUNCTIONS *pFunctionTa
 	return TRUE;
 }
 
+void UI_TeamMenu_Show( void );
+
 static class CGameMenuExports : public IGameMenuExports
 {
 public:
@@ -130,8 +132,7 @@ public:
 
 	void Key( int key, int down ) override
 	{
-		//uiStatic.client.KeyEvent( key, down );
-		down ? uiStatic.client.KeyUpEvent( key ) : uiStatic.client.KeyDownEvent ( key );
+		down ? uiStatic.client.KeyDownEvent( key ) : uiStatic.client.KeyUpEvent( key );
 	}
 
 	void MouseMove( int x, int y ) override
@@ -151,12 +152,12 @@ public:
 		g_FontMgr.GetCharABCWide( font, ch, a, b, c );
 	}
 
-	int  GetFontTall( HFont font ) override
+	int GetFontTall( HFont font ) override
 	{
 		return g_FontMgr.GetFontTall( font );
 	}
 
-	int  GetCharacterWidth(HFont font, int ch, int charH ) override
+	int GetCharacterWidth(HFont font, int ch, int charH ) override
 	{
 		return g_FontMgr.GetCharacterWidthScaled( font, ch, charH );
 	}
@@ -171,7 +172,7 @@ public:
 		return g_FontMgr.GetTextHeight( font, text, size );
 	}
 
-	int  DrawCharacter( HFont font, int ch, int x, int y, int charH, const unsigned int color, bool forceAdditive = false ) override
+	int DrawCharacter( HFont font, int ch, int x, int y, int charH, const unsigned int color, bool forceAdditive = false ) override
 	{
 		return g_FontMgr.DrawCharacter( font, ch, Point( x, y ), charH, color, forceAdditive );
 	}

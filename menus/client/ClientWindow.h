@@ -2,6 +2,7 @@
 
 #include "BaseClientWindow.h"
 #include "Action.h"
+#include "EventSystem.h"
 
 class CClientWindow : public CMenuBaseClientWindow
 {
@@ -22,22 +23,16 @@ public:
 
 	void Show() override
 	{
-		if( m_pStack->menuDepth == 0 )
-		{
-			EngFuncs::KEY_SetDest( KEY_MENU );
-			EngFuncs::ClientCmd( TRUE, "touch_setclientonly 1");
-		}
+		EngFuncs::KEY_SetDest( KEY_MENU );
+		EngFuncs::ClientCmd( TRUE, "touch_setclientonly 1");
 		BaseClass::Show();
-
 	}
+
 	void Hide() override
 	{
 		BaseClass::Hide();
-		if( m_pStack->menuDepth == 0 )
-		{
-			EngFuncs::KEY_SetDest( KEY_GAME );
-			EngFuncs::ClientCmd( FALSE, "touch_setclientonly 0");
-		}
+		EngFuncs::KEY_SetDest( KEY_GAME );
+		EngFuncs::ClientCmd( FALSE, "touch_setclientonly 0");
 	}
 
 	CEventCallback ExecAndHide( const char *szCmd )
@@ -51,7 +46,7 @@ public:
 
 	CMenuAction *AddButton( int key, const char *name, Point pos, CEventCallback callback );
 
-	const char *Key( int key, int down ) override;
+	bool KeyDown( int key );
 	void VidInit() override;
 	void Draw() override;
 	CEventCallback keys[10];
@@ -59,8 +54,4 @@ public:
 protected:
 	CMenuAction *buttons[16];
 	int m_iNumBtns;
-private:
-	Size roundCornerSize;
-	int  iTitleHeight;
-	int  iGap;
 };

@@ -18,6 +18,7 @@ GNU General Public License for more details.
 
 #ifndef XASH_DISABLE_FWGS_EXTENSIONS
 #include "xash3d_types.h"
+#undef EXPORT
 #endif
 
 #ifndef EXPORT
