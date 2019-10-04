@@ -177,20 +177,6 @@ public:
 		return g_FontMgr.DrawCharacter( font, ch, Point( x, y ), charH, color, forceAdditive );
 	}
 
-	void SetupScoreboard( int xstart, int xend, int ystart, int yend, unsigned int color, bool drawStroke ) override
-	{
-		//UI_SetupScoreboard( xstart, xend, ystart, yend, color, drawStroke );
-	}
-
-	void DrawScoreboard( void ) override
-	{
-		//UI_DrawScoreboard();
-	}
-
-	void DrawSpectatorMenu( void ) override
-	{
-	}
-
 	void ShowVGUIMenu( int menuType ) override
 	{
 		switch( menuType )
