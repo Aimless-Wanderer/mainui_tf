@@ -18,6 +18,14 @@ public:
 		return CEventCallback( MenuCb( &CClientTeamMenu::cb ), (void*)cmd );
 	}
 
+	void Update(char teamNames[4][32], int numTeams )
+	{
+		m_iNumTeams = numTeams;
+
+		for ( int i = 0; i < numTeams; i++ )
+			strcpy( m_sTeamNames[i], teamNames[i] );
+	}
+
 private:
 	const char *command;
 	char textbuffer[1024];
@@ -28,22 +36,32 @@ private:
 		EngFuncs::ClientCmd( FALSE, command );
 		Hide();
 	}
+	
+	int m_iNumTeams;
+	char m_sTeamNames[4][32];
 
 } uiTeamMenu;
 
 void CClientTeamMenu::_Init()
 {
-	AddButton( '1', "BLUE",
-		Point( 40, 80 ), MakeCb( "jointeam 1" ));
-	AddButton( '2', "RED",
-		Point( 40, 112 ), MakeCb( "jointeam 2" ));
+	int iYOffset = 80;
 
-	AddButton( '5', "AUTO-ASSIGN",
-		Point( 40, 144 ), MakeCb( "jointeam 5" ));
-	AddButton( '6', "SPECTATE",
-		Point( 40, 176 ), MakeCb( "jointeam 6" ));
+	for ( int i = 0; i < m_iNumTeams; i++ )
+	{
+		char cmd[32];
+		sprintf( cmd, "jointeam %i", i + 1 );
+		AddButton( ( i + 1 ) + '0', L( m_sTeamNames[i] ),
+			Point( 40, iYOffset ), MakeCb( cmd ) );
+		iYOffset += 32;
+	}
 
-	szName = "SELECT YOUR TEAM";
+	AddButton( '5', L( "Team_AutoAssign" ),
+		Point( 40, iYOffset ), MakeCb( "jointeam 5" ));
+
+	AddButton( '6', L( "Menu_Spectate" ),
+		Point( 40, iYOffset + 32 ), MakeCb( "jointeam 6" ));
+
+	szName = L( "Title_SelectYourTeam" );
 }
 
 void CClientTeamMenu::Reload()
@@ -59,4 +77,9 @@ void UI_TeamMenu_Show( void )
 {
 	EngFuncs::KEY_SetDest( KEY_MENU );
 	uiTeamMenu.Show();
+}
+
+void UI_TeamMenu_Update( char teamNames[4][32], int numTeams )
+{
+	uiTeamMenu.Update( teamNames, numTeams );
 }
