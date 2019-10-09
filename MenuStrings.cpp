@@ -441,6 +441,26 @@ const char *L( const char *szStr ) // L means Localize!
 
 		if( i != hashed_cmds.InvalidIndex() )
 			return hashed_cmds[i];
+		else //titles.txt string
+		{
+			if( *(szStr - 1) == '#' )
+				szStr--;
+
+			char *szLocStr = g_pClient->LocaliseTextString( szStr );
+
+			if ( !strcmp( szStr, szLocStr ) )
+				return szStr;
+			else
+			{
+				//remove carriage return
+				char *pos = ( szLocStr + strlen( szLocStr ) - 1 );
+				if ( *pos == '\r' ) *pos = '\0';
+
+				Dictionary_Insert( szStr, szLocStr );
+				i = hashed_cmds.Find( szStr );
+				return hashed_cmds[i];
+			}
+		}
 	}
 
 	return szStr;

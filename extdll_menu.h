@@ -17,7 +17,7 @@ GNU General Public License for more details.
 #define EXTDLL_H
 
 #ifndef XASH_DISABLE_FWGS_EXTENSIONS
-#include "xash3d_types.h"
+#include "../../xash3d-fwgs/common/xash3d_types.h"
 #undef EXPORT
 #endif
 
@@ -88,6 +88,6 @@ typedef unsigned char byte;
 typedef unsigned int uint;
 typedef unsigned int uint32; //!!!
 
-#include "menu_int.h"
+#include "../../xash3d-fwgs/engine/menu_int.h"
 
 #endif//EXTDLL_H

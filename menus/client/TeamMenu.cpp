@@ -46,22 +46,22 @@ void CClientTeamMenu::_Init()
 {
 	int iYOffset = 80;
 
+	char *szJoinCommands[4] = { "jointeam 1", "jointeam 2", "jointeam 3", "jointeam 4" };
+
 	for ( int i = 0; i < m_iNumTeams; i++ )
 	{
-		char cmd[32];
-		sprintf( cmd, "jointeam %i", i + 1 );
 		AddButton( ( i + 1 ) + '0', L( m_sTeamNames[i] ),
-			Point( 40, iYOffset ), MakeCb( cmd ) );
+			Point( 40, iYOffset ), MakeCb( szJoinCommands[i] ) );
 		iYOffset += 32;
 	}
 
-	AddButton( '5', L( "Team_AutoAssign" ),
+	AddButton( '5', L( "#Team_AutoAssign" ),
 		Point( 40, iYOffset ), MakeCb( "jointeam 5" ));
 
-	AddButton( '6', L( "Menu_Spectate" ),
+	AddButton( '6', L( "#Menu_Spectate" ),
 		Point( 40, iYOffset + 32 ), MakeCb( "jointeam 6" ));
 
-	szName = L( "Title_SelectYourTeam" );
+	szName = L( "#Title_SelectYourTeam" );
 }
 
 void CClientTeamMenu::Reload()

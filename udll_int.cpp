@@ -158,7 +158,7 @@ public:
 		return g_FontMgr.GetFontTall( font );
 	}
 
-	int GetCharacterWidth(HFont font, int ch, int charH ) override
+	int GetCharacterWidth( HFont font, int ch, int charH ) override
 	{
 		return g_FontMgr.GetCharacterWidthScaled( font, ch, charH );
 	}
@@ -184,21 +184,6 @@ public:
 		{
 			case MENU_TEAM: UI_TeamMenu_Show(); break;
 		}
-		/*
-		switch( menuType )
-		{
-		case MENU_TEAM: UI_JoinGame_Show( param1, param2 ); break;
-		case MENU_CLASS_T: UI_JoinClassT_Show( param1, param2 ); break;
-		case MENU_CLASS_CT: UI_JoinClassCT_Show( param1, param2 ); break;
-		case MENU_BUY: UI_BuyMenu_Show( param1, param2 ); break;
-		case MENU_BUY_PISTOL: UI_BuyMenu_Pistol_Show( param1, param2 ); break;
-		case MENU_BUY_SHOTGUN: UI_BuyMenu_Shotgun_Show( param1, param2 ); break;
-		case MENU_BUY_RIFLE: UI_BuyMenu_Rifle_Show( param1, param2 ); break;
-		case MENU_BUY_SUBMACHINEGUN: UI_BuyMenu_Submachine_Show( param1, param2 ); break;
-		case MENU_BUY_MACHINEGUN: UI_BuyMenu_Machinegun_Show( param1, param2 ); break;
-		case MENU_BUY_ITEM: UI_BuyMenu_Item_Show( param1, param2 ); break;
-		}
-		*/
 	}
 
 	void SetTeamNames( char teamNames[4][32], int numTeams ) override
