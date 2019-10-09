@@ -30,6 +30,8 @@ public:
 
 	void Hide() override
 	{
+		uiStatic.client.Clean();
+		
 		BaseClass::Hide();
 		EngFuncs::KEY_SetDest( KEY_GAME );
 		EngFuncs::ClientCmd( FALSE, "touch_setclientonly 0");

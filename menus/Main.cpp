@@ -24,7 +24,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "Bitmap.h"
 #include "PicButton.h"
 #include "YesNoMessageBox.h"
-#include "keydefs.h"
+#include "../../xash3d-fwgs/engine/keydefs.h"
 #include "MenuStrings.h"
 #include "PlayerIntroduceDialog.h"
 

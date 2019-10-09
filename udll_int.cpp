@@ -104,7 +104,7 @@ extern "C" EXPORT int GetExtAPI( int version, UI_EXTENDED_FUNCTIONS *pFunctionTa
 }
 
 void UI_TeamMenu_Show( void );
-void UI_TeamMenu_Update( char teamNames[4][32], int numTeams );
+void UI_ClassMenu_Show( void );
 
 static class CGameMenuExports : public IGameMenuExports
 {
@@ -183,14 +183,9 @@ public:
 		switch( menuType )
 		{
 			case MENU_TEAM: UI_TeamMenu_Show(); break;
+			case MENU_CLASS: UI_ClassMenu_Show(); break;
 		}
 	}
-
-	void SetTeamNames( char teamNames[4][32], int numTeams ) override
-	{
-		UI_TeamMenu_Update( teamNames, numTeams );
-	}
-
 } s_Menu;
 
 EXPOSE_SINGLE_INTERFACE_GLOBALVAR(CGameMenuExports, IGameMenuExports, GAMEMENUEXPORTS_INTERFACE_VERSION, s_Menu );

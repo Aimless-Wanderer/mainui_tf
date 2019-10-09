@@ -18,14 +18,6 @@ public:
 		return CEventCallback( MenuCb( &CClientTeamMenu::cb ), (void*)cmd );
 	}
 
-	void Update(char teamNames[4][32], int numTeams )
-	{
-		m_iNumTeams = numTeams;
-
-		for ( int i = 0; i < numTeams; i++ )
-			strcpy( m_sTeamNames[i], teamNames[i] );
-	}
-
 private:
 	const char *command;
 	char textbuffer[1024];
@@ -36,21 +28,18 @@ private:
 		EngFuncs::ClientCmd( FALSE, command );
 		Hide();
 	}
-	
-	int m_iNumTeams;
-	char m_sTeamNames[4][32];
-
 } uiTeamMenu;
 
 void CClientTeamMenu::_Init()
 {
 	int iYOffset = 80;
+	int iNumTeams = g_pClient->GetNumberOfTeams();
+	char **szTeamNames = g_pClient->GetTeamNames();
+	const char *szJoinCommands[] = { "jointeam 1", "jointeam 2", "jointeam 3", "jointeam 4" };
 
-	char *szJoinCommands[4] = { "jointeam 1", "jointeam 2", "jointeam 3", "jointeam 4" };
-
-	for ( int i = 0; i < m_iNumTeams; i++ )
+	for ( int i = 0; i < iNumTeams; i++ )
 	{
-		AddButton( ( i + 1 ) + '0', L( m_sTeamNames[i] ),
+		AddButton( ( i + 1 ) + '0', L( szTeamNames[i] ),
 			Point( 40, iYOffset ), MakeCb( szJoinCommands[i] ) );
 		iYOffset += 32;
 	}
@@ -77,9 +66,4 @@ void UI_TeamMenu_Show( void )
 {
 	EngFuncs::KEY_SetDest( KEY_MENU );
 	uiTeamMenu.Show();
-}
-
-void UI_TeamMenu_Update( char teamNames[4][32], int numTeams )
-{
-	uiTeamMenu.Update( teamNames, numTeams );
 }
