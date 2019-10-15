@@ -197,7 +197,7 @@ void CMenuPicButton::Draw( )
 		if( ( state == BUTTON_NOFOCUS && bPulse ) ||
 			( state == BUTTON_FOCUS   && eFocusAnimation == QM_PULSEIFFOCUS ) )
 		{
-			EngFuncs::PIC_Set( hPic, r, g, b, 255 *(0.5 + 0.5 * sin( (float)uiStatic.realTime / ( UI_PULSE_DIVISOR * 2 ))));
+			EngFuncs::PIC_Set( hPic, r, g, b, 255 *(0.5f + 0.5f * sin( (float)uiStatic.realTime / ( UI_PULSE_DIVISOR * 2 ))));
 			EngFuncs::PIC_DrawAdditive( m_scPos.x, m_scPos.y, uiStatic.buttons_draw_width, uiStatic.buttons_draw_height, &rects[BUTTON_FOCUS] );
 
 			EngFuncs::PIC_DrawAdditive( m_scPos.x, m_scPos.y, uiStatic.buttons_draw_width, uiStatic.buttons_draw_height, &rects[BUTTON_NOFOCUS] );
@@ -269,7 +269,7 @@ void CMenuPicButton::Draw( )
 		}
 		else if( eFocusAnimation == QM_PULSEIFFOCUS )
 		{
-			float pulsar = 0.5 + 0.5 * sin( (float)uiStatic.realTime / UI_PULSE_DIVISOR );
+			float pulsar = 0.5f + 0.5f * sin( (float)uiStatic.realTime / UI_PULSE_DIVISOR );
 #ifdef MAINUI_RENDER_PICBUTTON_TEXT
 
 			UI_DrawString( uiStatic.hHeavyBlur, m_scPos, m_scSize, szName,
