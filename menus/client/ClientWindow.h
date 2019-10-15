@@ -23,18 +23,25 @@ public:
 
 	void Show() override
 	{
-		EngFuncs::KEY_SetDest( KEY_MENU );
-		EngFuncs::ClientCmd( TRUE, "touch_setclientonly 1");
+		if( !m_pStack->IsActive() )
+		{
+			EngFuncs::KEY_SetDest( KEY_MENU );
+			EngFuncs::ClientCmd( TRUE, "touch_setclientonly 1");
+		}
+		
 		BaseClass::Show();
 	}
 
 	void Hide() override
-	{
-		uiStatic.client.Clean();
-		
+	{		
 		BaseClass::Hide();
-		EngFuncs::KEY_SetDest( KEY_GAME );
-		EngFuncs::ClientCmd( FALSE, "touch_setclientonly 0");
+		m_pStack->Clean();
+		
+		if( !m_pStack->IsActive() )
+		{
+			EngFuncs::KEY_SetDest( KEY_GAME );
+			EngFuncs::ClientCmd( FALSE, "touch_setclientonly 0");
+		}
 	}
 
 	CEventCallback ExecAndHide( const char *szCmd )
@@ -56,4 +63,5 @@ public:
 protected:
 	CMenuAction *buttons[16];
 	int m_iNumBtns;
+	const char *szTitle;
 };

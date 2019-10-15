@@ -26,7 +26,6 @@ private:
 	{
 		command = (const char*)pExtra;
 		EngFuncs::ClientCmd( FALSE, command );
-		Hide();
 	}
 } uiTeamMenu;
 
@@ -40,17 +39,17 @@ void CClientTeamMenu::_Init()
 	for ( int i = 0; i < iNumTeams; i++ )
 	{
 		AddButton( ( i + 1 ) + '0', L( szTeamNames[i] ),
-			Point( 40, iYOffset ), MakeCb( szJoinCommands[i] ) );
+			Point( 40, iYOffset ), ExecAndHide( szJoinCommands[i] ) );
 		iYOffset += 32;
 	}
 
 	AddButton( '5', L( "#Team_AutoAssign" ),
-		Point( 40, iYOffset ), MakeCb( "jointeam 5" ));
+		Point( 40, iYOffset ), ExecAndHide( "jointeam 5" ));
 
 	AddButton( '6', L( "#Menu_Spectate" ),
-		Point( 40, iYOffset + 32 ), MakeCb( "jointeam 6" ));
+		Point( 40, iYOffset + 32 ), ExecAndHide( "jointeam 6" ));
 
-	szName = L( "#Title_SelectYourTeam" );
+	szTitle = L( "#Title_SelectYourTeam" );
 }
 
 void CClientTeamMenu::Reload()

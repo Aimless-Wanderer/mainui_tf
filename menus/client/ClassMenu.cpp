@@ -41,14 +41,14 @@ void CClientClassMenu::_Init()
 	for ( int i = 0; i < 9; i++ )
 	{
 		AddButton( ( i + 1 ) + '0', L( szLabels[i] ),
-			Point( 40, iYOffset ), MakeCb( szCommands[i] ) );
+			Point( 40, iYOffset ), ExecAndHide( szCommands[i] ) );
 		iYOffset += 32;
 	}
 
 	AddButton( '5', L( "#Random" ),
-		Point( 40, iYOffset ), MakeCb( szLabels[g_pClient->GetRandomClass() - 1] ));
+		Point( 40, iYOffset ), ExecAndHide( szCommands[g_pClient->GetRandomClass() - 1] ));
 
-	szName = L( "#Title_SelectYourClass" );
+	szTitle = L( "#Title_SelectYourClass" );
 }
 
 void CClientClassMenu::Reload()

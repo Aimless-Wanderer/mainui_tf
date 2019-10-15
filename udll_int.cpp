@@ -180,6 +180,7 @@ public:
 
 	void ShowVGUIMenu( int menuType ) override
 	{
+		if ( IsActive() ) return;
 		switch( menuType )
 		{
 			case MENU_TEAM: UI_TeamMenu_Show(); break;

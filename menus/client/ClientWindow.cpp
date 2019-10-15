@@ -16,7 +16,7 @@ void CClientWindow::Draw()
 	UI_FillRect( Point( 0, 0 ), Size( ScreenWidth, ScreenHeight ), PackRGBA( 0, 0, 0 , 128 ) );
 	
 	UI_DrawString( font, m_scPos + Size( 40, 32 ), Size( m_scSize.w, 24 ),
-		szName, PackRGB( 255, 174, 0 ), m_scChSize, QM_LEFT, ETF_NOSIZELIMIT );
+		szTitle, PackRGB( 255, 174, 0 ), m_scChSize, QM_LEFT, ETF_NOSIZELIMIT );
 
 	BaseClass::Draw();
 }
