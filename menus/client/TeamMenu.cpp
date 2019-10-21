@@ -10,23 +10,7 @@ public:
 	CClientTeamMenu() : BaseClass( "CClientTeamMenu" ) {}
 
 	void _Init();
-	void Reload();
 	void Draw();
-
-	CEventCallback MakeCb( const char *cmd )
-	{
-		return CEventCallback( MenuCb( &CClientTeamMenu::cb ), (void*)cmd );
-	}
-
-private:
-	const char *command;
-	char textbuffer[1024];
-
-	void cb( void *pExtra )
-	{
-		command = (const char*)pExtra;
-		EngFuncs::ClientCmd( FALSE, command );
-	}
 } uiTeamMenu;
 
 void CClientTeamMenu::_Init()
@@ -50,10 +34,6 @@ void CClientTeamMenu::_Init()
 		Point( 40, iYOffset + 32 ), ExecAndHide( "jointeam 6" ));
 
 	szTitle = L( "#Title_SelectYourTeam" );
-}
-
-void CClientTeamMenu::Reload()
-{
 }
 
 void CClientTeamMenu::Draw()

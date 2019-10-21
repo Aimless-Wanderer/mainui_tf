@@ -105,6 +105,8 @@ extern "C" EXPORT int GetExtAPI( int version, UI_EXTENDED_FUNCTIONS *pFunctionTa
 
 void UI_TeamMenu_Show( void );
 void UI_ClassMenu_Show( void );
+void UI_CommandMenu_Show( void );
+void UI_CommandMenu_Hide( void );
 
 static class CGameMenuExports : public IGameMenuExports
 {
@@ -121,12 +123,12 @@ public:
 		return ::L( szStr );
 	}
 
-	bool IsActive() override
+	bool IsActive( void ) override
 	{
 		return uiStatic.client.IsActive() && !uiStatic.menu.IsActive();
 	}
 
-	bool IsMainMenuActive() override
+	bool IsMainMenuActive( void) override
 	{
 		return uiStatic.menu.IsActive();
 	}
@@ -186,6 +188,16 @@ public:
 			case MENU_TEAM: UI_TeamMenu_Show(); break;
 			case MENU_CLASS: UI_ClassMenu_Show(); break;
 		}
+	}
+
+	void OpenCommandMenu( void ) override
+	{
+		UI_CommandMenu_Show();
+	}
+
+	void CloseCommandMenu( void ) override
+	{
+		UI_CommandMenu_Hide();
 	}
 } s_Menu;
 

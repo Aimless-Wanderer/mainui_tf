@@ -10,14 +10,13 @@ public:
 	typedef CMenuBaseClientWindow BaseClass;
 	CClientWindow( const char *name = "CClientWindow" ) : BaseClass( name )
 	{
-		// SetCharSize( QM_DEFAULTFONT );
-		m_iNumBtns = 0;
 	}
+	
 	~CClientWindow()
 	{
-		for( int i = 0; i < m_iNumBtns; i++ )
+		FOR_EACH_VEC( m_pButtons, i )
 		{
-			delete buttons[i];
+			delete m_pButtons[i];
 		}
 	}
 
@@ -61,7 +60,6 @@ public:
 	CEventCallback keys[10];
 
 protected:
-	CMenuAction *buttons[16];
-	int m_iNumBtns;
+	CUtlVector<CMenuAction *> m_pButtons;
 	const char *szTitle;
 };

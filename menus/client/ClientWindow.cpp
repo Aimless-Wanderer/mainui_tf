@@ -27,7 +27,7 @@ bool CClientWindow::KeyDown( int key )
 	{
 		if( keys[key-'0'] )
 		{
-			(keys[key-'0'])( buttons[0] );
+			(keys[key-'0'])( m_pButtons[0] );
 			return uiSoundNull;
 		}
 	}
@@ -50,14 +50,13 @@ CMenuAction *CClientWindow::AddButton( int key, const char *name, Point pos, CEv
 	act->bDrawStroke = true;
 	act->m_bLimitBySize = true;
 	act->colorStroke = PackRGBA( 156, 77, 20, 200 );
-	//act->colorFocus = PackRGBA( 156, 77, 20, 128 );
+	act->colorFocus = PackRGBA( 156, 77, 20, 128 );
 	act->iStrokeWidth = 1;
 
 	if( key >= '0' && key <= '9' )
 		keys[key - '0'] = callback;
 
-	buttons[m_iNumBtns] = act;
-	m_iNumBtns++;
+	m_pButtons.AddToTail( act );
 
 	AddItem( act );
 

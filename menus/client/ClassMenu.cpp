@@ -10,25 +10,7 @@ public:
 	CClientClassMenu() : BaseClass( "CClientClassMenu" ) {}
 
 	void _Init();
-	void Reload();
 	void Draw();
-
-	CEventCallback MakeCb( const char *cmd )
-	{
-		return CEventCallback( MenuCb( &CClientClassMenu::cb ), (void*)cmd );
-	}
-
-private:
-	const char *command;
-	char textbuffer[1024];
-
-	void cb( void *pExtra )
-	{
-		command = (const char*)pExtra;
-		EngFuncs::ClientCmd( FALSE, command );
-		Hide();
-	}
-
 } uiClassMenu;
 
 void CClientClassMenu::_Init()
@@ -49,10 +31,6 @@ void CClientClassMenu::_Init()
 		Point( 40, iYOffset ), ExecAndHide( szCommands[g_pClient->GetRandomClass() - 1] ));
 
 	szTitle = L( "#Title_SelectYourClass" );
-}
-
-void CClientClassMenu::Reload()
-{
 }
 
 void CClientClassMenu::Draw()
