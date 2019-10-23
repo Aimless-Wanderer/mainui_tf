@@ -15,8 +15,8 @@ void CClientWindow::Draw()
 {
 	UI_FillRect( Point( 0, 0 ), Size( ScreenWidth, ScreenHeight ), PackRGBA( 0, 0, 0 , 128 ) );
 	
-	UI_DrawString( font, m_scPos + Size( 40, 32 ), Size( m_scSize.w, 24 ),
-		szTitle, PackRGB( 255, 174, 0 ), m_scChSize, QM_LEFT, ETF_NOSIZELIMIT );
+	UI_DrawString( font, m_scPos, Size( m_scSize.w, UI_BIG_CHAR_HEIGHT ),
+		szTitle, PackRGB( 255, 174, 0 ), UI_BIG_CHAR_HEIGHT, QM_LEFT, ETF_NOSIZELIMIT );
 
 	BaseClass::Draw();
 }
@@ -42,11 +42,14 @@ CMenuAction *CClientWindow::AddButton( int key, const char *name, Point pos, CEv
 	act->pos = pos;
 	act->onPressed = callback;
 	act->SetBackground( 0U, PackRGBA( 0, 0, 0, 0 ) );
+
 	if( *name == '&' ) // fast hack
 		name++;
+		
 	act->szName = name;
-	act->SetCharSize( QM_SMALLFONT );
-	act->size = Size( 124, 24 );
+	act->SetCharSize( QM_DEFAULTFONT );
+	act->eTextAlignment = QM_LEFT | QM_CENTER;
+	act->size = Size( BTN_WIDTH, BTN_HEIGHT );
 	act->bDrawStroke = true;
 	act->m_bLimitBySize = true;
 	act->colorStroke = PackRGBA( 156, 77, 20, 200 );

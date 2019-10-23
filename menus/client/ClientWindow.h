@@ -4,6 +4,10 @@
 #include "Action.h"
 #include "EventSystem.h"
 
+#define BTN_HEIGHT 48
+#define BTN_WIDTH 256
+#define BTN_GAP 12
+
 class CClientWindow : public CMenuBaseClientWindow
 {
 public:

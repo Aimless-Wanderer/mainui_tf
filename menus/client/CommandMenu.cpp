@@ -21,10 +21,21 @@ public:
 	CClientCommandMenu() : BaseClass( "CClientCommandMenu" ) {}
 
 	void _Init();
+	void Reload();
 	void Draw();
 
+	void VidInit()
+	{
+		size.w = 1024;
+		size.h = 768;
+		pos.x = 0;
+		pos.y = 0;
+
+		CMenuBaseClientWindow::VidInit();
+	}
+
 private:
-	void AddCustomButton( char *pName, char *pText )
+	void AddCustomButton( char *pName, char *pText );
 } uiCommandMenu;
 
 void CClientCommandMenu::AddCustomButton( char *pName, char *pText )
@@ -121,18 +132,18 @@ void CClientCommandMenu::AddCustomButton( char *pName, char *pText )
 	}
 	else if ( !strcmp( pName, "!FEIGN" ) )
 	{
-		AddButton( 666, pText,
-		Point( 666, 666 ), ExecAndHide( "feign" ) );
+		AddButton( 666, StringCopy( pText ),
+		Point( 0, 0 ), ExecAndHide( "feign" ) );
 	}
 	else if ( !strcmp( pName, "!FEIGNSILENT" ) )
 	{
-		AddButton( 666, pText,
-		Point( 666, 666 ), ExecAndHide( "sfeign" ) );
+		AddButton( 666, StringCopy( pText ),
+		Point( 0, 0 ), ExecAndHide( "sfeign" ) );
 	}
 	else if ( !strcmp( pName, "!FEIGNSTOP" ) )
 	{
-		AddButton( 666, pText,
-		Point( 666, 666 ), ExecAndHide( "feign" ) );
+		AddButton( 666, StringCopy( pText ),
+		Point( 0, 0 ), ExecAndHide( "feign" ) );
 	}
 	else if ( !strcmp( pName, "!DISGUISEENEMY" ) )
 	{
@@ -201,8 +212,8 @@ void CClientCommandMenu::AddCustomButton( char *pName, char *pText )
 	}
 	else if ( !strcmp( pName, "!DETPACKSTOP" ) )
 	{
-		AddButton( 666, pText,
-		Point( 666, 666 ), ExecAndHide( "detstop" ) );
+		AddButton( 666, StringCopy( pText ),
+		Point( 0, 0 ), ExecAndHide( "detstop" ) );
 	}
 	else if ( !strcmp( pName, "!BUILD" ) )
 	{
@@ -213,107 +224,78 @@ void CClientCommandMenu::AddCustomButton( char *pName, char *pText )
 	}
 	else if ( !strcmp( pName, "!BUILDSENTRY" ) )
 	{
-		AddButton( 666, pText,
-		Point( 666, 666 ), ExecAndHide( "build 2" ) );
+		AddButton( 666, StringCopy( pText ),
+		Point( 0, 0 ), ExecAndHide( "build 2" ) );
 	}
-	else if ( !strcmp( pButtonName, "!BUILDDISPENSER" ) )
+	else if ( !strcmp( pName, "!BUILDDISPENSER" ) )
 	{
-		pButton = new BuildButton( BUILDSTATE_CANBUILD, BuildButton::DISPENSER, pButtonText, 0, BUTTON_SIZE_Y * 2, CMENU_SIZE_X, BUTTON_SIZE_Y);
-		pButton->addActionSignal(new CMenuHandler_StringCommand("build 1"));
-		// Create an input signal that'll popup the current menu
-		pButton->addInputSignal( new CMenuHandler_PopupSubMenuInput(pButton, m_pCurrentCommandMenu) );
+		AddButton( 666, StringCopy( pText ),
+		Point( 0, 0 ), ExecAndHide( "build 1" ) );
 	}
-	else if ( !strcmp( pButtonName, "!ROTATESENTRY180" ) )
+	else if ( !strcmp( pName, "!ROTATESENTRY180" ) )
 	{
-		pButton = new BuildButton( BUILDSTATE_HASBUILDING, BuildButton::SENTRYGUN, pButtonText, 0, BUTTON_SIZE_Y * 2, CMENU_SIZE_X, BUTTON_SIZE_Y);
-		pButton->addActionSignal(new CMenuHandler_StringCommand("rotatesentry180"));
-		// Create an input signal that'll popup the current menu
-		pButton->addInputSignal( new CMenuHandler_PopupSubMenuInput(pButton, m_pCurrentCommandMenu) );
+		AddButton( 666, StringCopy( pText ),
+		Point( 0, 0 ), ExecAndHide( "rotatesentry180" ) );
 	}
-	else if ( !strcmp( pButtonName, "!ROTATESENTRY" ) )
+	else if ( !strcmp( pName, "!ROTATESENTRY" ) )
 	{
-		pButton = new BuildButton( BUILDSTATE_HASBUILDING, BuildButton::SENTRYGUN, pButtonText, 0, BUTTON_SIZE_Y * 2, CMENU_SIZE_X, BUTTON_SIZE_Y);
-		pButton->addActionSignal(new CMenuHandler_StringCommand("rotatesentry"));
-		// Create an input signal that'll popup the current menu
-		pButton->addInputSignal( new CMenuHandler_PopupSubMenuInput(pButton, m_pCurrentCommandMenu) );
+		AddButton( 666, StringCopy( pText ),
+		Point( 0, 0 ), ExecAndHide( "rotatesentry" ) );
 	}
-	else if ( !strcmp( pButtonName, "!DISMANTLEDISPENSER" ) )
+	else if ( !strcmp( pName, "!DISMANTLEDISPENSER" ) )
 	{
-		pButton = new BuildButton( BUILDSTATE_HASBUILDING, BuildButton::DISPENSER, pButtonText, 0, BUTTON_SIZE_Y * 2, CMENU_SIZE_X, BUTTON_SIZE_Y);
-		pButton->addActionSignal(new CMenuHandler_StringCommand("dismantle 1"));
-		// Create an input signal that'll popup the current menu
-		pButton->addInputSignal( new CMenuHandler_PopupSubMenuInput(pButton, m_pCurrentCommandMenu) );
+		AddButton( 666, StringCopy( pText ),
+		Point( 0, 0 ), ExecAndHide( "dismantle 1" ) );
 	}
-	else if ( !strcmp( pButtonName, "!DISMANTLESENTRY" ) )
+	else if ( !strcmp( pName, "!DISMANTLESENTRY" ) )
 	{
-		pButton = new BuildButton( BUILDSTATE_HASBUILDING, BuildButton::SENTRYGUN, pButtonText, 0, BUTTON_SIZE_Y * 2, CMENU_SIZE_X, BUTTON_SIZE_Y);
-		pButton->addActionSignal(new CMenuHandler_StringCommand("dismantle 2"));
-		// Create an input signal that'll popup the current menu
-		pButton->addInputSignal( new CMenuHandler_PopupSubMenuInput(pButton, m_pCurrentCommandMenu) );
+		AddButton( 666, StringCopy( pText ),
+		Point( 0, 0 ), ExecAndHide( "dismantle 2" ) );
 	}
-	else if ( !strcmp( pButtonName, "!DETONATEDISPENSER" ) )
+	else if ( !strcmp( pName, "!DETONATEDISPENSER" ) )
 	{
-		pButton = new BuildButton( BUILDSTATE_HASBUILDING, BuildButton::DISPENSER, pButtonText, 0, BUTTON_SIZE_Y * 2, CMENU_SIZE_X, BUTTON_SIZE_Y);
-		pButton->addActionSignal(new CMenuHandler_StringCommand("detdispenser"));
-		// Create an input signal that'll popup the current menu
-		pButton->addInputSignal( new CMenuHandler_PopupSubMenuInput(pButton, m_pCurrentCommandMenu) );
+		AddButton( 666, StringCopy( pText ),
+		Point( 0, 0 ), ExecAndHide( "detdispenser" ) );
 	}
-	else if ( !strcmp( pButtonName, "!DETONATESENTRY" ) )
+	else if ( !strcmp( pName, "!DETONATESENTRY" ) )
 	{
-		pButton = new BuildButton( BUILDSTATE_HASBUILDING, BuildButton::SENTRYGUN, pButtonText, 0, BUTTON_SIZE_Y * 2, CMENU_SIZE_X, BUTTON_SIZE_Y);
-		pButton->addActionSignal(new CMenuHandler_StringCommand("detsentry"));
-		// Create an input signal that'll popup the current menu
-		pButton->addInputSignal( new CMenuHandler_PopupSubMenuInput(pButton, m_pCurrentCommandMenu) );
+		AddButton( 666, StringCopy( pText ),
+		Point( 0, 0 ), ExecAndHide( "detsentry" ) );
 	}
-	else if ( !strcmp( pButtonName, "!BUILDENTRYTELEPORTER" ) )
+	else if ( !strcmp( pName, "!BUILDENTRYTELEPORTER" ) )
 	{
-		pButton = new BuildButton( BUILDSTATE_CANBUILD, BuildButton::ENTRY_TELEPORTER, pButtonText, 0, BUTTON_SIZE_Y * 2, CMENU_SIZE_X, BUTTON_SIZE_Y);
-		pButton->addActionSignal(new CMenuHandler_StringCommand("build 4"));
-		// Create an input signal that'll popup the current menu
-		pButton->addInputSignal( new CMenuHandler_PopupSubMenuInput(pButton, m_pCurrentCommandMenu) );
+		AddButton( 666, StringCopy( pText ),
+		Point( 0, 0 ), ExecAndHide( "build 4" ) );
 	}
-	else if ( !strcmp( pButtonName, "!DISMANTLEENTRYTELEPORTER" ) )
+	else if ( !strcmp( pName, "!DISMANTLEENTRYTELEPORTER" ) )
 	{
-		pButton = new BuildButton( BUILDSTATE_HASBUILDING, BuildButton::ENTRY_TELEPORTER, pButtonText, 0, BUTTON_SIZE_Y * 2, CMENU_SIZE_X, BUTTON_SIZE_Y);
-		pButton->addActionSignal(new CMenuHandler_StringCommand("dismantle 4"));
-		// Create an input signal that'll popup the current menu
-		pButton->addInputSignal( new CMenuHandler_PopupSubMenuInput(pButton, m_pCurrentCommandMenu) );
+		AddButton( 666, StringCopy( pText ),
+		Point( 0, 0 ), ExecAndHide( "dismantle 4" ) );
 	}
-	else if ( !strcmp( pButtonName, "!DETONATEENTRYTELEPORTER" ) )
+	else if ( !strcmp( pName, "!DETONATEENTRYTELEPORTER" ) )
 	{
-		pButton = new BuildButton( BUILDSTATE_HASBUILDING, BuildButton::ENTRY_TELEPORTER, pButtonText, 0, BUTTON_SIZE_Y * 2, CMENU_SIZE_X, BUTTON_SIZE_Y);
-		pButton->addActionSignal(new CMenuHandler_StringCommand("detentryteleporter"));
-		// Create an input signal that'll popup the current menu
-		pButton->addInputSignal( new CMenuHandler_PopupSubMenuInput(pButton, m_pCurrentCommandMenu) );
+		AddButton( 666, StringCopy( pText ),
+		Point( 0, 0 ), ExecAndHide( "detentryteleporter" ) );
 	}
-	else if ( !strcmp( pButtonName, "!BUILDEXITTELEPORTER" ) )
+	else if ( !strcmp( pName, "!BUILDEXITTELEPORTER" ) )
 	{
-		pButton = new BuildButton( BUILDSTATE_CANBUILD, BuildButton::EXIT_TELEPORTER, pButtonText, 0, BUTTON_SIZE_Y * 2, CMENU_SIZE_X, BUTTON_SIZE_Y);
-		pButton->addActionSignal(new CMenuHandler_StringCommand("build 5"));
-		// Create an input signal that'll popup the current menu
-		pButton->addInputSignal( new CMenuHandler_PopupSubMenuInput(pButton, m_pCurrentCommandMenu) );
+		AddButton( 666, StringCopy( pText ),
+		Point( 0, 0 ), ExecAndHide( "build 5" ) );
 	}
-	else if ( !strcmp( pButtonName, "!DISMANTLEEXITTELEPORTER" ) )
+	else if ( !strcmp( pName, "!DISMANTLEEXITTELEPORTER" ) )
 	{
-		pButton = new BuildButton( BUILDSTATE_HASBUILDING, BuildButton::EXIT_TELEPORTER, pButtonText, 0, BUTTON_SIZE_Y * 2, CMENU_SIZE_X, BUTTON_SIZE_Y);
-		pButton->addActionSignal(new CMenuHandler_StringCommand("dismantle 5"));
-		// Create an input signal that'll popup the current menu
-		pButton->addInputSignal( new CMenuHandler_PopupSubMenuInput(pButton, m_pCurrentCommandMenu) );
+		AddButton( 666, StringCopy( pText ),
+		Point( 0, 0 ), ExecAndHide( "dismantle 5" ) );
 	}	
-	else if ( !strcmp( pButtonName, "!DETONATEEXITTELEPORTER" ) )
+	else if ( !strcmp( pName, "!DETONATEEXITTELEPORTER" ) )
 	{
-		pButton = new BuildButton( BUILDSTATE_HASBUILDING, BuildButton::EXIT_TELEPORTER, pButtonText, 0, BUTTON_SIZE_Y * 2, CMENU_SIZE_X, BUTTON_SIZE_Y);
-		pButton->addActionSignal(new CMenuHandler_StringCommand("detexitteleporter"));
-		// Create an input signal that'll popup the current menu
-		pButton->addInputSignal( new CMenuHandler_PopupSubMenuInput(pButton, m_pCurrentCommandMenu) );
+		AddButton( 666, StringCopy( pText ),
+		Point( 0, 0 ), ExecAndHide( "detexitteleporter" ) );
 	}
-	// Stop building
-	else if ( !strcmp( pButtonName, "!BUILDSTOP" ) )
+	else if ( !strcmp( pName, "!BUILDSTOP" ) )
 	{
-		pButton = new BuildButton( BUILDSTATE_BUILDING, 0, pButtonText, 0, BUTTON_SIZE_Y * 2, CMENU_SIZE_X, BUTTON_SIZE_Y);
-		pButton->addActionSignal(new CMenuHandler_StringCommand("build"));
-		// Create an input signal that'll popup the current menu
-		pButton->addInputSignal( new CMenuHandler_PopupSubMenuInput(pButton, m_pCurrentCommandMenu) );
+		AddButton( 666, StringCopy( pText ),
+		Point( 0, 0 ), ExecAndHide( "build" ) );
 	}
 }
 
@@ -383,6 +365,7 @@ void CClientCommandMenu::_Init()
 
 			if ( iButtonType == BTN_CUSTOM )
 			{
+				AddCustomButton( sCommand, sText );
 				pFile = EngFuncs::COM_ParseFile( pFile, sToken );
 
 				if ( sToken[0] == '{' )
@@ -410,7 +393,7 @@ void CClientCommandMenu::_Init()
 			{
 			}
 
-			Con_Printf( "CmdMenuBtn: %s %s\n", sKeyBind, sText );
+			Con_Printf( "CmdMenuBtn: %s %s %s\n", sKeyBind, sCommand, sText );
 
 			if ( bIsSubMenu )
 			{
@@ -420,11 +403,30 @@ void CClientCommandMenu::_Init()
 
 		pFile = EngFuncs::COM_ParseFile( pFile, sToken );
 	}
+
+	Reload();
 }
 
 void CClientCommandMenu::Draw()
 {
 	BaseClass::Draw();
+}
+
+void CClientCommandMenu::Reload()
+{
+	int iCount = m_pButtons.Count();
+	int iYOffset = ( 768 - ( iCount * BTN_HEIGHT ) ) / 2;
+
+	FOR_EACH_VEC(m_pButtons, i)
+	{
+		int x = m_pButtons[i]->pos.x;
+		m_pButtons[i]->pos = Point( x, iYOffset );
+		iYOffset += BTN_HEIGHT;
+	}
+
+	Con_Printf( "BtnCount: %i\n", iCount );
+
+	BaseClass::Reload();
 }
 
 void UI_CommandMenu_Show( void )

@@ -197,6 +197,7 @@ public:
 
 	void CloseCommandMenu( void ) override
 	{
+		if ( !IsActive() ) return;
 		UI_CommandMenu_Hide();
 	}
 } s_Menu;

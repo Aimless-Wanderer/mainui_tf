@@ -29,7 +29,7 @@ bool CMenuBaseClientWindow::KeyDown( int key )
 		EngFuncs::ClientCmd( FALSE, "escape\n" );
 		return true;
 	}
-	else if( key == '`' )
+	else if( key == '`' || key == '~' )
 	{
 		EngFuncs::KEY_SetDest( KEY_CONSOLE );
 	}
