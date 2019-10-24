@@ -11,6 +11,14 @@ void CClientWindow::VidInit()
 	BaseClass::VidInit();
 }
 
+void CClientWindow::Recalculate()
+{
+	CalcPosition();
+	CalcSizes();
+	CalcItemsPositions();
+	CalcItemsSizes();
+}
+
 void CClientWindow::Draw()
 {
 	UI_FillRect( Point( 0, 0 ), Size( ScreenWidth, ScreenHeight ), PackRGBA( 0, 0, 0 , 128 ) );
@@ -41,7 +49,7 @@ CMenuAction *CClientWindow::AddButton( int key, const char *name, Point pos, CEv
 
 	act->pos = pos;
 	act->onPressed = callback;
-	act->SetBackground( 0U, PackRGBA( 0, 0, 0, 0 ) );
+	act->SetBackground( PackRGBA( 0, 0, 0, 0 ), PackRGBA( 156, 77, 20, 128 ) );
 
 	if( *name == '&' ) // fast hack
 		name++;
@@ -49,12 +57,13 @@ CMenuAction *CClientWindow::AddButton( int key, const char *name, Point pos, CEv
 	act->szName = name;
 	act->SetCharSize( QM_DEFAULTFONT );
 	act->eTextAlignment = QM_LEFT | QM_CENTER;
-	act->size = Size( BTN_WIDTH, BTN_HEIGHT );
-	act->bDrawStroke = true;
+
 	act->m_bLimitBySize = true;
-	act->colorStroke = PackRGBA( 156, 77, 20, 200 );
-	act->colorFocus = PackRGBA( 156, 77, 20, 128 );
+	act->size = Size( BTN_WIDTH, BTN_HEIGHT );
+
+	act->bDrawStroke = true;
 	act->iStrokeWidth = 1;
+	act->colorStroke = PackRGBA( 156, 77, 20, 200 );
 
 	if( key >= '0' && key <= '9' )
 		keys[key - '0'] = callback;

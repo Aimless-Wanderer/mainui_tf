@@ -19,83 +19,119 @@ static class CClientCommandMenu : public CClientWindow
 public:
 	typedef CClientWindow BaseClass;
 	CClientCommandMenu() : BaseClass( "CClientCommandMenu" ) {}
+	void Init( const char *szName );
 
 	void _Init();
+	void VidInit();
 	void Reload();
 	void Draw();
 
-	void VidInit()
+	~CClientCommandMenu()
 	{
-		size.w = 1024;
-		size.h = 768;
-		pos.x = 0;
-		pos.y = 0;
-
-		CMenuBaseClientWindow::VidInit();
+		FOR_EACH_VEC( m_pSubMenus, i )
+		{
+			delete m_pSubMenus[i];
+		}
 	}
 
 private:
-	void AddCustomButton( char *pName, char *pText );
+	void AddCustomButton( char *pName, char *pText, int iKeyBind );
+
+	CEventCallback ShowSubmenu( const char *szName );
+	void SetSubmenuPosition( CMenuBaseItem *pParent );
+	CUtlVector<CClientCommandMenu *> m_pSubMenus;
+	bool m_bIsSubmenu;
+	char *m_szSubmenuName;
 } uiCommandMenu;
 
-void CClientCommandMenu::AddCustomButton( char *pName, char *pText )
+void CClientCommandMenu::VidInit()
+{
+	CMenuBaseClientWindow::VidInit();
+}
+
+CEventCallback CClientCommandMenu::ShowSubmenu( const char *szName )
+{
+	CClientCommandMenu *cmdMenu = NULL;
+
+	FOR_EACH_VEC( m_pSubMenus, i )
+	{
+		if ( !strcmp( m_pSubMenus[i]->m_szSubmenuName, szName ) )
+			cmdMenu = m_pSubMenus[i];
+	}
+
+	if ( !cmdMenu )
+	{
+		cmdMenu = new CClientCommandMenu();
+		cmdMenu->Init( szName );
+		m_pSubMenus.AddToTail( cmdMenu );
+	}
+
+	return CEventCallback( []( CMenuBaseItem *pSelf, void *pExtra )
+	{
+		CClientCommandMenu *cmdMenu = ( (CClientCommandMenu *)pExtra );
+		cmdMenu->SetSubmenuPosition( pSelf );
+		cmdMenu->Show();
+	}, (void *)cmdMenu );
+}
+
+void CClientCommandMenu::SetSubmenuPosition( CMenuBaseItem *pParent )
+{
+	pos.x = pParent->Parent()->size.w;
+	pos.y = pParent->pos.y;
+	while ( pos.y + BTN_HEIGHT > ScreenHeight )
+		pos.y -= BTN_HEIGHT;
+}
+
+void CClientCommandMenu::AddCustomButton( char *pName, char *pText, int iKeyBind )
 {
 	if ( !strcmp( pName, "!CHANGETEAM" ) )
 	{
-		/*
-		// ChangeTeam Submenu
-		pButton = new CommandButton(pButtonText, 0, BUTTON_SIZE_Y * 2, CMENU_SIZE_X, BUTTON_SIZE_Y);
+		AddButton( iKeyBind, StringCopy( pText ),
+			Point( 0, 0 ), ShowSubmenu( pName ) );
 
-		// Create the submenu
-		pMenu = CreateSubMenu(pButton, m_pCurrentCommandMenu, iYOffset );
-		m_pCommandMenus[m_iNumMenus] = pMenu;
-		m_iNumMenus++;
-
-		// ChangeTeam buttons
-		for (int i = 0; i < 4; i++)
+		CClientCommandMenu *cmdMenu;
+		FOR_EACH_VEC( m_pSubMenus, i )
 		{
-			char sz[256]; 
-			sprintf(sz, "jointeam %d", i+1);
-			m_pTeamButtons[i] = new TeamButton(i+1, "teamname", 0, BUTTON_SIZE_Y, CMENU_SIZE_X, BUTTON_SIZE_Y);
-			m_pTeamButtons[i]->addActionSignal(new CMenuHandler_StringCommandWatch( sz ));
-			pMenu->AddButton( m_pTeamButtons[i] ); 
+			if ( !strcmp( m_pSubMenus[i]->m_szSubmenuName, pName ) )
+				cmdMenu = m_pSubMenus[i];
 		}
 
-		// Auto Assign button
-		m_pTeamButtons[4] = new TeamButton(5, gHUD.m_TextMessage.BufferedLocaliseTextString( "#Team_AutoAssign" ), 0, BUTTON_SIZE_Y, CMENU_SIZE_X, BUTTON_SIZE_Y);
-		m_pTeamButtons[4]->addActionSignal(new CMenuHandler_StringCommand( "jointeam 5" ));
-		pMenu->AddButton( m_pTeamButtons[4] ); 
+		int iNumTeams = g_pClient->GetNumberOfTeams();
+		const char *szJoinCommands[] = { "jointeam 1", "jointeam 2", "jointeam 3", "jointeam 4" };
+		char **szTeamNames = g_pClient->GetTeamNames();
 
-		// Spectate button
-		m_pTeamButtons[5] = new SpectateButton( CHudTextMessage::BufferedLocaliseTextString( "#Menu_Spectate" ), 0, BUTTON_SIZE_Y, CMENU_SIZE_X, BUTTON_SIZE_Y, false);
-		m_pTeamButtons[5]->addActionSignal(new CMenuHandler_StringCommand( "spectate" ));
-		pMenu->AddButton( m_pTeamButtons[5] ); 
-		*/
+		for (int i = 0; i < iNumTeams; i++)
+		{
+			cmdMenu->AddButton( ( i + 1 ) + '0', L( szTeamNames[i] ),
+				Point( 0, 0 ), ExecAndHide( szJoinCommands[i] ) );
+		}
+
+		cmdMenu->AddButton( '5', L( "#Team_AutoAssign" ),
+			Point( 0, 0 ), ExecAndHide( "jointeam 5" ));
 	}
 	else if ( !strcmp( pName, "!CHANGECLASS" ) )
 	{
-		/*
-		// Create the Change class menu
-		pButton = new ClassButton(-1, pButtonText, 0, BUTTON_SIZE_Y, CMENU_SIZE_X, BUTTON_SIZE_Y, false);
+		AddButton( iKeyBind, StringCopy( pText ),
+			Point( 0, 0 ), ShowSubmenu( pName ) );
 
-		// ChangeClass Submenu
-		pMenu = CreateSubMenu(pButton, m_pCurrentCommandMenu, iYOffset );
-		m_pCommandMenus[m_iNumMenus] = pMenu;
-		m_iNumMenus++;
-
-		for (int i = PC_SCOUT; i <= PC_RANDOM; i++ )
+		CClientCommandMenu *cmdMenu;
+		FOR_EACH_VEC( m_pSubMenus, i )
 		{
-			char sz[256]; 
-
-			// ChangeClass buttons
-			CHudTextMessage::LocaliseTextString( sLocalisedClasses[i], sz, 256 );
-			ClassButton *pClassButton = new ClassButton( i, sz, 0, BUTTON_SIZE_Y, CMENU_SIZE_X, BUTTON_SIZE_Y, false);
-
-			sprintf(sz, "%s", sTFClassSelection[i]);
-			pClassButton->addActionSignal(new CMenuHandler_StringCommandClassSelect(sz));
-			pMenu->AddButton( pClassButton );
+			if ( !strcmp( m_pSubMenus[i]->m_szSubmenuName, pName ) )
+				cmdMenu = m_pSubMenus[i];
 		}
-		*/
+
+		const char *szCommands[] = { "scout", "sniper", "soldier", "demoman", "medic", "hwguy", "pyro", "spy", "engineer" };
+		const char *szLabels[] = { "#Scout", "#Sniper", "#Soldier", "#Demoman", "#Medic", "#HWGuy", "#Pyro", "#Spy", "#Engineer" };
+
+		for ( int i = 0; i < 9; i++ )
+		{
+			cmdMenu->AddButton( ( i + 1 ) + '0', L( szLabels[i] ),
+				Point( 0, 0 ), ExecAndHide( szCommands[i] ) );
+		}
+
+		cmdMenu->AddButton( '0', L( "#Random" ),
+			Point( 0, 0 ), ExecAndHide( szCommands[g_pClient->GetRandomClass() - 1] ) );
 	}
 	else if ( !strcmp( pName, "!MAPBRIEFING" ) )
 	{
@@ -132,18 +168,18 @@ void CClientCommandMenu::AddCustomButton( char *pName, char *pText )
 	}
 	else if ( !strcmp( pName, "!FEIGN" ) )
 	{
-		AddButton( 666, StringCopy( pText ),
-		Point( 0, 0 ), ExecAndHide( "feign" ) );
+		//AddButton( iKeyBind, StringCopy( pText ),
+		//Point( 0, 0 ), ExecAndHide( "feign" ) );
 	}
 	else if ( !strcmp( pName, "!FEIGNSILENT" ) )
 	{
-		AddButton( 666, StringCopy( pText ),
-		Point( 0, 0 ), ExecAndHide( "sfeign" ) );
+		//AddButton( iKeyBind, StringCopy( pText ),
+		//Point( 0, 0 ), ExecAndHide( "sfeign" ) );
 	}
 	else if ( !strcmp( pName, "!FEIGNSTOP" ) )
 	{
-		AddButton( 666, StringCopy( pText ),
-		Point( 0, 0 ), ExecAndHide( "feign" ) );
+		//AddButton( iKeyBind, StringCopy( pText ),
+		//Point( 0, 0 ), ExecAndHide( "feign" ) );
 	}
 	else if ( !strcmp( pName, "!DISGUISEENEMY" ) )
 	{
@@ -212,8 +248,8 @@ void CClientCommandMenu::AddCustomButton( char *pName, char *pText )
 	}
 	else if ( !strcmp( pName, "!DETPACKSTOP" ) )
 	{
-		AddButton( 666, StringCopy( pText ),
-		Point( 0, 0 ), ExecAndHide( "detstop" ) );
+		//AddButton( iKeyBind, StringCopy( pText ),
+		//Point( 0, 0 ), ExecAndHide( "detstop" ) );
 	}
 	else if ( !strcmp( pName, "!BUILD" ) )
 	{
@@ -224,83 +260,91 @@ void CClientCommandMenu::AddCustomButton( char *pName, char *pText )
 	}
 	else if ( !strcmp( pName, "!BUILDSENTRY" ) )
 	{
-		AddButton( 666, StringCopy( pText ),
-		Point( 0, 0 ), ExecAndHide( "build 2" ) );
+		//AddButton( iKeyBind, StringCopy( pText ),
+		//Point( 0, 0 ), ExecAndHide( "build 2" ) );
 	}
 	else if ( !strcmp( pName, "!BUILDDISPENSER" ) )
 	{
-		AddButton( 666, StringCopy( pText ),
-		Point( 0, 0 ), ExecAndHide( "build 1" ) );
+		//AddButton( iKeyBind, StringCopy( pText ),
+		//Point( 0, 0 ), ExecAndHide( "build 1" ) );
 	}
 	else if ( !strcmp( pName, "!ROTATESENTRY180" ) )
 	{
-		AddButton( 666, StringCopy( pText ),
-		Point( 0, 0 ), ExecAndHide( "rotatesentry180" ) );
+		//AddButton( iKeyBind, StringCopy( pText ),
+		//Point( 0, 0 ), ExecAndHide( "rotatesentry180" ) );
 	}
 	else if ( !strcmp( pName, "!ROTATESENTRY" ) )
 	{
-		AddButton( 666, StringCopy( pText ),
-		Point( 0, 0 ), ExecAndHide( "rotatesentry" ) );
+		//AddButton( iKeyBind, StringCopy( pText ),
+		//Point( 0, 0 ), ExecAndHide( "rotatesentry" ) );
 	}
 	else if ( !strcmp( pName, "!DISMANTLEDISPENSER" ) )
 	{
-		AddButton( 666, StringCopy( pText ),
-		Point( 0, 0 ), ExecAndHide( "dismantle 1" ) );
+		//AddButton( iKeyBind, StringCopy( pText ),
+		//Point( 0, 0 ), ExecAndHide( "dismantle 1" ) );
 	}
 	else if ( !strcmp( pName, "!DISMANTLESENTRY" ) )
 	{
-		AddButton( 666, StringCopy( pText ),
-		Point( 0, 0 ), ExecAndHide( "dismantle 2" ) );
+		//AddButton( iKeyBind, StringCopy( pText ),
+		//Point( 0, 0 ), ExecAndHide( "dismantle 2" ) );
 	}
 	else if ( !strcmp( pName, "!DETONATEDISPENSER" ) )
 	{
-		AddButton( 666, StringCopy( pText ),
-		Point( 0, 0 ), ExecAndHide( "detdispenser" ) );
+		//AddButton( iKeyBind, StringCopy( pText ),
+		//Point( 0, 0 ), ExecAndHide( "detdispenser" ) );
 	}
 	else if ( !strcmp( pName, "!DETONATESENTRY" ) )
 	{
-		AddButton( 666, StringCopy( pText ),
-		Point( 0, 0 ), ExecAndHide( "detsentry" ) );
+		//AddButton( iKeyBind, StringCopy( pText ),
+		//Point( 0, 0 ), ExecAndHide( "detsentry" ) );
 	}
 	else if ( !strcmp( pName, "!BUILDENTRYTELEPORTER" ) )
 	{
-		AddButton( 666, StringCopy( pText ),
-		Point( 0, 0 ), ExecAndHide( "build 4" ) );
+		//AddButton( iKeyBind, StringCopy( pText ),
+		//Point( 0, 0 ), ExecAndHide( "build 4" ) );
 	}
 	else if ( !strcmp( pName, "!DISMANTLEENTRYTELEPORTER" ) )
 	{
-		AddButton( 666, StringCopy( pText ),
-		Point( 0, 0 ), ExecAndHide( "dismantle 4" ) );
+		//AddButton( iKeyBind, StringCopy( pText ),
+		//Point( 0, 0 ), ExecAndHide( "dismantle 4" ) );
 	}
 	else if ( !strcmp( pName, "!DETONATEENTRYTELEPORTER" ) )
 	{
-		AddButton( 666, StringCopy( pText ),
-		Point( 0, 0 ), ExecAndHide( "detentryteleporter" ) );
+		//AddButton( iKeyBind, StringCopy( pText ),
+		//Point( 0, 0 ), ExecAndHide( "detentryteleporter" ) );
 	}
 	else if ( !strcmp( pName, "!BUILDEXITTELEPORTER" ) )
 	{
-		AddButton( 666, StringCopy( pText ),
-		Point( 0, 0 ), ExecAndHide( "build 5" ) );
+		//AddButton( iKeyBind, StringCopy( pText ),
+		//Point( 0, 0 ), ExecAndHide( "build 5" ) );
 	}
 	else if ( !strcmp( pName, "!DISMANTLEEXITTELEPORTER" ) )
 	{
-		AddButton( 666, StringCopy( pText ),
-		Point( 0, 0 ), ExecAndHide( "dismantle 5" ) );
+		//AddButton( iKeyBind, StringCopy( pText ),
+		//Point( 0, 0 ), ExecAndHide( "dismantle 5" ) );
 	}	
 	else if ( !strcmp( pName, "!DETONATEEXITTELEPORTER" ) )
 	{
-		AddButton( 666, StringCopy( pText ),
-		Point( 0, 0 ), ExecAndHide( "detexitteleporter" ) );
+		//AddButton( iKeyBind, StringCopy( pText ),
+		//Point( 0, 0 ), ExecAndHide( "detexitteleporter" ) );
 	}
 	else if ( !strcmp( pName, "!BUILDSTOP" ) )
 	{
-		AddButton( 666, StringCopy( pText ),
-		Point( 0, 0 ), ExecAndHide( "build" ) );
+		//AddButton( iKeyBind, StringCopy( pText ),
+		//Point( 0, 0 ), ExecAndHide( "build" ) );
 	}
+}
+
+void CClientCommandMenu::Init( const char *szName )
+{
+	m_bInit = true;
+	m_bIsSubmenu = true;
+	m_szSubmenuName = StringCopy( szName );
 }
 
 void CClientCommandMenu::_Init()
 {
+	m_bIsSubmenu = false;
 	char sToken[1024];
 	char *pFile = (char*)EngFuncs::COM_LoadFile( "commandmenu.txt", NULL );
 	pFile = EngFuncs::COM_ParseFile( pFile, sToken );
@@ -309,14 +353,14 @@ void CClientCommandMenu::_Init()
 	{
 		while ( sToken[0] != '}' && strlen( sToken ) )
 		{
-			char sKeyBind[32];
+			int iKeyBind;
 			char sText[32];
 			char sCommand[32];
 			char sMap[32];
 			int iTeam;
 			int iClass;
 			int iButtonType;
-			bool bIsSubMenu = true;
+			bool bIsSubmenu = true;
 
 			if ( !strcmp( sToken, "CUSTOM" ) )
 			{
@@ -355,7 +399,7 @@ void CClientCommandMenu::_Init()
 				}
 			}
 
-			strcpy( sKeyBind, sToken );
+			iKeyBind = atoi( sToken ) + '0';
 
 			pFile = EngFuncs::COM_ParseFile( pFile, sToken );
 			strcpy( sText, sToken );
@@ -363,15 +407,17 @@ void CClientCommandMenu::_Init()
 			pFile = EngFuncs::COM_ParseFile( pFile, sToken );
 			strcpy( sCommand, sToken );
 
+			Con_Printf( "CmdMenuBtn: %i %s %s\n", iKeyBind, sCommand, sText );
+
 			if ( iButtonType == BTN_CUSTOM )
 			{
-				AddCustomButton( sCommand, sText );
+				AddCustomButton( sCommand, sText , iKeyBind);
 				pFile = EngFuncs::COM_ParseFile( pFile, sToken );
 
 				if ( sToken[0] == '{' )
 					strcpy( sCommand, sToken );
 				else
-					bIsSubMenu = false;
+					bIsSubmenu = false;
 			}
 			else if ( iButtonType == BTN_MAP )
 			{
@@ -393,9 +439,7 @@ void CClientCommandMenu::_Init()
 			{
 			}
 
-			Con_Printf( "CmdMenuBtn: %s %s %s\n", sKeyBind, sCommand, sText );
-
-			if ( bIsSubMenu )
+			if ( bIsSubmenu )
 			{
 				pFile = EngFuncs::COM_ParseFile( pFile, sToken );
 			}
@@ -403,30 +447,32 @@ void CClientCommandMenu::_Init()
 
 		pFile = EngFuncs::COM_ParseFile( pFile, sToken );
 	}
-
-	Reload();
 }
 
 void CClientCommandMenu::Draw()
 {
-	BaseClass::Draw();
+	CMenuBaseClientWindow::Draw();
 }
 
 void CClientCommandMenu::Reload()
 {
 	int iCount = m_pButtons.Count();
-	int iYOffset = ( 768 - ( iCount * BTN_HEIGHT ) ) / 2;
 
-	FOR_EACH_VEC(m_pButtons, i)
+	size.w = BTN_WIDTH;
+	size.h = iCount * BTN_HEIGHT;
+
+	if( !m_bIsSubmenu )
 	{
-		int x = m_pButtons[i]->pos.x;
-		m_pButtons[i]->pos = Point( x, iYOffset );
-		iYOffset += BTN_HEIGHT;
+		pos.x = 0;
+		pos.y = Max( ( 768 - size.h ) / 2, 0 );
 	}
 
-	Con_Printf( "BtnCount: %i\n", iCount );
-
-	BaseClass::Reload();
+	FOR_EACH_VEC ( m_pButtons, i )
+	{
+		m_pButtons[i]->pos.y = i * BTN_HEIGHT;
+	}
+	
+	BaseClass::Recalculate();
 }
 
 void UI_CommandMenu_Show( void )

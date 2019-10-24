@@ -21,7 +21,7 @@ INCLUDES = \
 	-I../../xash3d-fwgs/engine \
 	-I../../xash3d-fwgs/pm_shared
 
-FLAGS = -m32 -g -std=gnu++11 -fno-rtti
+FLAGS = -m32 -g -std=gnu++11 -DMAINUI_USE_STB -DMAINUI_USE_CUSTOM_FONT_RENDER -DNO_STL -fno-rtti -fno-exceptions
 OBJS = $(CPP_SOURCES:.cpp=.o)
 
 %.o : %.cpp

@@ -61,6 +61,7 @@ public:
 	bool KeyDown( int key );
 	void VidInit() override;
 	void Draw() override;
+	void Recalculate();
 	CEventCallback keys[10];
 
 protected:

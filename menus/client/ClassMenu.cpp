@@ -27,8 +27,8 @@ void CClientClassMenu::_Init()
 		iYOffset += BTN_HEIGHT + BTN_GAP;
 	}
 
-	AddButton( '5', L( "#Random" ),
-		Point( 0, iYOffset ), ExecAndHide( szCommands[g_pClient->GetRandomClass() - 1] ));
+	AddButton( '0', L( "#Random" ),
+		Point( 0, iYOffset ), ExecAndHide( szCommands[g_pClient->GetRandomClass() - 1] ) );
 
 	szTitle = L( "#Title_SelectYourClass" );
 }
