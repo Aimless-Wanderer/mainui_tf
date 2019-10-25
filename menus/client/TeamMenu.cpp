@@ -22,6 +22,8 @@ void CClientTeamMenu::_Init()
 
 	for ( int i = 0; i < iNumTeams; i++ )
 	{
+		char *cmd = new char[16];
+		sprintf( cmd, "jointeam %i", i + 1 );
 		AddButton( ( i + 1 ) + '0', L( szTeamNames[i] ),
 			Point( 0, iYOffset ), ExecAndHide( szJoinCommands[i] ) );
 		iYOffset += BTN_HEIGHT + BTN_GAP;

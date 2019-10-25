@@ -1,6 +1,46 @@
 #include "BaseMenu.h"
 #include "ClientWindow.h"
 
+CClientWindow::~CClientWindow()
+{
+	FOR_EACH_VEC( m_pButtons, i )
+	{
+		delete m_pButtons[i];
+	}
+}
+
+void CClientWindow::Show()
+{
+	if( !m_pStack->IsActive() )
+	{
+		EngFuncs::KEY_SetDest( KEY_MENU );
+		EngFuncs::ClientCmd( TRUE, "touch_setclientonly 1");
+	}
+	
+	BaseClass::Show();
+}
+
+void CClientWindow::Hide()
+{		
+	BaseClass::Hide();
+	m_pStack->Clean();
+	
+	if( !m_pStack->IsActive() )
+	{
+		EngFuncs::KEY_SetDest( KEY_GAME );
+		EngFuncs::ClientCmd( FALSE, "touch_setclientonly 0");
+	}
+}
+
+CEventCallback CClientWindow::ExecAndHide( const char *szCmd )
+{
+	return CEventCallback( []( CMenuBaseItem *pSelf, void *pExtra )
+	{
+		pSelf->Parent()->Hide();
+		EngFuncs::ClientCmd( FALSE, (const char*)pExtra );
+	}, (void *)szCmd );
+}
+
 void CClientWindow::VidInit()
 {
 	size.w = 800;
@@ -9,14 +49,6 @@ void CClientWindow::VidInit()
 	pos.y = 84;
 
 	BaseClass::VidInit();
-}
-
-void CClientWindow::Recalculate()
-{
-	CalcPosition();
-	CalcSizes();
-	CalcItemsPositions();
-	CalcItemsSizes();
 }
 
 void CClientWindow::Draw()

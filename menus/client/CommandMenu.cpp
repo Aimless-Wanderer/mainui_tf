@@ -46,6 +46,7 @@ private:
 
 void CClientCommandMenu::VidInit()
 {
+	Reload();
 	CMenuBaseClientWindow::VidInit();
 }
 
@@ -102,6 +103,8 @@ void CClientCommandMenu::AddCustomButton( char *pName, char *pText, int iKeyBind
 
 		for (int i = 0; i < iNumTeams; i++)
 		{
+			char *cmd = new char[16];
+			sprintf( cmd, "jointeam %i", i + 1 );
 			cmdMenu->AddButton( ( i + 1 ) + '0', L( szTeamNames[i] ),
 				Point( 0, 0 ), ExecAndHide( szJoinCommands[i] ) );
 		}
@@ -121,17 +124,14 @@ void CClientCommandMenu::AddCustomButton( char *pName, char *pText, int iKeyBind
 				cmdMenu = m_pSubMenus[i];
 		}
 
-		const char *szCommands[] = { "scout", "sniper", "soldier", "demoman", "medic", "hwguy", "pyro", "spy", "engineer" };
-		const char *szLabels[] = { "#Scout", "#Sniper", "#Soldier", "#Demoman", "#Medic", "#HWGuy", "#Pyro", "#Spy", "#Engineer" };
-
 		for ( int i = 0; i < 9; i++ )
 		{
-			cmdMenu->AddButton( ( i + 1 ) + '0', L( szLabels[i] ),
-				Point( 0, 0 ), ExecAndHide( szCommands[i] ) );
+			cmdMenu->AddButton( ( i + 1 ) + '0', L( szClassLabels[i] ),
+				Point( 0, 0 ), ExecAndHide( szClassCommands[i] ) );
 		}
 
 		cmdMenu->AddButton( '0', L( "#Random" ),
-			Point( 0, 0 ), ExecAndHide( szCommands[g_pClient->GetRandomClass() - 1] ) );
+			Point( 0, 0 ), ExecAndHide( szClassCommands[g_pClient->GetRandomClass() - 1] ) );
 	}
 	else if ( !strcmp( pName, "!MAPBRIEFING" ) )
 	{
@@ -471,8 +471,8 @@ void CClientCommandMenu::Reload()
 	{
 		m_pButtons[i]->pos.y = i * BTN_HEIGHT;
 	}
-	
-	BaseClass::Recalculate();
+
+	BaseClass::Reload();
 }
 
 void UI_CommandMenu_Show( void )
