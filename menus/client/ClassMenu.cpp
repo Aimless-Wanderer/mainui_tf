@@ -3,6 +3,10 @@
 #include "ScrollView.h"
 #include "ClientWindow.h"
 
+const char *szClassCommands[] = { "scout", "sniper", "soldier", "demoman", "medic", "hwguy", "pyro", "spy", "engineer" };
+const char *szClassLabels[] = { "#Scout", "#Sniper", "#Soldier", "#Demoman", "#Medic", "#HWGuy", "#Pyro", "#Spy", "#Engineer" };
+const char *szClassNames[] = { "SCOUT", "SNIPER", "SOLDIER", "DEMOMAN", "MEDIC", "HWGUY", "PYRO", "SPY", "ENGINEER", "CIVILIAN" };
+
 static class CClientClassMenu : public CClientWindow
 {
 public:
@@ -17,18 +21,15 @@ void CClientClassMenu::_Init()
 {
 	int iYOffset = 80;
 
-	const char *szCommands[] = { "scout", "sniper", "soldier", "demoman", "medic", "hwguy", "pyro", "spy", "engineer" };
-	const char *szLabels[] = { "#Scout", "#Sniper", "#Soldier", "#Demoman", "#Medic", "#HWGuy", "#Pyro", "#Spy", "#Engineer" };
-
 	for ( int i = 0; i < 9; i++ )
 	{
-		AddButton( ( i + 1 ) + '0', L( szLabels[i] ),
-			Point( 0, iYOffset ), ExecAndHide( szCommands[i] ) );
+		AddButton( ( i + 1 ) + '0', L( szClassLabels[i] ),
+			Point( 0, iYOffset ), ExecAndHide( szClassCommands[i] ) );
 		iYOffset += BTN_HEIGHT + BTN_GAP;
 	}
 
 	AddButton( '0', L( "#Random" ),
-		Point( 0, iYOffset ), ExecAndHide( szCommands[g_pClient->GetRandomClass() - 1] ) );
+		Point( 0, iYOffset ), ExecAndHide( szClassCommands[g_pClient->GetRandomClass() - 1] ) );
 
 	szTitle = L( "#Title_SelectYourClass" );
 }

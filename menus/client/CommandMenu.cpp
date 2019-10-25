@@ -3,17 +3,6 @@
 #include "ScrollView.h"
 #include "ClientWindow.h"
 
-const char *szClasses[] = { "SCOUT", "SNIPER", "SOLDIER", "DEMOMAN", "MEDIC", "HWGUY", "PYRO", "SPY", "ENGINEER", "CIVILIAN" };
-
-enum
-{
-	BTN_CUSTOM,
-	BTN_MAP,
-	BTN_TEAM,
-	BTN_TOGGLE,
-	BTN_CLASS
-};
-
 static class CClientCommandMenu : public CClientWindow
 {
 public:
@@ -98,15 +87,18 @@ void CClientCommandMenu::AddCustomButton( char *pName, char *pText, int iKeyBind
 		}
 
 		int iNumTeams = g_pClient->GetNumberOfTeams();
-		const char *szJoinCommands[] = { "jointeam 1", "jointeam 2", "jointeam 3", "jointeam 4" };
 		char **szTeamNames = g_pClient->GetTeamNames();
 
 		for (int i = 0; i < iNumTeams; i++)
 		{
+<<<<<<< HEAD
 			char *cmd = new char[16];
+=======
+			char cmd[16];
+>>>>>>> 6003d5686a7811ff69521eebb63b10446c030091
 			sprintf( cmd, "jointeam %i", i + 1 );
 			cmdMenu->AddButton( ( i + 1 ) + '0', L( szTeamNames[i] ),
-				Point( 0, 0 ), ExecAndHide( szJoinCommands[i] ) );
+				Point( 0, 0 ), ExecAndHide( cmd ) );
 		}
 
 		cmdMenu->AddButton( '5', L( "#Team_AutoAssign" ),
@@ -389,7 +381,7 @@ void CClientCommandMenu::_Init()
 			{
 				for ( int i = 0; i <= 9; i++ )
 				{
-					if ( !strcmp( sToken, szClasses[i] ) )
+					if ( !strcmp( sToken, szClassNames[i] ) )
 					{
 						iButtonType = BTN_CLASS;
 						iClass = i;

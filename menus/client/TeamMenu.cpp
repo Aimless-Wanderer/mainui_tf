@@ -18,14 +18,17 @@ void CClientTeamMenu::_Init()
 	int iYOffset = 80;
 	int iNumTeams = g_pClient->GetNumberOfTeams();
 	char **szTeamNames = g_pClient->GetTeamNames();
-	const char *szJoinCommands[] = { "jointeam 1", "jointeam 2", "jointeam 3", "jointeam 4" };
 
 	for ( int i = 0; i < iNumTeams; i++ )
 	{
+<<<<<<< HEAD
 		char *cmd = new char[16];
+=======
+		char cmd[16];
+>>>>>>> 6003d5686a7811ff69521eebb63b10446c030091
 		sprintf( cmd, "jointeam %i", i + 1 );
 		AddButton( ( i + 1 ) + '0', L( szTeamNames[i] ),
-			Point( 0, iYOffset ), ExecAndHide( szJoinCommands[i] ) );
+			Point( 0, iYOffset ), ExecAndHide( cmd ) );
 		iYOffset += BTN_HEIGHT + BTN_GAP;
 	}
 
