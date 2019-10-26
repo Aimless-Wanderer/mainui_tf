@@ -67,9 +67,7 @@ CEventCallback CClientCommandMenu::ShowSubmenu( const char *szName )
 void CClientCommandMenu::SetSubmenuPosition( CMenuBaseItem *pParent )
 {
 	pos.x = pParent->Parent()->size.w;
-	pos.y = pParent->pos.y;
-	while ( pos.y + BTN_HEIGHT > ScreenHeight )
-		pos.y -= BTN_HEIGHT;
+	pos.y = pParent->Parent()->pos.y + pParent->pos.y;
 }
 
 void CClientCommandMenu::AddCustomButton( char *pName, char *pText, int iKeyBind )
