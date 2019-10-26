@@ -2,10 +2,42 @@
 # encoding: utf-8
 # a1batross, mittorn, 2018
 
-from waflib import Logs
+from waflib import Logs, Configure
 import os
 
 top = '.'
+
+FT2_CHECK='''extern "C" {
+#include <ft2build.h>
+#include FT_FREETYPE_H
+}
+
+int main() { return FT_Init_FreeType( NULL ); }
+'''
+
+FC_CHECK='''extern "C" {
+#include <fontconfig/fontconfig.h>
+}
+
+int main() { return (int)FcInit(); }
+'''
+
+@Configure.conf
+def check_pkg(conf, package, uselib_store, fragment, *k, **kw):
+	errormsg = '{0} not available! Install {0} development package. Also you may need to set PKG_CONFIG_PATH environment variable'.format(package)
+	confmsg = 'Checking for \'{0}\' sanity'.format(package)
+	errormsg2 = '{0} isn\'t installed correctly. Make sure you installed proper development package for target architecture'.format(package)
+
+	try:
+		conf.check_cfg(package=package, args='--cflags --libs', uselib_store=uselib_store, *k, **kw )
+	except conf.errors.ConfigurationError:
+		conf.fatal(errormsg)
+
+	try:
+		conf.check_cxx(fragment=fragment, use=uselib_store, msg=confmsg, *k, **kw)
+	except conf.errors.ConfigurationError:
+		conf.fatal(errormsg2)
+
 
 def options(opt):
 	grp = opt.add_option_group('MainUI C++ options')
@@ -16,9 +48,9 @@ def options(opt):
 
 def configure(conf):
 	# conf.env.CXX11_MANDATORY = False
-	conf.load('fwgslib cxx11')
+	conf.load('fwgslib')
 	if not conf.env.HAVE_CXX11:
-		conf.define('MY_COMPILER_SUCKS')
+		conf.define('MY_COMPILER_SUCKS', 1)
 
 	conf.env.USE_STBTT = conf.options.USE_STBTT
 	conf.define('MAINUI_USE_CUSTOM_FONT_RENDER', 1)
@@ -30,6 +62,9 @@ def configure(conf):
 
 	conf.env.append_unique('CXXFLAGS', conf.get_flags_by_compiler(nortti, conf.env.COMPILER_CC))
 
+	if conf.env.DEST_OS == 'linux':
+		conf.check_cxx(lib='rt')
+
 	if conf.env.DEST_OS == 'darwin' or conf.env.DEST_OS == 'android':
 		conf.env.USE_STBTT = True
 		conf.define('MAINUI_USE_STB', 1)
@@ -40,16 +75,8 @@ def configure(conf):
 
 	if conf.env.DEST_OS != 'win32':
 		if not conf.env.USE_STBTT:
-			errormsg = '{0} not available! Install {0} development package. Also you may need to set PKG_CONFIG_PATH environment variable'
-
-			try:
-				conf.check_cfg(package='freetype2', args='--cflags --libs', uselib_store='FT2' )
-			except conf.errors.ConfigurationError:
-				conf.fatal(errormsg.format('freetype2'))
-			try:
-				conf.check_cfg(package='fontconfig', args='--cflags --libs', uselib_store='FC')
-			except conf.errors.ConfigurationError:
-				conf.fatal(errormsg.format('fontconfig'))
+			conf.check_pkg('freetype2', 'FT2', FT2_CHECK)
+			conf.check_pkg('fontconfig', 'FC', FC_CHECK)
 			conf.define('MAINUI_USE_FREETYPE', 1)
 
 def build(bld):
@@ -61,6 +88,9 @@ def build(bld):
 			libs += ['FT2', 'FC']
 	else:
 		libs += ['GDI32', 'USER32']
+
+	if bld.env.DEST_OS == 'linux':
+		libs += ['RT']
 
 	source = bld.path.ant_glob([
 		'*.cpp',
