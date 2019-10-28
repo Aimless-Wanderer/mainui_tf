@@ -44,34 +44,7 @@ void CClientCommandMenu::VidInit()
 
 CMenuAction *CClientCommandMenu::AddButton( int key, const char *name, CEventCallback callback )
 {
-	CMenuAction *act = new CMenuAction();
-
-	act->pos = Point( 0, 0 );
-	act->onPressed = callback;
-	act->SetBackground( PackRGBA( 0, 0, 0, 0 ), PackRGBA( 156, 77, 20, 128 ) );
-
-	if( *name == '&' ) // fast hack
-		name++;
-		
-	act->szName = name;
-	act->SetCharSize( QM_DEFAULTFONT );
-	act->eTextAlignment = QM_LEFT | QM_CENTER;
-
-	act->m_bLimitBySize = true;
-	act->size = Size( BTN_WIDTH, BTN_HEIGHT );
-
-	act->bDrawStroke = true;
-	act->iStrokeWidth = 1;
-	act->colorStroke = PackRGBA( 156, 77, 20, 200 );
-
-	if( key >= '0' && key <= '9' )
-		keys[key - '0'] = callback;
-
-	m_pButtons.AddToTail( act );
-
-	AddItem( act );
-
-	return act;
+	return CClientWindow::AddButton( key, name, Point( 0, 0 ), callback);
 }
 
 CEventCallback CClientCommandMenu::ShowSubmenu( const char *szName )
