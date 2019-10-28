@@ -75,6 +75,11 @@ bool CClientWindow::KeyDown( int key )
 	return BaseClass::KeyDown( key );
 }
 
+bool CClientWindow::KeyUp( int key )
+{
+	return false;
+}
+
 CMenuAction *CClientWindow::AddButton( int key, const char *name, Point pos, CEventCallback callback )
 {
 	CMenuAction *act = new CMenuAction();

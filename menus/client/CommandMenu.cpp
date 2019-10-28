@@ -29,6 +29,9 @@ private:
 	CEventCallback ShowSubmenu( const char *szName );
 	void SetSubmenuPosition( CMenuBaseItem *pParent );
 	CUtlVector<CClientCommandMenu *> m_pSubMenus;
+	CClientCommandMenu *GetSubmenu( const char *szName );
+	CMenuAction *AddButton( int key, const char *name, CEventCallback callback );
+
 	bool m_bIsSubmenu;
 	char *m_szSubmenuName;
 } uiCommandMenu;
@@ -39,15 +42,41 @@ void CClientCommandMenu::VidInit()
 	CMenuBaseClientWindow::VidInit();
 }
 
+CMenuAction *CClientCommandMenu::AddButton( int key, const char *name, CEventCallback callback )
+{
+	CMenuAction *act = new CMenuAction();
+
+	act->pos = Point( 0, 0 );
+	act->onPressed = callback;
+	act->SetBackground( PackRGBA( 0, 0, 0, 0 ), PackRGBA( 156, 77, 20, 128 ) );
+
+	if( *name == '&' ) // fast hack
+		name++;
+		
+	act->szName = name;
+	act->SetCharSize( QM_DEFAULTFONT );
+	act->eTextAlignment = QM_LEFT | QM_CENTER;
+
+	act->m_bLimitBySize = true;
+	act->size = Size( BTN_WIDTH, BTN_HEIGHT );
+
+	act->bDrawStroke = true;
+	act->iStrokeWidth = 1;
+	act->colorStroke = PackRGBA( 156, 77, 20, 200 );
+
+	if( key >= '0' && key <= '9' )
+		keys[key - '0'] = callback;
+
+	m_pButtons.AddToTail( act );
+
+	AddItem( act );
+
+	return act;
+}
+
 CEventCallback CClientCommandMenu::ShowSubmenu( const char *szName )
 {
-	CClientCommandMenu *cmdMenu = NULL;
-
-	FOR_EACH_VEC( m_pSubMenus, i )
-	{
-		if ( !strcmp( m_pSubMenus[i]->m_szSubmenuName, szName ) )
-			cmdMenu = m_pSubMenus[i];
-	}
+	CClientCommandMenu *cmdMenu = GetSubmenu( szName );
 
 	if ( !cmdMenu )
 	{
@@ -64,6 +93,17 @@ CEventCallback CClientCommandMenu::ShowSubmenu( const char *szName )
 	}, (void *)cmdMenu );
 }
 
+CClientCommandMenu *CClientCommandMenu::GetSubmenu( const char *szName )
+{
+	FOR_EACH_VEC( m_pSubMenus, i )
+	{
+		if ( !strcmp( m_pSubMenus[i]->m_szSubmenuName, szName ) )
+			return m_pSubMenus[i];
+	}
+
+	return NULL;
+}
+
 void CClientCommandMenu::SetSubmenuPosition( CMenuBaseItem *pParent )
 {
 	pos.x = pParent->Parent()->size.w;
@@ -74,16 +114,9 @@ void CClientCommandMenu::AddCustomButton( char *pName, char *pText, int iKeyBind
 {
 	if ( !strcmp( pName, "!CHANGETEAM" ) )
 	{
-		AddButton( iKeyBind, StringCopy( pText ),
-			Point( 0, 0 ), ShowSubmenu( pName ) );
+		AddButton( iKeyBind, StringCopy( pText ), ShowSubmenu( pName ) );
 
-		CClientCommandMenu *cmdMenu;
-		FOR_EACH_VEC( m_pSubMenus, i )
-		{
-			if ( !strcmp( m_pSubMenus[i]->m_szSubmenuName, pName ) )
-				cmdMenu = m_pSubMenus[i];
-		}
-
+		CClientCommandMenu *cmdMenu = GetSubmenu( pName );
 		int iNumTeams = g_pClient->GetNumberOfTeams();
 		char **szTeamNames = g_pClient->GetTeamNames();
 
@@ -91,33 +124,23 @@ void CClientCommandMenu::AddCustomButton( char *pName, char *pText, int iKeyBind
 		{
 			char *cmd = new char[16];
 			sprintf( cmd, "jointeam %i", i + 1 );
-			cmdMenu->AddButton( ( i + 1 ) + '0', L( szTeamNames[i] ),
-				Point( 0, 0 ), ExecAndHide( cmd ) );
+			cmdMenu->AddButton( ( i + 1 ) + '0', L( szTeamNames[i] ), ExecAndHide( cmd ) );
 		}
 
-		cmdMenu->AddButton( '5', L( "#Team_AutoAssign" ),
-			Point( 0, 0 ), ExecAndHide( "jointeam 5" ));
+		cmdMenu->AddButton( '5', L( "#Team_AutoAssign" ), ExecAndHide( "jointeam 5" ));
 	}
 	else if ( !strcmp( pName, "!CHANGECLASS" ) )
 	{
-		AddButton( iKeyBind, StringCopy( pText ),
-			Point( 0, 0 ), ShowSubmenu( pName ) );
+		AddButton( iKeyBind, StringCopy( pText ), ShowSubmenu( pName ) );
 
-		CClientCommandMenu *cmdMenu;
-		FOR_EACH_VEC( m_pSubMenus, i )
-		{
-			if ( !strcmp( m_pSubMenus[i]->m_szSubmenuName, pName ) )
-				cmdMenu = m_pSubMenus[i];
-		}
+		CClientCommandMenu *cmdMenu = GetSubmenu( pName );
 
 		for ( int i = 0; i < 9; i++ )
 		{
-			cmdMenu->AddButton( ( i + 1 ) + '0', L( szClassLabels[i] ),
-				Point( 0, 0 ), ExecAndHide( szClassCommands[i] ) );
+			cmdMenu->AddButton( ( i + 1 ) + '0', L( szClassLabels[i] ), ExecAndHide( szClassCommands[i] ) );
 		}
 
-		cmdMenu->AddButton( '0', L( "#Random" ),
-			Point( 0, 0 ), ExecAndHide( szClassCommands[g_pClient->GetRandomClass() - 1] ) );
+		cmdMenu->AddButton( '0', L( "#Random" ), ExecAndHide( szClassCommands[g_pClient->GetRandomClass() - 1] ) );
 	}
 	else if ( !strcmp( pName, "!MAPBRIEFING" ) )
 	{
@@ -154,18 +177,15 @@ void CClientCommandMenu::AddCustomButton( char *pName, char *pText, int iKeyBind
 	}
 	else if ( !strcmp( pName, "!FEIGN" ) )
 	{
-		//AddButton( iKeyBind, StringCopy( pText ),
-		//Point( 0, 0 ), ExecAndHide( "feign" ) );
+		AddButton( iKeyBind, StringCopy( pText ), ExecAndHide( "feign" ) );
 	}
 	else if ( !strcmp( pName, "!FEIGNSILENT" ) )
 	{
-		//AddButton( iKeyBind, StringCopy( pText ),
-		//Point( 0, 0 ), ExecAndHide( "sfeign" ) );
+		AddButton( iKeyBind, StringCopy( pText ), ExecAndHide( "sfeign" ) );
 	}
 	else if ( !strcmp( pName, "!FEIGNSTOP" ) )
 	{
-		//AddButton( iKeyBind, StringCopy( pText ),
-		//Point( 0, 0 ), ExecAndHide( "feign" ) );
+		AddButton( iKeyBind, StringCopy( pText ), ExecAndHide( "feign" ) );
 	}
 	else if ( !strcmp( pName, "!DISGUISEENEMY" ) )
 	{
@@ -234,8 +254,7 @@ void CClientCommandMenu::AddCustomButton( char *pName, char *pText, int iKeyBind
 	}
 	else if ( !strcmp( pName, "!DETPACKSTOP" ) )
 	{
-		//AddButton( iKeyBind, StringCopy( pText ),
-		//Point( 0, 0 ), ExecAndHide( "detstop" ) );
+		AddButton( iKeyBind, StringCopy( pText ), ExecAndHide( "detstop" ) );
 	}
 	else if ( !strcmp( pName, "!BUILD" ) )
 	{
@@ -246,78 +265,63 @@ void CClientCommandMenu::AddCustomButton( char *pName, char *pText, int iKeyBind
 	}
 	else if ( !strcmp( pName, "!BUILDSENTRY" ) )
 	{
-		//AddButton( iKeyBind, StringCopy( pText ),
-		//Point( 0, 0 ), ExecAndHide( "build 2" ) );
+		AddButton( iKeyBind, StringCopy( pText ), ExecAndHide( "build 2" ) );
 	}
 	else if ( !strcmp( pName, "!BUILDDISPENSER" ) )
 	{
-		//AddButton( iKeyBind, StringCopy( pText ),
-		//Point( 0, 0 ), ExecAndHide( "build 1" ) );
+		AddButton( iKeyBind, StringCopy( pText ), ExecAndHide( "build 1" ) );
 	}
 	else if ( !strcmp( pName, "!ROTATESENTRY180" ) )
 	{
-		//AddButton( iKeyBind, StringCopy( pText ),
-		//Point( 0, 0 ), ExecAndHide( "rotatesentry180" ) );
+		AddButton( iKeyBind, StringCopy( pText ), ExecAndHide( "rotatesentry180" ) );
 	}
 	else if ( !strcmp( pName, "!ROTATESENTRY" ) )
 	{
-		//AddButton( iKeyBind, StringCopy( pText ),
-		//Point( 0, 0 ), ExecAndHide( "rotatesentry" ) );
+		AddButton( iKeyBind, StringCopy( pText ), ExecAndHide( "rotatesentry" ) );
 	}
 	else if ( !strcmp( pName, "!DISMANTLEDISPENSER" ) )
 	{
-		//AddButton( iKeyBind, StringCopy( pText ),
-		//Point( 0, 0 ), ExecAndHide( "dismantle 1" ) );
+		AddButton( iKeyBind, StringCopy( pText ), ExecAndHide( "dismantle 1" ) );
 	}
 	else if ( !strcmp( pName, "!DISMANTLESENTRY" ) )
 	{
-		//AddButton( iKeyBind, StringCopy( pText ),
-		//Point( 0, 0 ), ExecAndHide( "dismantle 2" ) );
+		AddButton( iKeyBind, StringCopy( pText ), ExecAndHide( "dismantle 2" ) );
 	}
 	else if ( !strcmp( pName, "!DETONATEDISPENSER" ) )
 	{
-		//AddButton( iKeyBind, StringCopy( pText ),
-		//Point( 0, 0 ), ExecAndHide( "detdispenser" ) );
+		AddButton( iKeyBind, StringCopy( pText ), ExecAndHide( "detdispenser" ) );
 	}
 	else if ( !strcmp( pName, "!DETONATESENTRY" ) )
 	{
-		//AddButton( iKeyBind, StringCopy( pText ),
-		//Point( 0, 0 ), ExecAndHide( "detsentry" ) );
+		AddButton( iKeyBind, StringCopy( pText ), ExecAndHide( "detsentry" ) );
 	}
 	else if ( !strcmp( pName, "!BUILDENTRYTELEPORTER" ) )
 	{
-		//AddButton( iKeyBind, StringCopy( pText ),
-		//Point( 0, 0 ), ExecAndHide( "build 4" ) );
+		AddButton( iKeyBind, StringCopy( pText ), ExecAndHide( "build 4" ) );
 	}
 	else if ( !strcmp( pName, "!DISMANTLEENTRYTELEPORTER" ) )
 	{
-		//AddButton( iKeyBind, StringCopy( pText ),
-		//Point( 0, 0 ), ExecAndHide( "dismantle 4" ) );
+		AddButton( iKeyBind, StringCopy( pText ), ExecAndHide( "dismantle 4" ) );
 	}
 	else if ( !strcmp( pName, "!DETONATEENTRYTELEPORTER" ) )
 	{
-		//AddButton( iKeyBind, StringCopy( pText ),
-		//Point( 0, 0 ), ExecAndHide( "detentryteleporter" ) );
+		AddButton( iKeyBind, StringCopy( pText ), ExecAndHide( "detentryteleporter" ) );
 	}
 	else if ( !strcmp( pName, "!BUILDEXITTELEPORTER" ) )
 	{
-		//AddButton( iKeyBind, StringCopy( pText ),
-		//Point( 0, 0 ), ExecAndHide( "build 5" ) );
+		AddButton( iKeyBind, StringCopy( pText ), ExecAndHide( "build 5" ) );
 	}
 	else if ( !strcmp( pName, "!DISMANTLEEXITTELEPORTER" ) )
 	{
-		//AddButton( iKeyBind, StringCopy( pText ),
-		//Point( 0, 0 ), ExecAndHide( "dismantle 5" ) );
+		AddButton( iKeyBind, StringCopy( pText ), ExecAndHide( "dismantle 5" ) );
 	}	
 	else if ( !strcmp( pName, "!DETONATEEXITTELEPORTER" ) )
 	{
-		//AddButton( iKeyBind, StringCopy( pText ),
-		//Point( 0, 0 ), ExecAndHide( "detexitteleporter" ) );
+		AddButton( iKeyBind, StringCopy( pText ), ExecAndHide( "detexitteleporter" ) );
 	}
 	else if ( !strcmp( pName, "!BUILDSTOP" ) )
 	{
-		//AddButton( iKeyBind, StringCopy( pText ),
-		//Point( 0, 0 ), ExecAndHide( "build" ) );
+		AddButton( iKeyBind, StringCopy( pText ), ExecAndHide( "build" ) );
 	}
 }
 

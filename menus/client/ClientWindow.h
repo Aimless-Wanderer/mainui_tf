@@ -36,6 +36,7 @@ public:
 	CMenuAction *AddButton( int key, const char *name, Point pos, CEventCallback callback );
 
 	bool KeyDown( int key );
+	bool KeyUp( int key );
 	void VidInit() override;
 	void Draw() override;
 	CEventCallback keys[10];
