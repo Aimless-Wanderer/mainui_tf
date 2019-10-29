@@ -2,6 +2,7 @@
 #include "Action.h"
 #include "ScrollView.h"
 #include "ClientWindow.h"
+#include "CommandButton.h"
 
 static class CClientCommandMenu : public CClientWindow
 {
@@ -27,10 +28,9 @@ private:
 	void AddCustomButton( char *pName, char *pText, int iKeyBind );
 
 	CEventCallback ShowSubmenu( const char *szName );
-	void SetSubmenuPosition( CMenuBaseItem *pParent );
 	CUtlVector<CClientCommandMenu *> m_pSubMenus;
 	CClientCommandMenu *GetSubmenu( const char *szName );
-	CMenuAction *AddButton( int key, const char *name, CEventCallback callback );
+	CCommandButton *AddButton( int key, const char *name, CEventCallback callback );
 
 	bool m_bIsSubmenu;
 	char *m_szSubmenuName;
@@ -42,9 +42,38 @@ void CClientCommandMenu::VidInit()
 	CMenuBaseClientWindow::VidInit();
 }
 
-CMenuAction *CClientCommandMenu::AddButton( int key, const char *name, CEventCallback callback )
+CCommandButton *CClientCommandMenu::AddButton( int key, const char *name, CEventCallback callback )
 {
-	return CClientWindow::AddButton( key, name, Point( 0, 0 ), callback);
+	CCommandButton *button = new CCommandButton();
+
+	button->pos = Point( 0, 0 );
+	button->onPressed = callback;
+	button->SetBackground( PackRGBA( 0, 0, 0, 0 ), PackRGBA( 156, 77, 20, 128 ) );
+
+	if( *name == '&' )
+		name++;
+		
+	button->szName = name;
+	button->SetCharSize( QM_DEFAULTFONT );
+	button->eTextAlignment = QM_LEFT | QM_CENTER;
+
+	button->m_bLimitBySize = true;
+	button->size = Size( BTN_WIDTH, BTN_HEIGHT );
+
+	button->bDrawStroke = true;
+	button->iStrokeWidth = 1;
+	button->colorStroke = PackRGBA( 156, 77, 20, 200 );
+
+	if( key >= '0' && key <= '9' )
+		keys[key - '0'] = callback;
+
+	m_pButtons.AddToTail( button );
+
+	button->m_iPlayerClass = g_pClient->GetPlayerClass();
+
+	AddItem( button );
+
+	return button;
 }
 
 CEventCallback CClientCommandMenu::ShowSubmenu( const char *szName )
@@ -61,7 +90,8 @@ CEventCallback CClientCommandMenu::ShowSubmenu( const char *szName )
 	return CEventCallback( []( CMenuBaseItem *pSelf, void *pExtra )
 	{
 		CClientCommandMenu *cmdMenu = ( (CClientCommandMenu *)pExtra );
-		cmdMenu->SetSubmenuPosition( pSelf );
+		cmdMenu->pos.x = pSelf->Parent()->size.w;
+		cmdMenu->pos.y = pSelf->Parent()->pos.y + pSelf->pos.y;
 		cmdMenu->Show();
 	}, (void *)cmdMenu );
 }
@@ -77,12 +107,6 @@ CClientCommandMenu *CClientCommandMenu::GetSubmenu( const char *szName )
 	return NULL;
 }
 
-void CClientCommandMenu::SetSubmenuPosition( CMenuBaseItem *pParent )
-{
-	pos.x = pParent->Parent()->size.w;
-	pos.y = pParent->Parent()->pos.y + pParent->pos.y;
-}
-
 void CClientCommandMenu::AddCustomButton( char *pName, char *pText, int iKeyBind )
 {
 	if ( !strcmp( pName, "!CHANGETEAM" ) )
@@ -93,11 +117,11 @@ void CClientCommandMenu::AddCustomButton( char *pName, char *pText, int iKeyBind
 		int iNumTeams = g_pClient->GetNumberOfTeams();
 		char **szTeamNames = g_pClient->GetTeamNames();
 
-		for (int i = 0; i < iNumTeams; i++)
+		for (int i = 1; i <= iNumTeams; i++)
 		{
 			char *cmd = new char[16];
-			sprintf( cmd, "jointeam %i", i + 1 );
-			cmdMenu->AddButton( ( i + 1 ) + '0', L( szTeamNames[i] ), ExecAndHide( cmd ) );
+			sprintf( cmd, "jointeam %i", i );
+			cmdMenu->AddButton( i  + '0', L( szTeamNames[i] ), ExecAndHide( cmd ) );
 		}
 
 		cmdMenu->AddButton( '5', L( "#Team_AutoAssign" ), ExecAndHide( "jointeam 5" ));
@@ -108,9 +132,9 @@ void CClientCommandMenu::AddCustomButton( char *pName, char *pText, int iKeyBind
 
 		CClientCommandMenu *cmdMenu = GetSubmenu( pName );
 
-		for ( int i = 0; i < 9; i++ )
+		for ( int i = PC_SCOUT; i < PC_ENGINEER; i++ )
 		{
-			cmdMenu->AddButton( ( i + 1 ) + '0', L( szClassLabels[i] ), ExecAndHide( szClassCommands[i] ) );
+			cmdMenu->AddButton( i + '0', L( szClassLabels[i] ), ExecAndHide( szClassCommands[i] ) );
 		}
 
 		cmdMenu->AddButton( '0', L( "#Random" ), ExecAndHide( szClassCommands[g_pClient->GetRandomClass() - 1] ) );
@@ -350,7 +374,7 @@ void CClientCommandMenu::_Init()
 			}
 			else
 			{
-				for ( int i = 0; i <= 9; i++ )
+				for ( int i = PC_SCOUT; i <= PC_CIVILIAN; i++ )
 				{
 					if ( !strcmp( sToken, szClassNames[i] ) )
 					{

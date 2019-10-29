@@ -21,9 +21,9 @@ void CClientClassMenu::_Init()
 {
 	int iYOffset = 80;
 
-	for ( int i = 0; i < 9; i++ )
+	for ( int i = PC_SCOUT; i < PC_ENGINEER; i++ )
 	{
-		AddButton( ( i + 1 ) + '0', L( szClassLabels[i] ),
+		AddButton( i + '0', L( szClassLabels[i] ),
 			Point( 0, iYOffset ), ExecAndHide( szClassCommands[i] ) );
 		iYOffset += BTN_HEIGHT + BTN_GAP;
 	}
