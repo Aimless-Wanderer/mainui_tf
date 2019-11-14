@@ -48,7 +48,8 @@ static UI_FUNCTIONS gFunctionTable =
 //=======================================================================
 //			GetApi
 //=======================================================================
-extern "C" EXPORT int GetMenuAPI(UI_FUNCTIONS *pFunctionTable, ui_enginefuncs_t* pEngfuncsFromEngine, ui_globalvars_t *pGlobals)
+//extern "C" EXPORT int GetMenuAPI(UI_FUNCTIONS *pFunctionTable, ui_enginefuncs_t* pEngfuncsFromEngine, ui_globalvars_t *pGlobals)
+extern "C" EXPORT_FUNCTION int GetMenuAPI(UI_FUNCTIONS *pFunctionTable, ui_enginefuncs_t* pEngfuncsFromEngine, ui_globalvars_t *pGlobals)
 {
 	if( !pFunctionTable || !pEngfuncsFromEngine )
 	{

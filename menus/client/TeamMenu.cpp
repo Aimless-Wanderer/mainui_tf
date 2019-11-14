@@ -19,7 +19,7 @@ void CClientTeamMenu::_Init()
 	int iNumTeams = g_pClient->GetNumberOfTeams();
 	char **szTeamNames = g_pClient->GetTeamNames();
 
-	for ( int i = 1; i <= iNumTeams; i++ )
+	for ( int i = 1; i < iNumTeams; i++ )
 	{
 		char *cmd = new char[16];
 		sprintf( cmd, "jointeam %i", i );

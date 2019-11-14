@@ -457,7 +457,7 @@ const char *L( const char *szStr ) // L means Localize!
 
 		if( i != hashed_cmds.InvalidIndex() )
 			return hashed_cmds[i];
-		else //titles.txt string
+		else if( g_pClient )
 		{
 			if( *(szStr - 1) == '#' )
 				szStr--;

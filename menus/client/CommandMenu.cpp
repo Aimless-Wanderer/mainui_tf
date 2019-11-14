@@ -117,7 +117,7 @@ void CClientCommandMenu::AddCustomButton( char *pName, char *pText, int iKeyBind
 		int iNumTeams = g_pClient->GetNumberOfTeams();
 		char **szTeamNames = g_pClient->GetTeamNames();
 
-		for (int i = 1; i <= iNumTeams; i++)
+		for (int i = 1; i < iNumTeams; i++)
 		{
 			char *cmd = new char[16];
 			sprintf( cmd, "jointeam %i", i );
@@ -374,7 +374,7 @@ void CClientCommandMenu::_Init()
 			}
 			else
 			{
-				for ( int i = PC_SCOUT; i <= PC_CIVILIAN; i++ )
+				for ( int i = PC_SCOUT; i < PC_RANDOM; i++ )
 				{
 					if ( !strcmp( sToken, szClassNames[i] ) )
 					{
