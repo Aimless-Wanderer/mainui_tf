@@ -32,7 +32,12 @@ GNU General Public License for more details.
 
 #define UI_OUTLINE_WIDTH		uiStatic.outlineWidth	// outline thickness
 
+
+#if XASH_LOW_MEMORY
+#define UI_MAXGAMES			32
+#else
 #define UI_MAXGAMES			1024	// slots for savegame/demos
+#endif
 #define UI_MAX_BGMAPS		32
 
 #define MAX_HINT_TEXT		512
@@ -117,7 +122,6 @@ typedef struct
 	float	alphaFactor;
 	int xOffset, yOffset;
 
-	bool isForkedEngine;
 	bool needMapListUpdate;
 
 	bool nextFrameActive;
@@ -125,6 +129,7 @@ typedef struct
 
 extern float	cursorDY;			// use for touch scroll
 extern bool g_bCursorDown;
+extern bool g_bIsForkedEngine;
 extern uiStatic_t		uiStatic;
 
 #define DLG_X ((uiStatic.width - 640) / 2 - 192) // Dialogs are 640px in width

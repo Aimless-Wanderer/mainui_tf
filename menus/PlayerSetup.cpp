@@ -41,15 +41,15 @@ static struct
 	unsigned char b;
 } g_LogoColors[] =
 {
-{ "#Valve_Orange", 255, 120, 24  },
-{ "#Valve_Yellow",	225, 180, 24  },
-{ "#Valve_Blue",   0,   60,  255 },
-{ "#Valve_Ltblue", 0,   167, 255 },
-{ "#Valve_Green",  0,   167, 0   },
-{ "#Valve_Red",    255, 43,  0   },
-{ "#Valve_Brown",  123, 73,  0   },
-{ "#Valve_Ltgray", 100, 100, 100 },
-{ "#Valve_Dkgray", 36,  36,  36  },
+{ "#Valve_Orange", 255, 120, 24  }, // L( "#Valve_Orange" )
+{ "#Valve_Yellow", 225, 180, 24  }, // L( "#Valve_Yellow" )
+{ "#Valve_Blue",   0,   60,  255 }, // L( "#Valve_Blue" )
+{ "#Valve_Ltblue", 0,   167, 255 }, // L( "#Valve_Ltblue" )
+{ "#Valve_Green",  0,   167, 0   }, // L( "#Valve_Green" )
+{ "#Valve_Red",    255, 43,  0   }, // L( "#Valve_Red" )
+{ "#Valve_Brown",  123, 73,  0   }, // L( "#Valve_Brown" )
+{ "#Valve_Ltgray", 100, 100, 100 }, // L( "#Valve_Ltgray" )
+{ "#Valve_Dkgray", 36,  36,  36  }, // L( "#Valve_Dkgray" )
 };
 
 static class CMenuPlayerSetup : public CMenuFramework
@@ -250,11 +250,8 @@ void CMenuPlayerSetup::UpdateModel()
 	}
 
 	snprintf( image, 256, "models/player/%s/%s.bmp", mdl, mdl );
-#ifdef PIC_KEEP_SOURCE
 	view.hPlayerImage = EngFuncs::PIC_Load( image, PIC_KEEP_SOURCE );
-#else
-	view.hPlayerImage = EngFuncs::PIC_Load( image, PIC_KEEP_8BIT );
-#endif
+
 	ApplyColorToImagePreview();
 	EngFuncs::CvarSetString( "model", mdl );
 	if( !strcmp( mdl, "player" ) )
@@ -304,9 +301,10 @@ void CMenuPlayerSetup::ApplyColorToLogoPreview()
 		}
 	}
 
-	logoImage.r = 255;
-	logoImage.g = 255;
-	logoImage.b = 255;
+	logoColor.SetCurrentValue( L( g_LogoColors[0].name ) );
+	logoImage.r = g_LogoColors[0].r;
+	logoImage.g = g_LogoColors[0].g;
+	logoImage.b = g_LogoColors[0].b;
 }
 
 void CMenuPlayerSetup::WriteNewLogo( void )
@@ -420,7 +418,7 @@ void CMenuPlayerSetup::_Init( void )
 		UI_AdvUserOptions_Menu();
 	});
 
-	AddButton( L( "Adv options" ), "", PC_ADV_OPT, UI_GameOptions_Menu );
+	AddButton( L( "Adv. Options" ), "", PC_ADV_OPT, UI_GameOptions_Menu );
 	gameOpt->SetGrayed( !UI_AdvUserOptions_IsAvailable() );
 
 
