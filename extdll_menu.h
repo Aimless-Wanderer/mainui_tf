@@ -16,8 +16,6 @@ GNU General Public License for more details.
 #ifndef EXTDLL_H
 #define EXTDLL_H
 
-#include "../../xash3d-fwgs/common/xash3d_types.h"
-
 #ifndef EXPORT
 #ifdef _WIN32
 #define EXPORT __declspec(dllexport)
@@ -85,6 +83,6 @@ typedef unsigned char byte;
 typedef unsigned int uint;
 typedef unsigned int uint32; //!!!
 
-#include "../../xash3d-fwgs/engine/menu_int.h"
+#include "menu_int.h"
 
 #endif//EXTDLL_H

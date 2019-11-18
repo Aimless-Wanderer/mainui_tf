@@ -18,7 +18,7 @@ GNU General Public License for more details.
 // HLSDK includes
 #include "mathlib.h"
 #include "const.h"
-#include "../../xash3d-fwgs/engine/keydefs.h"
+#include "keydefs.h"
 #include "ref_params.h"
 #include "cl_entity.h"
 #include "com_model.h"

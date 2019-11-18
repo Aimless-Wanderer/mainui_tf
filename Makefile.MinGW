@@ -17,9 +17,10 @@ INCLUDES = \
 	-Imenus \
 	-Imenus/client \
 	-Imodel \
-	-I../../xash3d-fwgs/common \
-	-I../../xash3d-fwgs/engine \
-	-I../../xash3d-fwgs/pm_shared
+	-I../common \
+	-I../engine \
+	-I../pm_shared \
+	-I../cl_dll
 
 FLAGS = -m32 -g -std=gnu++11 -DMAINUI_USE_STB -DMAINUI_USE_CUSTOM_FONT_RENDER -DNO_STL -fno-rtti -fno-exceptions
 OBJS = $(CPP_SOURCES:.cpp=.o)

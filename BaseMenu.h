@@ -17,7 +17,7 @@ GNU General Public License for more details.
 #define BASEMENU_H
 #include "../cl_dll/IGameClientExports.h"
 #include "enginecallback_menu.h"
-#include "../../xash3d-fwgs/engine/keydefs.h"
+#include "keydefs.h"
 #include "Primitive.h"
 #include "EventSystem.h"
 #include "Utils.h"

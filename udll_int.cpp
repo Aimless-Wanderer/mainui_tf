@@ -14,6 +14,7 @@ GNU General Public License for more details.
 */
 
 #include "../cl_dll/IGameMenuExports.h"
+#include "../cl_dll/tfc/tf_defs.h"
 #include "extdll_menu.h"
 #include "BaseMenu.h"
 #include "Utils.h"
@@ -48,8 +49,7 @@ static UI_FUNCTIONS gFunctionTable =
 //=======================================================================
 //			GetApi
 //=======================================================================
-//extern "C" EXPORT int GetMenuAPI(UI_FUNCTIONS *pFunctionTable, ui_enginefuncs_t* pEngfuncsFromEngine, ui_globalvars_t *pGlobals)
-extern "C" EXPORT_FUNCTION int GetMenuAPI(UI_FUNCTIONS *pFunctionTable, ui_enginefuncs_t* pEngfuncsFromEngine, ui_globalvars_t *pGlobals)
+extern "C" EXPORT int GetMenuAPI(UI_FUNCTIONS *pFunctionTable, ui_enginefuncs_t* pEngfuncsFromEngine, ui_globalvars_t *pGlobals)
 {
 	if( !pFunctionTable || !pEngfuncsFromEngine )
 	{

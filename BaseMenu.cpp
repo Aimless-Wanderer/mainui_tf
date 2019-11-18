@@ -26,7 +26,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "extdll_menu.h"
 #include "BaseMenu.h"
 #include "PicButton.h"
-#include "../../xash3d-fwgs/engine/keydefs.h"
+#include "keydefs.h"
 #include "Utils.h"
 #include "BtnsBMPTable.h"
 #include "YesNoMessageBox.h"
