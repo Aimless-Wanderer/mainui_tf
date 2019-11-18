@@ -38,7 +38,6 @@ def check_pkg(conf, package, uselib_store, fragment, *k, **kw):
 	except conf.errors.ConfigurationError:
 		conf.fatal(errormsg2)
 
-
 def options(opt):
 	grp = opt.add_option_group('MainUI C++ options')
 	grp.add_option('--enable-stbtt', action = 'store_true', dest = 'USE_STBTT', default = False,
@@ -47,6 +46,10 @@ def options(opt):
 	return
 
 def configure(conf):
+	if conf.env.DEST_OS == 'win32':
+		conf.check_cxx(lib='gdi32')
+		conf.check_cxx(lib='user32')
+
 	# conf.env.CXX11_MANDATORY = False
 	conf.load('fwgslib cxx11')
 
@@ -92,15 +95,23 @@ def build(bld):
 	if bld.env.DEST_OS == 'linux':
 		libs += ['RT']
 
+	if bld.env.DEST_OS not in ['android']:
+		install_path = os.path.join(bld.env.GAMEDIR, bld.env.CLIENT_DIR)
+	else:
+		install_path = bld.env.PREFIX
+
+
 	source = bld.path.ant_glob([
 		'*.cpp',
 		'miniutl/*.cpp',
 		'font/*.cpp',
 		'menus/*.cpp',
+		'menus/client/*.cpp',
 		'menus/dynamic/*.cpp',
 		'model/*.cpp',
 		'controls/*.cpp'
 	])
+	source += bld.path.parent.ant_glob(['common/interface.cpp'])
 
 	includes = [
 		'.',
@@ -111,7 +122,8 @@ def build(bld):
 		'model/',
 		'../common',
 		'../engine',
-		'../pm_shared'
+		'../pm_shared',
+		'../cl_dll'
 	]
 
 	bld.shlib(
@@ -120,6 +132,6 @@ def build(bld):
 		features = 'cxx',
 		includes = includes,
 		use      = libs,
-		install_path = bld.env.LIBDIR,
+		install_path = install_path,
 		subsystem = bld.env.MSVC_SUBSYSTEM
 	)
