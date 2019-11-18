@@ -155,32 +155,32 @@ public:
 
 	void GetCharABCWide( HFont font, int ch, int &a, int &b, int &c ) override
 	{
-		g_FontMgr.GetCharABCWide( font, ch, a, b, c );
+		g_FontMgr->GetCharABCWide( font, ch, a, b, c );
 	}
 
 	int GetFontTall( HFont font ) override
 	{
-		return g_FontMgr.GetFontTall( font );
+		return g_FontMgr->GetFontTall( font );
 	}
 
 	int GetCharacterWidth( HFont font, int ch, int charH ) override
 	{
-		return g_FontMgr.GetCharacterWidthScaled( font, ch, charH );
+		return g_FontMgr->GetCharacterWidthScaled( font, ch, charH );
 	}
 
 	void GetTextSize( HFont font, const char *text, int *wide, int *height = 0, int size = -1 ) override
 	{
-		g_FontMgr.GetTextSize( font, text, wide, height, size );
+		g_FontMgr->GetTextSize( font, text, wide, height, size );
 	}
 
 	int	 GetTextHeight( HFont font, const char *text, int size = -1 ) override
 	{
-		return g_FontMgr.GetTextHeight( font, text, size );
+		return g_FontMgr->GetTextHeight( font, text, size );
 	}
 
 	int DrawCharacter( HFont font, int ch, int x, int y, int charH, const unsigned int color, bool forceAdditive = false ) override
 	{
-		return g_FontMgr.DrawCharacter( font, ch, Point( x, y ), charH, color, forceAdditive );
+		return g_FontMgr->DrawCharacter( font, ch, Point( x, y ), charH, color, forceAdditive );
 	}
 
 	void ShowVGUIMenu( int menuType ) override
