@@ -132,9 +132,9 @@ void CClientCommandMenu::AddCustomButton( char *pName, char *pText, int iKeyBind
 
 		CClientCommandMenu *cmdMenu = GetSubmenu( pName );
 
-		for ( int i = PC_SCOUT; i < PC_ENGINEER; i++ )
+		for ( int i = PC_SCOUT; i <= PC_ENGINEER; i++ )
 		{
-			cmdMenu->AddButton( i + '0', L( szClassLabels[i] ), ExecAndHide( szClassCommands[i] ) );
+			cmdMenu->AddButton( i + '0', L( szClassLabels[i - 1] ), ExecAndHide( szClassCommands[i - 1] ) );
 		}
 
 		cmdMenu->AddButton( '0', L( "#Random" ), ExecAndHide( szClassCommands[g_pClient->GetRandomClass() - 1] ) );
@@ -374,9 +374,9 @@ void CClientCommandMenu::_Init()
 			}
 			else
 			{
-				for ( int i = PC_SCOUT; i < PC_RANDOM; i++ )
+				for ( int i = PC_SCOUT; i <= PC_ENGINEER; i++ )
 				{
-					if ( !strcmp( sToken, szClassNames[i] ) )
+					if ( !strcmp( sToken, szClassNames[i - 1] ) )
 					{
 						iButtonType = BTN_CLASS;
 						iClass = i;
