@@ -19,11 +19,11 @@ void CClientTeamMenu::_Init()
 	int iNumTeams = g_pClient->GetNumberOfTeams();
 	char **szTeamNames = g_pClient->GetTeamNames();
 
-	for ( int i = 1; i < iNumTeams; i++ )
+	for ( int i = 1; i <= iNumTeams; i++ )
 	{
 		char *cmd = new char[16];
 		sprintf( cmd, "jointeam %i", i );
-		AddButton( i + '0', L( szTeamNames[i] ),
+		AddButton( i + '0', L( szTeamNames[i - 1] ),
 			Point( 0, iYOffset ), ExecAndHide( cmd ) );
 		iYOffset += BTN_HEIGHT + BTN_GAP;
 	}

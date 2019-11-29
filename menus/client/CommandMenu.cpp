@@ -117,11 +117,11 @@ void CClientCommandMenu::AddCustomButton( char *pName, char *pText, int iKeyBind
 		int iNumTeams = g_pClient->GetNumberOfTeams();
 		char **szTeamNames = g_pClient->GetTeamNames();
 
-		for (int i = 1; i < iNumTeams; i++)
+		for (int i = 1; i <= iNumTeams; i++)
 		{
 			char *cmd = new char[16];
 			sprintf( cmd, "jointeam %i", i );
-			cmdMenu->AddButton( i  + '0', L( szTeamNames[i] ), ExecAndHide( cmd ) );
+			cmdMenu->AddButton( i  + '0', L( szTeamNames[i - 1] ), ExecAndHide( cmd ) );
 		}
 
 		cmdMenu->AddButton( '5', L( "#Team_AutoAssign" ), ExecAndHide( "jointeam 5" ));
