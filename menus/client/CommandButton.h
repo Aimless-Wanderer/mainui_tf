@@ -74,3 +74,46 @@ public:
 		return CCommandButton::IsVisible();
 	}
 };
+
+class CMapButton : public CCommandButton
+{
+public:
+	CMapButton( const char *mapname, const char *name, CEventCallback callback ) : CCommandButton( name, callback )
+	{
+		sprintf( m_szMapName, "maps/%s.bsp", mapname );
+	}
+
+	char m_szMapName[64];
+
+	bool IsVisible() const override
+	{
+		const char *szMap = g_pClient->GetLevelName();
+
+		if ( !szMap )
+			return false;
+
+		if ( strcmp( m_szMapName, szMap ) )
+			return false;
+
+		return CCommandButton::IsVisible();
+	}
+};
+
+class CTeamButton : public CCommandButton
+{
+public:
+	CTeamButton( int team, const char *name, CEventCallback callback ) : CCommandButton( name, callback )
+	{
+		m_iTeam = team;
+	}
+
+	int m_iTeam;
+
+	bool IsVisible() const override
+	{
+		if ( g_pClient->GetTeamNumber() != m_iTeam )
+			return false;
+
+		return CCommandButton::IsVisible();
+	}
+};

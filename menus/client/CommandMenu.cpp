@@ -44,10 +44,11 @@ private:
 
 	CEventCallback ShowSubmenu( CClientCommandMenu *cmdMenu );
 	CUtlVector<CClientCommandMenu *> m_pSubMenus;
-	CClientCommandMenu *GetSubmenu( const char *szName );
+	CClientCommandMenu *CreateSubmenu( const char *szName );
 
 	bool m_bIsSubmenu;
 	char *m_szSubmenuName;
+	CClientCommandMenu *m_pCurrentCommandMenu;
 } uiCommandMenu;
 
 CEventCallback CClientCommandMenu::ShowSubmenu( CClientCommandMenu *cmdMenu )
@@ -61,7 +62,7 @@ CEventCallback CClientCommandMenu::ShowSubmenu( CClientCommandMenu *cmdMenu )
 	}, (void *)cmdMenu );
 }
 
-CClientCommandMenu *CClientCommandMenu::GetSubmenu( const char *szName )
+CClientCommandMenu *CClientCommandMenu::CreateSubmenu( const char *szName )
 {
 	FOR_EACH_VEC( m_pSubMenus, i )
 	{
@@ -82,7 +83,7 @@ CCommandButton *CClientCommandMenu::CreateCustomButton( char *pName, char *pText
 
 	if ( !strcmp( pName, "!CHANGETEAM" ) )
 	{
-		CClientCommandMenu *cmdMenu = GetSubmenu( pName );
+		CClientCommandMenu *cmdMenu = CreateSubmenu( pName );
 		pButton = new CCommandButton( pText, ShowSubmenu( cmdMenu ) );
 		int iNumTeams = g_pClient->GetNumberOfTeams();
 		char **szTeamNames = g_pClient->GetTeamNames();
@@ -103,7 +104,7 @@ CCommandButton *CClientCommandMenu::CreateCustomButton( char *pName, char *pText
 	}
 	else if ( !strcmp( pName, "!CHANGECLASS" ) )
 	{
-		CClientCommandMenu *cmdMenu = GetSubmenu( pName );
+		CClientCommandMenu *cmdMenu = CreateSubmenu( pName );
 		pButton = new CCommandButton( pText, ShowSubmenu( cmdMenu ) );
 
 		for ( int i = PC_SCOUT; i <= PC_ENGINEER; i++ )
@@ -282,6 +283,7 @@ CCommandButton *CClientCommandMenu::CreateCustomButton( char *pName, char *pText
 
 void CClientCommandMenu::_Init()
 {
+	m_pCurrentCommandMenu = this;
 	m_bIsSubmenu = false;
 	char sToken[1024];
 	char *pFile = (char*)EngFuncs::COM_LoadFile( "commandmenu.txt", NULL );
@@ -358,27 +360,33 @@ void CClientCommandMenu::_Init()
 			}
 			else if ( iButtonType == BTN_MAP )
 			{
+				pButton = new CMapButton( sMap, sText, ExecAndHide( StringCopy( sCommand ) ) );
 			}
 			else if ( iButtonType == BTN_TEAM )
 			{
+				pButton = new CTeamButton( iTeam, sText, ExecAndHide( StringCopy( sCommand ) ) );
 			}
 			else if ( iButtonType == BTN_TOGGLE )
 			{
+				//Velaron: TODO
+				pButton = new CCommandButton( sText, ExecAndHide( StringCopy( sCommand ) ) );
 			}
 			else
 			{
+				pButton = new CCommandButton( sText, ExecAndHide( StringCopy( sCommand ) ) );
 			}
 
 			if ( pButton )
 			{
-				AddItem( pButton );
+				m_pCurrentCommandMenu->AddItem( pButton );
 			}
 
-			if ( sCommand[0] == '{' )
+			//Velaron: TODO
+			if ( sCommand[0] == '{' && pButton )
 			{
-			}
-			else if ( iButtonType != BTN_CUSTOM )
-			{
+				CClientCommandMenu *cmdMenu = CreateSubmenu( pButton->szName );
+				pButton->onPressed = ShowSubmenu( cmdMenu );
+				m_pCurrentCommandMenu = cmdMenu;
 			}
 
 			if ( bIsSubmenu )
@@ -387,6 +395,7 @@ void CClientCommandMenu::_Init()
 			}
 		}
 
+		m_pCurrentCommandMenu = this;
 		pFile = EngFuncs::COM_ParseFile( pFile, sToken );
 	}
 }
@@ -418,7 +427,6 @@ void CClientCommandMenu::Reload()
 
 void UI_CommandMenu_Show( void )
 {
-	EngFuncs::KEY_SetDest( KEY_MENU );
 	uiCommandMenu.Show();
 }
 
