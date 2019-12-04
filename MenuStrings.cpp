@@ -456,7 +456,9 @@ const char *L( const char *szStr ) // L means Localize!
 		int i = hashed_cmds.Find( szStr );
 
 		if( i != hashed_cmds.InvalidIndex() )
+		{
 			return hashed_cmds[i];
+		}
 		else if( g_pClient )
 		{
 			if( *(szStr - 1) == '#' )

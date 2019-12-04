@@ -23,15 +23,15 @@ void CClientTeamMenu::_Init()
 	{
 		char *cmd = new char[16];
 		sprintf( cmd, "jointeam %i", i );
-		AddButton( i + '0', L( szTeamNames[i - 1] ),
+		AddButton( L( szTeamNames[i - 1] ),
 			Point( 0, iYOffset ), ExecAndHide( cmd ) );
 		iYOffset += BTN_HEIGHT + BTN_GAP;
 	}
 
-	AddButton( '5', L( "#Team_AutoAssign" ),
+	AddButton( L( "#Team_AutoAssign" ),
 		Point( 0, iYOffset ), ExecAndHide( "jointeam 5" ));
 
-	AddButton( '6', L( "#Menu_Spectate" ),
+	AddButton( L( "#Menu_Spectate" ),
 		Point( 0, iYOffset + BTN_HEIGHT + BTN_GAP ), ExecAndHide( "jointeam 6" ));
 
 	szTitle = L( "#Title_SelectYourTeam" );

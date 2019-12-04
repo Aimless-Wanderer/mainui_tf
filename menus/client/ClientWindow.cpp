@@ -3,9 +3,9 @@
 
 CClientWindow::~CClientWindow()
 {
-	FOR_EACH_VEC( m_pButtons, i )
+	FOR_EACH_VEC( m_pItems, i )
 	{
-		delete m_pButtons[i];
+		delete m_pItems[i];
 	}
 }
 
@@ -63,15 +63,6 @@ void CClientWindow::Draw()
 
 bool CClientWindow::KeyDown( int key )
 {
-	if( key >= '0' && key <= '9' )
-	{
-		if( keys[key-'0'] )
-		{
-			(keys[key-'0'])( m_pButtons[0] );
-			return uiSoundNull;
-		}
-	}
-
 	return BaseClass::KeyDown( key );
 }
 
@@ -80,7 +71,7 @@ bool CClientWindow::KeyUp( int key )
 	return false;
 }
 
-CMenuAction *CClientWindow::AddButton( int key, const char *name, Point pos, CEventCallback callback )
+CMenuAction *CClientWindow::AddButton( const char *name, Point pos, CEventCallback callback )
 {
 	CMenuAction *act = new CMenuAction();
 
@@ -101,11 +92,6 @@ CMenuAction *CClientWindow::AddButton( int key, const char *name, Point pos, CEv
 	act->bDrawStroke = true;
 	act->iStrokeWidth = 1;
 	act->colorStroke = PackRGBA( 156, 77, 20, 200 );
-
-	if( key >= '0' && key <= '9' )
-		keys[key - '0'] = callback;
-
-	m_pButtons.AddToTail( act );
 
 	AddItem( act );
 

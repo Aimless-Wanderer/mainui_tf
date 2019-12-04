@@ -23,12 +23,12 @@ void CClientClassMenu::_Init()
 
 	for ( int i = PC_SCOUT; i <= PC_ENGINEER; i++ )
 	{
-		AddButton( i + '0', L( szClassLabels[i - 1] ),
+		AddButton( L( szClassLabels[i - 1] ),
 			Point( 0, iYOffset ), ExecAndHide( szClassCommands[i - 1] ) );
 		iYOffset += BTN_HEIGHT + BTN_GAP;
 	}
 
-	AddButton( '0', L( "#Random" ),
+	AddButton( L( "#Random" ),
 		Point( 0, iYOffset ), ExecAndHide( szClassCommands[g_pClient->GetRandomClass() - 1] ) );
 
 	szTitle = L( "#Title_SelectYourClass" );

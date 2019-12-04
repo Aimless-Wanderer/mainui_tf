@@ -9,12 +9,27 @@ static class CClientCommandMenu : public CClientWindow
 public:
 	typedef CClientWindow BaseClass;
 	CClientCommandMenu() : BaseClass( "CClientCommandMenu" ) {}
-	void Init( const char *szName );
+
+	void Init( const char *szName )
+	{
+		m_bInit = true;
+		m_bIsSubmenu = true;
+		m_szSubmenuName = StringCopy( szName );
+	}
 
 	void _Init();
-	void VidInit();
 	void Reload();
-	void Draw();
+	
+	void VidInit()
+	{
+		Reload();
+		CMenuBaseClientWindow::VidInit();
+	}
+	
+	void Draw()
+	{
+		CMenuBaseClientWindow::Draw();
+	}
 
 	~CClientCommandMenu()
 	{
@@ -25,68 +40,18 @@ public:
 	}
 
 private:
-	void AddCustomButton( char *pName, char *pText, int iKeyBind );
+	CCommandButton *CreateCustomButton( char *pName, char *pText, int iKeyBind );
 
-	CEventCallback ShowSubmenu( const char *szName );
+	CEventCallback ShowSubmenu( CClientCommandMenu *cmdMenu );
 	CUtlVector<CClientCommandMenu *> m_pSubMenus;
 	CClientCommandMenu *GetSubmenu( const char *szName );
-	CCommandButton *AddButton( int key, const char *name, CEventCallback callback );
 
 	bool m_bIsSubmenu;
 	char *m_szSubmenuName;
 } uiCommandMenu;
 
-void CClientCommandMenu::VidInit()
+CEventCallback CClientCommandMenu::ShowSubmenu( CClientCommandMenu *cmdMenu )
 {
-	Reload();
-	CMenuBaseClientWindow::VidInit();
-}
-
-CCommandButton *CClientCommandMenu::AddButton( int key, const char *name, CEventCallback callback )
-{
-	CCommandButton *button = new CCommandButton();
-
-	button->pos = Point( 0, 0 );
-	button->onPressed = callback;
-	button->SetBackground( PackRGBA( 0, 0, 0, 0 ), PackRGBA( 156, 77, 20, 128 ) );
-
-	if( *name == '&' )
-		name++;
-		
-	button->szName = name;
-	button->SetCharSize( QM_DEFAULTFONT );
-	button->eTextAlignment = QM_LEFT | QM_CENTER;
-
-	button->m_bLimitBySize = true;
-	button->size = Size( BTN_WIDTH, BTN_HEIGHT );
-
-	button->bDrawStroke = true;
-	button->iStrokeWidth = 1;
-	button->colorStroke = PackRGBA( 156, 77, 20, 200 );
-
-	if( key >= '0' && key <= '9' )
-		keys[key - '0'] = callback;
-
-	m_pButtons.AddToTail( button );
-
-	button->m_iPlayerClass = g_pClient->GetPlayerClass();
-
-	AddItem( button );
-
-	return button;
-}
-
-CEventCallback CClientCommandMenu::ShowSubmenu( const char *szName )
-{
-	CClientCommandMenu *cmdMenu = GetSubmenu( szName );
-
-	if ( !cmdMenu )
-	{
-		cmdMenu = new CClientCommandMenu();
-		cmdMenu->Init( szName );
-		m_pSubMenus.AddToTail( cmdMenu );
-	}
-
 	return CEventCallback( []( CMenuBaseItem *pSelf, void *pExtra )
 	{
 		CClientCommandMenu *cmdMenu = ( (CClientCommandMenu *)pExtra );
@@ -104,85 +69,76 @@ CClientCommandMenu *CClientCommandMenu::GetSubmenu( const char *szName )
 			return m_pSubMenus[i];
 	}
 
-	return NULL;
+	CClientCommandMenu * cmdMenu = new CClientCommandMenu();
+	cmdMenu->Init( szName );
+	m_pSubMenus.AddToTail( cmdMenu );
+
+	return cmdMenu;
 }
 
-void CClientCommandMenu::AddCustomButton( char *pName, char *pText, int iKeyBind )
+CCommandButton *CClientCommandMenu::CreateCustomButton( char *pName, char *pText, int iKeyBind )
 {
+	CCommandButton *pButton = NULL;
+
 	if ( !strcmp( pName, "!CHANGETEAM" ) )
 	{
-		AddButton( iKeyBind, StringCopy( pText ), ShowSubmenu( pName ) );
-
 		CClientCommandMenu *cmdMenu = GetSubmenu( pName );
+		pButton = new CCommandButton( pText, ShowSubmenu( cmdMenu ) );
 		int iNumTeams = g_pClient->GetNumberOfTeams();
 		char **szTeamNames = g_pClient->GetTeamNames();
 
-		for (int i = 1; i <= iNumTeams; i++)
+		for ( int i = 0; i < iNumTeams; i++ )
 		{
 			char *cmd = new char[16];
-			sprintf( cmd, "jointeam %i", i );
-			cmdMenu->AddButton( i  + '0', L( szTeamNames[i - 1] ), ExecAndHide( cmd ) );
+			sprintf( cmd, "jointeam %i", i + 1 );
+			CCommandButton *pTeamButton = new CCommandButton( L( szTeamNames[i] ), ExecAndHide( cmd ) );
+			cmdMenu->AddItem( pTeamButton );
 		}
 
-		cmdMenu->AddButton( '5', L( "#Team_AutoAssign" ), ExecAndHide( "jointeam 5" ));
+		CCommandButton *pAutoAssignButton = new CCommandButton( L( "#Team_AutoAssign" ), ExecAndHide( "jointeam 5" ) );
+		cmdMenu->AddItem( pAutoAssignButton );
+
+		CCommandButton *pSpectateButton = new CSpectateButton( L( "#Menu_Spectate" ), ExecAndHide( "spectate" ) );
+		cmdMenu->AddItem( pSpectateButton );
 	}
 	else if ( !strcmp( pName, "!CHANGECLASS" ) )
 	{
-		AddButton( iKeyBind, StringCopy( pText ), ShowSubmenu( pName ) );
-
 		CClientCommandMenu *cmdMenu = GetSubmenu( pName );
+		pButton = new CCommandButton( pText, ShowSubmenu( cmdMenu ) );
 
 		for ( int i = PC_SCOUT; i <= PC_ENGINEER; i++ )
 		{
-			cmdMenu->AddButton( i + '0', L( szClassLabels[i - 1] ), ExecAndHide( szClassCommands[i - 1] ) );
+			CCommandButton *pClassButton = new CCommandButton( L( szClassLabels[i - 1] ), ExecAndHide( szClassCommands[i - 1] ) );
+			cmdMenu->AddItem( pClassButton );
 		}
 
-		cmdMenu->AddButton( '0', L( "#Random" ), ExecAndHide( szClassCommands[g_pClient->GetRandomClass() - 1] ) );
+		CCommandButton *pRandomButton = new CCommandButton( L( "#Random" ), ExecAndHide( szClassCommands[g_pClient->GetRandomClass() - 1] ) );
+		cmdMenu->AddItem( pRandomButton );
 	}
 	else if ( !strcmp( pName, "!MAPBRIEFING" ) )
 	{
-		/*
-		pButton = new CommandButton(pButtonText, 0, BUTTON_SIZE_Y * m_pCurrentCommandMenu->GetNumButtons(), CMENU_SIZE_X, BUTTON_SIZE_Y);
-		pButton->addActionSignal(new CMenuHandler_TextWindow(MENU_MAPBRIEFING));
-		// Create an input signal that'll popup the current menu
-		pButton->addInputSignal( new CMenuHandler_PopupSubMenuInput(pButton, m_pCurrentCommandMenu) );
-		*/
 	}
 	else if ( !strcmp( pName, "!CLASSDESC" ) )
 	{
-		/*
-		pButton = new ClassButton(0, pButtonText, 0, BUTTON_SIZE_Y * m_pCurrentCommandMenu->GetNumButtons(), CMENU_SIZE_X, BUTTON_SIZE_Y, false);
-		pButton->addActionSignal(new CMenuHandler_TextWindow(MENU_CLASSHELP));
-		// Create an input signal that'll popup the current menu
-		pButton->addInputSignal( new CMenuHandler_PopupSubMenuInput(pButton, m_pCurrentCommandMenu) );
-		*/
 	}
 	else if ( !strcmp( pName, "!SERVERINFO" ) )
 	{
-		/*
-		pButton = new ClassButton(0, pButtonText, 0, BUTTON_SIZE_Y * m_pCurrentCommandMenu->GetNumButtons(), CMENU_SIZE_X, BUTTON_SIZE_Y, false);
-		pButton->addActionSignal(new CMenuHandler_TextWindow(MENU_INTRO));
-		// Create an input signal that'll popup the current menu
-		pButton->addInputSignal( new CMenuHandler_PopupSubMenuInput(pButton, m_pCurrentCommandMenu) );
-		*/
 	}
 	else if ( !strcmp( pName, "!SPY" ) )
 	{
-		/*
-		pButton = new DisguiseButton( 0, pButtonText, 0, BUTTON_SIZE_Y, CMENU_SIZE_X, BUTTON_SIZE_Y );
-		*/
+		//CCommandButton *pButton = new CDisguiseButton( pText, NULL );
 	}
 	else if ( !strcmp( pName, "!FEIGN" ) )
 	{
-		AddButton( iKeyBind, StringCopy( pText ), ExecAndHide( "feign" ) );
+		pButton = new CFeignButton( false, pText, ExecAndHide( "feign" ) );
 	}
 	else if ( !strcmp( pName, "!FEIGNSILENT" ) )
 	{
-		AddButton( iKeyBind, StringCopy( pText ), ExecAndHide( "sfeign" ) );
+		pButton = new CFeignButton( false, pText, ExecAndHide( "sfeign" ) );
 	}
 	else if ( !strcmp( pName, "!FEIGNSTOP" ) )
 	{
-		AddButton( iKeyBind, StringCopy( pText ), ExecAndHide( "feign" ) );
+		pButton = new CFeignButton( true, pText, ExecAndHide( "feign" ) );
 	}
 	else if ( !strcmp( pName, "!DISGUISEENEMY" ) )
 	{
@@ -215,7 +171,7 @@ void CClientCommandMenu::AddCustomButton( char *pName, char *pText, int iKeyBind
 			// only show the 4th disguise button if we have 4 teams
 			m_pDisguiseButtons[i] = new DisguiseButton( ((i < 4) ? DISGUISE_TEAM3 : 0) | DISGUISE_TEAM4, "Disguise", 0, BUTTON_SIZE_Y, CMENU_SIZE_X, BUTTON_SIZE_Y);
 
-			pDisguiseMenu->AddButton( m_pDisguiseButtons[i] );
+			pDisguiseMenu->CCommandButton *pButton = new CCommandButton( m_pDisguiseButtons[i] );
 			m_pDisguiseButtons[i]->setParentMenu( pDisguiseMenu );
 
 			char sz[256]; 
@@ -240,18 +196,18 @@ void CClientCommandMenu::AddCustomButton( char *pName, char *pText, int iKeyBind
 		CommandButton *pDetButton;
 		pDetButton = new CommandButton(m_sDetpackStrings[0], 0, BUTTON_SIZE_Y, CMENU_SIZE_X, BUTTON_SIZE_Y);
 		pDetButton->addActionSignal(new CMenuHandler_StringCommand("detstart 5"));
-		pMenu->AddButton( pDetButton );
+		pMenu->CCommandButton *pButton = new CCommandButton( pDetButton );
 		pDetButton = new CommandButton(m_sDetpackStrings[1], 0, BUTTON_SIZE_Y, CMENU_SIZE_X, BUTTON_SIZE_Y);
 		pDetButton->addActionSignal(new CMenuHandler_StringCommand("detstart 20"));
-		pMenu->AddButton( pDetButton );
+		pMenu->CCommandButton *pButton = new CCommandButton( pDetButton );
 		pDetButton = new CommandButton(m_sDetpackStrings[2], 0, BUTTON_SIZE_Y, CMENU_SIZE_X, BUTTON_SIZE_Y);
 		pDetButton->addActionSignal(new CMenuHandler_StringCommand("detstart 50"));
-		pMenu->AddButton( pDetButton );
+		pMenu->CCommandButton *pButton = new CCommandButton( pDetButton );
 		*/
 	}
 	else if ( !strcmp( pName, "!DETPACKSTOP" ) )
 	{
-		AddButton( iKeyBind, StringCopy( pText ), ExecAndHide( "detstop" ) );
+		pButton = new CCommandButton( pText, ExecAndHide( "detstop" ) );
 	}
 	else if ( !strcmp( pName, "!BUILD" ) )
 	{
@@ -262,71 +218,66 @@ void CClientCommandMenu::AddCustomButton( char *pName, char *pText, int iKeyBind
 	}
 	else if ( !strcmp( pName, "!BUILDSENTRY" ) )
 	{
-		AddButton( iKeyBind, StringCopy( pText ), ExecAndHide( "build 2" ) );
+		pButton = new CCommandButton( pText, ExecAndHide( "build 2" ) );
 	}
 	else if ( !strcmp( pName, "!BUILDDISPENSER" ) )
 	{
-		AddButton( iKeyBind, StringCopy( pText ), ExecAndHide( "build 1" ) );
+		pButton = new CCommandButton( pText, ExecAndHide( "build 1" ) );
 	}
 	else if ( !strcmp( pName, "!ROTATESENTRY180" ) )
 	{
-		AddButton( iKeyBind, StringCopy( pText ), ExecAndHide( "rotatesentry180" ) );
+		pButton = new CCommandButton( pText, ExecAndHide( "rotatesentry180" ) );
 	}
 	else if ( !strcmp( pName, "!ROTATESENTRY" ) )
 	{
-		AddButton( iKeyBind, StringCopy( pText ), ExecAndHide( "rotatesentry" ) );
+		pButton = new CCommandButton( pText, ExecAndHide( "rotatesentry" ) );
 	}
 	else if ( !strcmp( pName, "!DISMANTLEDISPENSER" ) )
 	{
-		AddButton( iKeyBind, StringCopy( pText ), ExecAndHide( "dismantle 1" ) );
+		pButton = new CCommandButton( pText, ExecAndHide( "dismantle 1" ) );
 	}
 	else if ( !strcmp( pName, "!DISMANTLESENTRY" ) )
 	{
-		AddButton( iKeyBind, StringCopy( pText ), ExecAndHide( "dismantle 2" ) );
+		pButton = new CCommandButton( pText, ExecAndHide( "dismantle 2" ) );
 	}
 	else if ( !strcmp( pName, "!DETONATEDISPENSER" ) )
 	{
-		AddButton( iKeyBind, StringCopy( pText ), ExecAndHide( "detdispenser" ) );
+		pButton = new CCommandButton( pText, ExecAndHide( "detdispenser" ) );
 	}
 	else if ( !strcmp( pName, "!DETONATESENTRY" ) )
 	{
-		AddButton( iKeyBind, StringCopy( pText ), ExecAndHide( "detsentry" ) );
+		pButton = new CCommandButton( pText, ExecAndHide( "detsentry" ) );
 	}
 	else if ( !strcmp( pName, "!BUILDENTRYTELEPORTER" ) )
 	{
-		AddButton( iKeyBind, StringCopy( pText ), ExecAndHide( "build 4" ) );
+		pButton = new CCommandButton( pText, ExecAndHide( "build 4" ) );
 	}
 	else if ( !strcmp( pName, "!DISMANTLEENTRYTELEPORTER" ) )
 	{
-		AddButton( iKeyBind, StringCopy( pText ), ExecAndHide( "dismantle 4" ) );
+		pButton = new CCommandButton( pText, ExecAndHide( "dismantle 4" ) );
 	}
 	else if ( !strcmp( pName, "!DETONATEENTRYTELEPORTER" ) )
 	{
-		AddButton( iKeyBind, StringCopy( pText ), ExecAndHide( "detentryteleporter" ) );
+		pButton = new CCommandButton( pText, ExecAndHide( "detentryteleporter" ) );
 	}
 	else if ( !strcmp( pName, "!BUILDEXITTELEPORTER" ) )
 	{
-		AddButton( iKeyBind, StringCopy( pText ), ExecAndHide( "build 5" ) );
+		pButton = new CCommandButton( pText, ExecAndHide( "build 5" ) );
 	}
 	else if ( !strcmp( pName, "!DISMANTLEEXITTELEPORTER" ) )
 	{
-		AddButton( iKeyBind, StringCopy( pText ), ExecAndHide( "dismantle 5" ) );
+		pButton = new CCommandButton( pText, ExecAndHide( "dismantle 5" ) );
 	}	
 	else if ( !strcmp( pName, "!DETONATEEXITTELEPORTER" ) )
 	{
-		AddButton( iKeyBind, StringCopy( pText ), ExecAndHide( "detexitteleporter" ) );
+		pButton = new CCommandButton( pText, ExecAndHide( "detexitteleporter" ) );
 	}
 	else if ( !strcmp( pName, "!BUILDSTOP" ) )
 	{
-		AddButton( iKeyBind, StringCopy( pText ), ExecAndHide( "build" ) );
+		pButton = new CCommandButton( pText, ExecAndHide( "build" ) );
 	}
-}
 
-void CClientCommandMenu::Init( const char *szName )
-{
-	m_bInit = true;
-	m_bIsSubmenu = true;
-	m_szSubmenuName = StringCopy( szName );
+	return pButton;
 }
 
 void CClientCommandMenu::_Init()
@@ -348,6 +299,7 @@ void CClientCommandMenu::_Init()
 			int iClass;
 			int iButtonType;
 			bool bIsSubmenu = true;
+			CCommandButton *pButton = NULL;
 
 			if ( !strcmp( sToken, "CUSTOM" ) )
 			{
@@ -394,11 +346,9 @@ void CClientCommandMenu::_Init()
 			pFile = EngFuncs::COM_ParseFile( pFile, sToken );
 			strcpy( sCommand, sToken );
 
-			Con_Printf( "CmdMenuBtn: %i %s %s\n", iKeyBind, sCommand, sText );
-
 			if ( iButtonType == BTN_CUSTOM )
 			{
-				AddCustomButton( sCommand, sText , iKeyBind);
+				pButton = CreateCustomButton( sCommand, sText, iKeyBind );
 				pFile = EngFuncs::COM_ParseFile( pFile, sToken );
 
 				if ( sToken[0] == '{' )
@@ -419,6 +369,11 @@ void CClientCommandMenu::_Init()
 			{
 			}
 
+			if ( pButton )
+			{
+				AddItem( pButton );
+			}
+
 			if ( sCommand[0] == '{' )
 			{
 			}
@@ -436,14 +391,18 @@ void CClientCommandMenu::_Init()
 	}
 }
 
-void CClientCommandMenu::Draw()
-{
-	CMenuBaseClientWindow::Draw();
-}
-
 void CClientCommandMenu::Reload()
 {
-	int iCount = m_pButtons.Count();
+	int iCount = 0;
+
+	FOR_EACH_VEC ( m_pItems, i )
+	{
+		if( m_pItems[i]->IsVisible() )
+		{
+			m_pItems[i]->pos.y = iCount * BTN_HEIGHT;
+			iCount++;
+		}
+	}
 
 	size.w = BTN_WIDTH;
 	size.h = iCount * BTN_HEIGHT;
@@ -452,11 +411,6 @@ void CClientCommandMenu::Reload()
 	{
 		pos.x = 0;
 		pos.y = Max( ( 768 - size.h ) / 2, 0 );
-	}
-
-	FOR_EACH_VEC ( m_pButtons, i )
-	{
-		m_pButtons[i]->pos.y = i * BTN_HEIGHT;
 	}
 
 	BaseClass::Reload();
