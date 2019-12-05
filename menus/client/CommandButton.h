@@ -1,4 +1,6 @@
-#include "Action.h"
+#pragma once
+
+#include "ClientMenuButton.h"
 
 #define BS_HAS_BUILDING ( 1 << 0 )
 #define BS_IS_BUILDING ( 1 << 1 )
@@ -8,10 +10,10 @@
 #define BS2_IS_BUILDING ( 1 << 0 )
 #define BS2_HAS_DISPENSER ( 1 << 1 )
 #define BS2_HAS_SENTRY ( 1 << 2 )
-#define BS2_HAS_TELE_ENTRANCE ( 1 << 3 )
-#define BS2_HAS_TELE_EXIT ( 1 << 4 )
-#define BS2_CAN_BUILD_DISPENSER ( 1 << 5 )
-#define BS2_CAN_BUILD_SENTRY ( 1 << 6 )
+#define BS2_CAN_BUILD_DISPENSER ( 1 << 3 )
+#define BS2_CAN_BUILD_SENTRY ( 1 << 4 )
+#define BS2_HAS_TELE_ENTRANCE ( 1 << 5 )
+#define BS2_HAS_TELE_EXIT ( 1 << 6 )
 #define BS2_CAN_BUILD_TELE_ENTRANCE ( 1 << 7 )
 #define BS2_CAN_BUILD_TELE_EXIT ( 1 << 8 )
 
@@ -28,7 +30,7 @@ enum
 	BLD_TELE_EXIT = 3
 };
 
-class CCommandButton : public CMenuAction
+class CCommandButton : public CClientMenuButton
 {
 public:
 	CCommandButton( int key, const char *name, CClientWindow *cmdMenu ) : CCommandButton( key, name )
@@ -36,45 +38,14 @@ public:
 		SetCommandMenuCallback( cmdMenu );
 	}
 
-	CCommandButton( int key, const char *name, const char* cmd ) : CCommandButton( key, name )
+	CCommandButton( int key, const char *name, const char* cmd ) : CClientMenuButton( key, name, Point( 0, 0 ), cmd ), m_bHasSubmenu( false )
 	{
-		onPressed = CEventCallback( []( CMenuBaseItem *pSelf, void *pExtra )
-		{
-			pSelf->Parent()->Hide();
-			EngFuncs::ClientCmd( FALSE, (const char*)pExtra );
-		}, (void *)cmd );
+		SetBackground( PackRGB( 0, 0, 0 ), PackRGB( 156, 77, 20 ) );
 	}
 
-	CCommandButton( int key, const char *name )
+	CCommandButton( int key, const char *name ) : CClientMenuButton( key, name, Point( 0, 0 ) ), m_bHasSubmenu( false )
 	{
-		m_iKeyBind = key;
-
-		if( !onPressed )
-		{
-			onPressed = CEventCallback( []( CMenuBaseItem *pSelf, void* pExtra )
-			{
-				pSelf->Parent()->Hide();
-			});
-		}
-		
-		pos = Point( 0, 0 );
-		SetBackground( PackRGBA( 0, 0, 0, 0 ), PackRGBA( 156, 77, 20, 128 ) );
-
-		if ( *name == '&' )
-			name++;
-
-		m_szLabel = new char[64];
-		sprintf( m_szLabel, "%c %s", key, name );	
-		szName = m_szLabel;
-		SetCharSize( QM_DEFAULTFONT );
-		eTextAlignment = QM_LEFT | QM_CENTER;
-
-		m_bLimitBySize = true;
-		size = Size( BTN_WIDTH, BTN_HEIGHT );
-
-		bDrawStroke = true;
-		iStrokeWidth = 1;
-		colorStroke = PackRGBA( 156, 77, 20, 200 );
+		SetBackground( PackRGB( 0, 0, 0 ), PackRGB( 156, 77, 20 ) );
 	}
 
 	void SetCommandMenuCallback( CClientWindow* cmdMenu )
@@ -86,10 +57,19 @@ public:
 			cmdMenu->pos.y = pSelf->Parent()->pos.y + pSelf->pos.y;
 			cmdMenu->Show();
 		}, (void *)cmdMenu );
+
+		m_bHasSubmenu = true;
 	}
 
-	int m_iKeyBind;
-	char *m_szLabel;
+	void Draw() override
+	{
+		CClientMenuButton::Draw();
+
+		if ( m_bHasSubmenu )
+			UI_DrawString( font, Point( m_scPos.x - 8, m_scPos.y ), m_scSize, ">", colorBase, charSize, QM_RIGHT, ETF_NOSIZELIMIT );
+	}
+
+	bool m_bHasSubmenu;
 };
 
 class CSpectateButton : public CCommandButton
@@ -109,15 +89,11 @@ public:
 class CDisguiseButton : public CCommandButton
 {
 public:
-	CDisguiseButton( int validbits, int key, const char *name ) : CCommandButton( key, name )
-	{
-		m_iValidTeamsBits = validbits;
-	}
+	CDisguiseButton( int validbits, int key, const char *name ) : CCommandButton( key, name ),
+		m_iValidTeamsBits( validbits ) {}
 
-	CDisguiseButton( int validbits, int key, const char *name, CClientWindow *cmdMenu ) : CCommandButton( key, name, cmdMenu )
-	{
-		m_iValidTeamsBits = validbits;
-	}
+	CDisguiseButton( int validbits, int key, const char *name, CClientWindow *cmdMenu ) : CCommandButton( key, name, cmdMenu ),
+		m_iValidTeamsBits( validbits ) {}
 
 	int m_iValidTeamsBits;
 
@@ -140,10 +116,8 @@ public:
 class CFeignButton : public CCommandButton
 {
 public:
-	CFeignButton( int state, int key, const char *name, const char *cmd ) : CCommandButton( key, name, cmd )
-	{
-		m_iFeignState = state;
-	}
+	CFeignButton( int state, int key, const char *name, const char *cmd ) : CCommandButton( key, name, cmd ),
+		m_iFeignState( state ) {}
 
 	int	m_iFeignState;
 
@@ -186,10 +160,8 @@ public:
 class CTeamButton : public CCommandButton
 {
 public:
-	CTeamButton( int team, int key, const char *name, const char *cmd ) : CCommandButton( key, name, cmd )
-	{
-		m_iTeam = team;
-	}
+	CTeamButton( int team, int key, const char *name, const char *cmd ) : CCommandButton( key, name, cmd ),
+		m_iTeam( team ) {}
 
 	int m_iTeam;
 
@@ -205,17 +177,11 @@ public:
 class CBuildButton : public CCommandButton
 {
 public:
-	CBuildButton( int state, int data, int key, const char *name ) : CCommandButton( key, name )
-	{
-		m_iBuildState = state;
-		m_iBuildData = data;
-	}
+	CBuildButton( int state, int data, int key, const char *name ) : CCommandButton( key, name ),
+		m_iBuildState( state ), m_iBuildData( data ) {}
 
-	CBuildButton( int state, int data, int key, const char *name, const char *cmd ) : CCommandButton( key, name, cmd )
-	{
-		m_iBuildState = state;
-		m_iBuildData = data;
-	}
+	CBuildButton( int state, int data, int key, const char *name, const char *cmd ) : CCommandButton( key, name, cmd ),
+		m_iBuildState( state ), m_iBuildData( data ) {}
 
 	int	m_iBuildState;
 	int m_iBuildData;
@@ -283,15 +249,11 @@ public:
 class CDetpackButton : public CCommandButton
 {
 public:
-	CDetpackButton( int state, int key, const char *name, const char *cmd ) : CCommandButton( key, name, cmd )
-	{
-		m_iDetpackState = state;
-	}
+	CDetpackButton( int state, int key, const char *name, const char *cmd ) : CCommandButton( key, name, cmd ),
+		m_iDetpackState( state ) {}
 
-	CDetpackButton( int state, int key, const char *name, CClientWindow *cmdMenu ) : CCommandButton( key, name, cmdMenu )
-	{
-		m_iDetpackState = state;
-	}
+	CDetpackButton( int state, int key, const char *name, CClientWindow *cmdMenu ) : CCommandButton( key, name, cmdMenu ),
+		m_iDetpackState( state ) {}
 
 	int	m_iDetpackState;
 

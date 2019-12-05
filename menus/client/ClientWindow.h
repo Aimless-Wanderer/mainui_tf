@@ -3,12 +3,9 @@
 #include "BaseClientWindow.h"
 #include "Action.h"
 #include "EventSystem.h"
+#include "ClientMenuButton.h"
 
 #include "../cl_dll/tfc/tf_defs.h"
-
-#define BTN_HEIGHT 48
-#define BTN_WIDTH 256
-#define BTN_GAP 12
 
 enum
 {
@@ -31,11 +28,6 @@ public:
 
 	void Show() override;
 	void Hide() override;
-
-	CEventCallback ExecAndHide( const char *szCmd );
-
-	CMenuAction *AddButton( const char *name, Point pos, CEventCallback callback );
-
 	bool KeyDown( int key ) override;
 	bool KeyUp( int key ) override;
 	void VidInit() override;

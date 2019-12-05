@@ -11,30 +11,18 @@ public:
 	CClientCommandMenu() : BaseClass( "CClientCommandMenu" ) {}
 	CClientCommandMenu( bool subMenu ) { m_bInit = true; }
 
-	void _Init();
-	void Reload();
+	void _Init() override;
+	void Reload() override;
 	
-	void VidInit()
+	void VidInit() override
 	{
 		Reload();
 		CMenuBaseClientWindow::VidInit();
 	}
 	
-	void Draw()
+	void Draw() override
 	{
 		CMenuBaseClientWindow::Draw();
-	}
-
-	bool KeyDown( int key ) override
-	{
-		FOR_EACH_VEC ( m_pItems, i )
-		{
-			CCommandButton *pButton = static_cast<CCommandButton *>( m_pItems[i] );
-			if ( pButton->m_iKeyBind == key )
-				pButton->onPressed( pButton );
-		}
-
-		return CClientWindow::KeyDown( key );
 	}
 
 	void SetParent( CClientCommandMenu* cmdMenu )
@@ -65,11 +53,11 @@ CCommandButton *CClientCommandMenu::CreateCustomButton( char *pName, char *pText
 		int iNumTeams = g_pClient->GetNumberOfTeams();
 		char **szTeamNames = g_pClient->GetTeamNames();
 
-		for ( int i = 0; i < iNumTeams; i++ )
+		for ( int i = 1; i <= iNumTeams; i++ )
 		{
 			char *cmd = new char[16];
-			sprintf( cmd, "jointeam %i", i + 1 );
-			CCommandButton *pTeamButton = new CCommandButton( '0' + i + 1, L( szTeamNames[i] ), cmd );
+			sprintf( cmd, "jointeam %i", i );
+			CCommandButton *pTeamButton = new CCommandButton( '0' + i, L( szTeamNames[i - 1] ), cmd );
 			cmdMenu->AddItem( pTeamButton );
 		}
 
