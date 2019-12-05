@@ -93,10 +93,11 @@ bool UI_IsXashFWGS( void )
 	return g_bIsForkedEngine;
 }
 
-CMenuEntry::CMenuEntry(const char *cmd, void (*pfnPrecache)(), void (*pfnShow)()) :
+CMenuEntry::CMenuEntry(const char *cmd, void (*pfnPrecache)(), void (*pfnShow)(), void (*pfnShutdown)() ) :
 	m_szCommand( cmd ),
 	m_pfnPrecache( pfnPrecache ),
 	m_pfnShow( pfnShow ),
+	m_pfnShutdown( pfnShutdown ),
 	m_pNext( s_pEntries )
 {
 	s_pEntries = this;
@@ -179,9 +180,9 @@ void UI_DisableAlphaFactor()
 UI_DrawPic
 =================
 */
-void UI_DrawPic( int x, int y, int width, int height, const unsigned int color, const char *pic, const ERenderMode eRenderMode )
+void UI_DrawPic( int x, int y, int width, int height, const unsigned int color, CImage &pic, const ERenderMode eRenderMode )
 {
-	HIMAGE hPic = EngFuncs::PIC_Load( pic );
+	HIMAGE hPic = pic.Handle();
 
 	if( !hPic )
 		return;
@@ -502,18 +503,14 @@ int UI_DrawString( HFont font, int x, int y, int w, int h,
 	return maxX;
 }
 
-#ifdef _WIN32
-#include <windows.h> // DrawMouseCursor
-#endif
-
 /*
 =================
 UI_DrawMouseCursor
 =================
 */
 void UI_DrawMouseCursor( void )
-{	
-#ifdef _WIN32
+{
+#if 0 // a1ba: disable until we will manage to provide an API for crossplatform cursor replacing
 	CMenuBaseItem	*item;
 	HICON		hCursor = NULL;
 	int		i;
@@ -554,9 +551,7 @@ void UI_DrawMouseCursor( void )
 		hCursor = (HICON)LoadCursor( NULL, (LPCTSTR)OCR_NORMAL );
 
 	EngFuncs::SetCursor( hCursor );
-#else // _WIN32
-	// TODO: Unified LoadCursor interface extension
-#endif // _WIN32
+#endif
 }
 
 const char *COM_ExtractExtension( const char *s )
@@ -1242,6 +1237,11 @@ void UI_Shutdown( void )
 		if( entry->m_szCommand && entry->m_pfnShow )
 		{
 			EngFuncs::Cmd_RemoveCommand( entry->m_szCommand );
+		}
+
+		if( entry->m_pfnShutdown )
+		{
+			entry->m_pfnShutdown();
 		}
 	}
 

@@ -24,6 +24,7 @@ GNU General Public License for more details.
 #include "FontManager.h"
 #include "BtnsBMPTable.h"
 #include "WindowSystem.h"
+#include "Image.h"
 
 #define UI_MAX_MENUDEPTH		64
 #define UI_MAX_MENUITEMS		64
@@ -188,10 +189,20 @@ inline int UI_DrawString( HFont font, Point pos, Size size, const char *str, con
 	return UI_DrawString( font, pos.x, pos.y, size.w, size.h, str, col, charH, justify, flags );
 }
 
-void UI_DrawPic(int x, int y, int w, int h, const unsigned int color, const char *pic, const ERenderMode eRenderMode = QM_DRAWNORMAL );
-inline void UI_DrawPic( Point pos, Size size, const unsigned int color, const char *pic, const ERenderMode eRenderMode = QM_DRAWNORMAL )
+void UI_DrawPic( int x, int y, int w, int h, const unsigned int color, CImage &pic, const ERenderMode eRenderMode = QM_DRAWNORMAL );
+inline void UI_DrawPic( Point pos, Size size, const unsigned int color, CImage &pic, const ERenderMode eRenderMode = QM_DRAWNORMAL )
 {
 	UI_DrawPic( pos.x, pos.y, size.w, size.h, color, pic, eRenderMode );
+}
+inline void UI_DrawPic( int x, int y, int w, int h, const unsigned int color, const char *pic, const ERenderMode eRenderMode = QM_DRAWNORMAL )
+{
+	CImage img = pic;
+	UI_DrawPic( x, y, w, h, color, img, eRenderMode );
+}
+inline void UI_DrawPic( Point pos, Size size, const unsigned int color, const char *pic, const ERenderMode eRenderMode = QM_DRAWNORMAL )
+{
+	CImage img = pic;
+	UI_DrawPic( pos, size, color, img, eRenderMode );
 }
 void UI_FillRect( int x, int y, int w, int h, const unsigned int color );
 inline void UI_FillRect( Point pos, Size size, const unsigned int color )
@@ -227,15 +238,37 @@ void UI_LoadScriptConfig( void );
 class CMenuEntry
 {
 public:
-	CMenuEntry( const char *cmd, void (*pfnPrecache)( void ), void (*pfnShow)( void ));
+	CMenuEntry( const char *cmd, void (*pfnPrecache)( void ), void (*pfnShow)( void ), void (*pfnShutdown)( void ) = NULL);
 	const char *m_szCommand;
 	void (*m_pfnPrecache)( void );
 	void (*m_pfnShow)( void );
+	void (*m_pfnShutdown)( void );
 	CMenuEntry *m_pNext;
 };
 
-#define ADD_MENU( cmd, precachefunc, showfunc ) \
-	static CMenuEntry cmd( #cmd, precachefunc, showfunc )
+#define ADD_MENU4( cmd, precachefunc, showfunc, shutdownfunc ) \
+	void showfunc( void ); \
+	static CMenuEntry entry_##cmd( #cmd, precachefunc, showfunc, shutdownfunc )
+
+#define ADD_MENU3( cmd, type, showfunc ) \
+	static type * cmd = NULL; \
+	void cmd##_Precache( void ) \
+	{ \
+		cmd = new type(); \
+	} \
+	void cmd##_Shutdown( void ) \
+	{ \
+		delete cmd; \
+	} \
+	ADD_MENU4( cmd, cmd##_Precache, showfunc, cmd##_Shutdown )
+
+#define ADD_MENU( cmd, type, showfunc ) \
+	void showfunc( void ); \
+	ADD_MENU3( cmd, type, showfunc ); \
+	void showfunc( void ) \
+	{ \
+		cmd->Show(); \
+	}
 
 #define ADD_COMMAND( cmd, showfunc ) \
 	static CMenuEntry cmd( #cmd, NULL, showfunc )
