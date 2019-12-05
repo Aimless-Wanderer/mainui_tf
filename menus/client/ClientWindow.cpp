@@ -1,14 +1,6 @@
 #include "BaseMenu.h"
 #include "ClientWindow.h"
 
-CClientWindow::~CClientWindow()
-{
-	FOR_EACH_VEC( m_pItems, i )
-	{
-		delete m_pItems[i];
-	}
-}
-
 void CClientWindow::Show()
 {
 	if( !m_pStack->IsActive() )

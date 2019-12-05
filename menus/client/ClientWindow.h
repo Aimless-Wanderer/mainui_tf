@@ -28,7 +28,6 @@ class CClientWindow : public CMenuBaseClientWindow
 public:
 	typedef CMenuBaseClientWindow BaseClass;
 	CClientWindow( const char *name = "CClientWindow" ) : BaseClass( name ) {}
-	~CClientWindow();
 
 	void Show() override;
 	void Hide() override;
@@ -37,8 +36,8 @@ public:
 
 	CMenuAction *AddButton( const char *name, Point pos, CEventCallback callback );
 
-	bool KeyDown( int key );
-	bool KeyUp( int key );
+	bool KeyDown( int key ) override;
+	bool KeyUp( int key ) override;
 	void VidInit() override;
 	void Draw() override;
 
