@@ -80,6 +80,7 @@ def configure(conf):
 			conf.check_pkg('fontconfig', 'FC', FC_CHECK)
 			conf.define('MAINUI_USE_FREETYPE', 1)
 		conf.check_cxx(lib='rt', mandatory=False)
+		conf.check_cxx(lib='dl')
 
 def build(bld):
 	libs = []
@@ -93,7 +94,7 @@ def build(bld):
 		libs += ['GDI32', 'USER32']
 
 	if bld.env.DEST_OS == 'linux':
-		libs += ['RT']
+		libs += ['DL', 'RT']
 
 	if bld.env.DEST_OS not in ['android']:
 		install_path = os.path.join(bld.env.GAMEDIR, bld.env.CLIENT_DIR)
