@@ -877,6 +877,23 @@ double Sys_DoubleTime( void )
 	// fallback when no time api
 	return gpGlobals->time + 0.01;
 }
+#elif defined __psp__
+#include <pspkernel.h>
+double Sys_DoubleTime( void )
+{
+	static struct timeval st;
+	static qboolean timerInit = false;
+	struct timeval tv;
+	
+	if(!timerInit)
+	{
+		gettimeofday(&st, NULL);
+		timerInit = true;
+	}
+	
+	gettimeofday(&tv, NULL);
+	return (double) (tv.tv_sec - st.tv_sec) + ((double) (tv.tv_usec - st.tv_usec))/1000000.0;
+}
 #else
 typedef unsigned long long longtime_t;
 #include <time.h>
