@@ -70,6 +70,9 @@ def configure(conf):
 	if conf.env.DEST_OS == 'android':
 		conf.define('NO_STL', 1)
 		conf.env.append_unique('CXXFLAGS', '-fno-exceptions')
+	
+	if conf.env.DEST_OS == 'psp':
+		conf.define('MAINUI_SMALL_SCREEN', 1)
 
 	if conf.env.DEST_OS != 'win32' and conf.env.DEST_OS != 'dos':
 		if not conf.env.USE_STBTT and not conf.options.LOW_MEMORY:
