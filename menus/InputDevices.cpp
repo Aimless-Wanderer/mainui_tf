@@ -95,7 +95,7 @@ void CMenuInputDevices::_Init( void )
 				"Are you sure to disable mouse?" ) );
 			SET_EVENT_MULTI( msgbox.onNegative,
 			{
-				pSelf->Parent<CMenuInputDevices>()->mouse.bChecked = false;
+				pSelf->GetParent(CMenuInputDevices)->mouse.bChecked = false;
 			});
 
 			msgbox.Show();

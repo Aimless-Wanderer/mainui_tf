@@ -68,7 +68,7 @@ void CMenuConnectionWarning::_Init()
 	options.szName = L( "Adv. Options" );
 	SET_EVENT_MULTI( options.onReleased,
 	{
-		CMenuConnectionWarning *p = pSelf->Parent<CMenuConnectionWarning>();
+		CMenuConnectionWarning *p = pSelf->GetParent(CMenuConnectionWarning);
 		UI_GameOptions_Menu();
 		p->done.SetGrayed( false );
 	});
