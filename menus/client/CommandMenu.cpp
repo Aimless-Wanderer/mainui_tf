@@ -123,7 +123,7 @@ CCommandButton *CClientCommandMenu::CreateCustomButton( char *pName, char *pText
 		{
 			char *cmd = new char[32];
 			sprintf( cmd, "disguise_enemy %i", i );
-			CCommandButton *pDisguiseButton = new CCommandButton( iKeyBind, L( szClassLabels[i - 1] ), cmd );
+			CCommandButton *pDisguiseButton = new CCommandButton( i, L( szClassLabels[i - 1] ), cmd );
 			cmdMenu->AddItem( pDisguiseButton );
 		}
 	}
@@ -137,7 +137,7 @@ CCommandButton *CClientCommandMenu::CreateCustomButton( char *pName, char *pText
 		{
 			char *cmd = new char[32];
 			sprintf( cmd, "disguise_friendly %i", i );
-			CCommandButton *pDisguiseButton = new CCommandButton( iKeyBind, L( szClassLabels[i - 1] ), cmd );
+			CCommandButton *pDisguiseButton = new CCommandButton( i, L( szClassLabels[i - 1] ), cmd );
 			cmdMenu->AddItem( pDisguiseButton );
 		}
 	}
@@ -157,7 +157,7 @@ CCommandButton *CClientCommandMenu::CreateCustomButton( char *pName, char *pText
 			{
 				char *cmd = new char[32];
 				sprintf( cmd, "disguise %i %i", i, j );
-				CCommandButton *pDisguiseButton = new CCommandButton( iKeyBind, L( szClassLabels[j - 1] ), cmd );
+				CCommandButton *pDisguiseButton = new CCommandButton( i, L( szClassLabels[j - 1] ), cmd );
 				cmdMenu_->AddItem( pDisguiseButton );
 			}
 
