@@ -41,6 +41,7 @@ set(MAINUI_CONTROLS_SOURCES
 	controls/Framework.cpp
 	controls/BaseItem.cpp
 	controls/Action.cpp
+	controls/BaseClientWindow.cpp
 	controls/Bitmap.cpp
 	controls/CheckBox.cpp
 	controls/ItemsHolder.cpp
@@ -91,6 +92,11 @@ set(MAINUI_MENUS_SOURCES
 	menus/ConnectionProgress.cpp
 	menus/ConnectionWarning.cpp
 	menus/dynamic/ScriptMenu.cpp
+	../common/interface.cpp
+	menus/client/ClassMenu.cpp
+	menus/client/ClientWindow.cpp
+	menus/client/CommandMenu.cpp
+	menus/client/TeamMenu.cpp
 )
 
 set(MAINUI_FONT_RENDER_SOURCES
@@ -103,13 +109,17 @@ set(MAINUI_FONT_RENDER_SOURCES
 )
 
 set(MAINUI_SOURCES
+	miniutl/bitstring.cpp
+	miniutl/generichash.cpp
+	miniutl/strtools.cpp
+	miniutl/utlbuffer.cpp
 	miniutl/utlmemory.cpp
+	miniutl/utlstring.cpp
 	unicode_strtools.cpp
 	EventSystem.cpp
 	EngineCallback.cpp
 	BaseMenu.cpp
 	Btns.cpp
-	Color.cpp
 	MenuStrings.cpp
 	CFGScript.cpp
 	Utils.cpp
@@ -160,7 +170,7 @@ if(APPLE)
 	set(MAINUI_USE_STB TRUE)
 endif()
 
-include_directories(${XASH_SDK}/common ${XASH_SDK}/engine ${XASH_SDK}/pm_shared . controls/ menus/ miniutl/ font/ model/)
+include_directories(${XASH_SDK}/common ${XASH_SDK}/engine ${XASH_SDK}/pm_shared . controls/ menus/ miniutl/ font/ model/ ../cl_dll)
 
 if(MSVC)
 	add_definitions(-D_CRT_SECURE_NO_WARNINGS)
@@ -208,4 +218,9 @@ if(XASH_64BIT)
 endif()
 
 fwgs_set_default_properties(${MAINUI_LIBRARY})
-fwgs_install(${MAINUI_LIBRARY})
+
+install(TARGETS ${MAINUI_LIBRARY}
+	DESTINATION "${GAMEDIR}/${MENU_INSTALL_DIR}/"
+	PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE
+	    GROUP_READ GROUP_EXECUTE
+		WORLD_READ WORLD_EXECUTE)
