@@ -23,13 +23,13 @@ CMenuBaseClientWindow::CMenuBaseClientWindow( const  char *name ) :
 bool CMenuBaseClientWindow::KeyDown( int key )
 {
 	// copy engine behaviour
-	if( UI::Key::IsEscape( key ))
+	if ( UI::Key::IsEscape( key ) )
 	{
 		EngFuncs::KEY_SetDest( KEY_GAME ); // set engine states before "escape"
 		EngFuncs::ClientCmd( FALSE, "escape\n" );
 		return true;
 	}
-	else if( key == '`' || key == '~' )
+	else if ( key == '`' || key == '~' )
 	{
 		EngFuncs::KEY_SetDest( KEY_CONSOLE );
 	}

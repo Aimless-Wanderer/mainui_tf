@@ -17,15 +17,15 @@
 #define BS2_CAN_BUILD_TELE_ENTRANCE ( 1 << 7 )
 #define BS2_CAN_BUILD_TELE_EXIT ( 1 << 8 )
 
-#define DISGUISE_TEAM1 ( 1<<0 )
-#define DISGUISE_TEAM2 ( 1<<1 )
-#define DISGUISE_TEAM3 ( 1<<2 )
-#define DISGUISE_TEAM4 ( 1<<3 )
+#define DISGUISE_TEAM1 ( 1 << 0 )
+#define DISGUISE_TEAM2 ( 1 << 1 )
+#define DISGUISE_TEAM3 ( 1 << 2 )
+#define DISGUISE_TEAM4 ( 1 << 3 )
 
 enum
 {
 	BLD_DISPENSER = 0,
-	BLD_SENTRY= 1,
+	BLD_SENTRY = 1,
 	BLD_TELE_ENTRANCE = 2,
 	BLD_TELE_EXIT = 3
 };
@@ -38,7 +38,7 @@ public:
 		SetCommandMenuCallback( cmdMenu );
 	}
 
-	CCommandButton( int key, const char *name, const char* cmd ) : CClientMenuButton( key, name, Point( 0, 0 ), cmd ), m_bHasSubmenu( false )
+	CCommandButton( int key, const char *name, const char *cmd ) : CClientMenuButton( key, name, Point( 0, 0 ), cmd ), m_bHasSubmenu( false )
 	{
 		SetBackground( PackRGB( 0, 0, 0 ), PackRGB( 156, 77, 20 ) );
 	}
@@ -48,11 +48,11 @@ public:
 		SetBackground( PackRGB( 0, 0, 0 ), PackRGB( 156, 77, 20 ) );
 	}
 
-	void SetCommandMenuCallback( CClientWindow* cmdMenu )
+	void SetCommandMenuCallback( CClientWindow *cmdMenu )
 	{
 		onPressed = CEventCallback( []( CMenuBaseItem *pSelf, void *pExtra )
 		{
-			CClientWindow *cmdMenu = ( (CClientWindow *)pExtra );
+			CClientWindow *cmdMenu = (CClientWindow *)pExtra;
 			cmdMenu->pos.x = pSelf->Parent()->size.w + pSelf->Parent()->pos.x;
 			cmdMenu->pos.y = pSelf->Parent()->pos.y + pSelf->pos.y;
 			cmdMenu->Show();
@@ -101,10 +101,10 @@ public:
 	{
 		if ( g_pClient->GetPlayerClass() != PC_SPY )
 			return false;
-		
+
 		if ( !m_iValidTeamsBits )
 			return CCommandButton::IsVisible();
-		
+
 		int iMaxTeams = 1 << ( g_pClient->GetNumberOfTeams() - 1 );
 		if ( m_iValidTeamsBits & iMaxTeams )
 			return CCommandButton::IsVisible();
@@ -125,7 +125,7 @@ public:
 	{
 		if ( g_pClient->GetPlayerClass() != PC_SPY )
 			return false;
-		
+
 		if ( m_iFeignState != g_pClient->GetIsFeigning() )
 			return false;
 
@@ -169,7 +169,7 @@ public:
 	{
 		if ( g_pClient->GetTeamNumber() != m_iTeam )
 			return false;
-		
+
 		return CCommandButton::IsVisible();
 	}
 };
@@ -190,7 +190,7 @@ public:
 	{
 		if ( g_pClient->GetPlayerClass() != PC_ENGINEER )
 			return false;
-		
+
 		if ( m_iBuildState & BS_IS_BUILDING )
 		{
 			if ( !( g_pClient->GetBuildState() & BS2_IS_BUILDING ) )

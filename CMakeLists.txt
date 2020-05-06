@@ -37,6 +37,10 @@ option(MAINUI_USE_STB "Use stb_truetype.h for rendering(*nix-only)" OFF)
 option(MAINUI_RENDER_PICBUTTON_TEXT "Use custom font render to render picbuttons(experimental)" OFF)
 option(MAINUI_FONT_SCALE "Scale fonts by height" OFF)
 
+if(NOT XASH_SDK)
+	set(XASH_SDK "../")
+endif()
+
 set(MAINUI_CONTROLS_SOURCES
 	controls/Framework.cpp
 	controls/BaseItem.cpp
@@ -92,7 +96,7 @@ set(MAINUI_MENUS_SOURCES
 	menus/ConnectionProgress.cpp
 	menus/ConnectionWarning.cpp
 	menus/dynamic/ScriptMenu.cpp
-	../common/interface.cpp
+	${XASH_SDK}/common/interface.cpp
 	menus/client/ClassMenu.cpp
 	menus/client/ClientWindow.cpp
 	menus/client/CommandMenu.cpp
@@ -142,7 +146,7 @@ endif()
 list(APPEND MAINUI_SOURCES ${MAINUI_CONTROLS_SOURCES})
 list(APPEND MAINUI_SOURCES ${MAINUI_MENUS_SOURCES})
 list(APPEND MAINUI_SOURCES ${MAINUI_FONT_RENDER_SOURCES})
-add_library (${MAINUI_LIBRARY} SHARED ${MAINUI_SOURCES})
+add_library (${MAINUI_LIBRARY} MODULE ${MAINUI_SOURCES})
 
 if(NOT WIN32 AND NOT MINGW)
 	fwgs_add_compile_options(C -Wall -Wextra -Wno-unused-parameter -Wno-unused-variable)
@@ -150,10 +154,6 @@ else()
 
 	# Only for MSVC6 compatibility mode! Newer VC does fail with this define
 	# add_definitions(-DMY_COMPILER_SUCKS)
-endif()
-
-if(NOT XASH_SDK)
-	set(XASH_SDK "../")
 endif()
 
 if(XASH_SAILFISH)
@@ -224,3 +224,7 @@ install(TARGETS ${MAINUI_LIBRARY}
 	PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE
 	    GROUP_READ GROUP_EXECUTE
 		WORLD_READ WORLD_EXECUTE)
+
+# Install PDB file on Windows
+install(FILES $<TARGET_PDB_FILE:${MAINUI_LIBRARY}>
+	DESTINATION "${GAMEDIR}/${MENU_INSTALL_DIR}/" OPTIONAL)
