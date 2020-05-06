@@ -1,44 +1,17 @@
-*.user
-*.so
-*.obj
-*.o
-*.exp
-*.lib
-*.dll
-Makefile
-build/
+# Visual Studio
+.vs/
+out/
+CMakeSettings.json
 
-### CMake ###
+# CMake
+CMakeLists.txt.user
 CMakeCache.txt
 CMakeFiles
+CMakeScripts
+Testing
 Makefile
 cmake_install.cmake
 install_manifest.txt
-# makedepend
-Makefile.dep
-*.bak
-ALL_BUILD.*
-INSTALL.*
-ZERO_CHECK.*
-
-# Visual Studio
-*.obj
-*.dll
-*.exp
-*.lib
-*.suo
-*.sdf
-Debug/
-Release/
-ipch/
-*.opensdf
-# Use CMake for generating projects
-*.vcxproj.filters
-*.vcxproj
-*.vcproj
-*.sln
-*.pdb
-
-__pycache__
-temp.txt
-nonfree_translations
+compile_commands.json
+CTestTestfile.cmake
+_deps
