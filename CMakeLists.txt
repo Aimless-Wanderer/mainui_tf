@@ -30,7 +30,7 @@ include(FWGSLib)
 # It's not recommended and may not work(as it's done only for MSVC6 support)
 set(CMAKE_CXX_STANDARD 11)
 
-set(MAINUI_LIBRARY xashmenu)
+set(MAINUI_LIBRARY menu)
 fwgs_fix_default_msvc_settings()
 option(MAINUI_USE_CUSTOM_FONT_RENDER "Use custom font rendering" ON)
 option(MAINUI_USE_STB "Use stb_truetype.h for rendering(*nix-only)" OFF)
@@ -200,13 +200,8 @@ if(MAINUI_USE_CUSTOM_FONT_RENDER)
 endif()
 
 # Name library as it named in Unkle Mike's Xash3D
-if(MAINUI_NAME)
-	set_target_properties(${MAINUI_LIBRARY} PROPERTIES
-		OUTPUT_NAME ${MAINUI_NAME})
-elseif(WIN32 OR ANDROID)
-	set_target_properties(${MAINUI_LIBRARY} PROPERTIES
-		OUTPUT_NAME menu PREFIX "")
-endif()
+set_target_properties(${MAINUI_LIBRARY} PROPERTIES
+	OUTPUT_NAME menu PREFIX "")
 
 if(XASH_64BIT)
 	get_target_property(MAINUI_NAME ${MAINUI_LIBRARY} OUTPUT_NAME)
