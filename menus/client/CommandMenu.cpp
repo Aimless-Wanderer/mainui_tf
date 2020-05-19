@@ -265,9 +265,9 @@ void CClientCommandMenu::_Init()
 		while ( sToken[0] != '}' && strlen( sToken ) )
 		{
 			int iKeyBind;
-			char sText[32] = "";
-			char sCommand[32] = "";
-			char sMap[64] = "";
+			char szText[32] = "";
+			char szCommand[128] = "";
+			char szMap[256] = "";
 			int iTeam = -1;
 			int iClass = -1;
 			int iButtonType = -1;
@@ -283,7 +283,8 @@ void CClientCommandMenu::_Init()
 			{
 				iButtonType = BTN_MAP;
 				pFile = EngFuncs::COM_ParseFile( pFile, sToken );
-				strcpy( sMap, sToken );
+				strncpy( szMap, sToken, 256 );
+				szMap[255] = '\0';
 				pFile = EngFuncs::COM_ParseFile( pFile, sToken );
 			}
 			else if ( !strncmp( sToken, "TEAM", 4 ) )
@@ -314,37 +315,39 @@ void CClientCommandMenu::_Init()
 			iKeyBind = atoi( sToken ) + '0';
 
 			pFile = EngFuncs::COM_ParseFile( pFile, sToken );
-			strcpy( sText, sToken );
+			strncpy( szText, sToken, 32 );
+			szText[31] = '\0';
 
 			pFile = EngFuncs::COM_ParseFile( pFile, sToken );
-			strcpy( sCommand, sToken );
+			strncpy( szCommand, sToken, 128 );
+			szCommand[127] = '\0';
 
 			if ( iButtonType == BTN_CUSTOM )
 			{
-				pButton = CreateCustomButton( sCommand, sText, iKeyBind );
+				pButton = CreateCustomButton( szCommand, szText, iKeyBind );
 				pFile = EngFuncs::COM_ParseFile( pFile, sToken );
 
 				if ( sToken[0] == '{' )
-					strcpy( sCommand, sToken );
+					strncpy( szCommand, sToken, 32 );
 				else
 					bIsSubmenu = false;
 			}
 			else if ( iButtonType == BTN_MAP )
 			{
-				pButton = new CMapButton( sMap, iKeyBind, sText, StringCopy( sCommand ) );
+				pButton = new CMapButton( szMap, iKeyBind, szText, StringCopy( szCommand ) );
 			}
 			else if ( iButtonType == BTN_TEAM )
 			{
-				pButton = new CTeamButton( iTeam, iKeyBind, sText, StringCopy( sCommand ) );
+				pButton = new CTeamButton( iTeam, iKeyBind, szText, StringCopy( szCommand ) );
 			}
 			else if ( iButtonType == BTN_TOGGLE )
 			{
 				//Velaron: TODO
-				pButton = new CCommandButton( iKeyBind, sText, StringCopy( sCommand ) );
+				pButton = new CCommandButton( iKeyBind, szText, StringCopy( szCommand ) );
 			}
 			else
 			{
-				pButton = new CCommandButton( iKeyBind, sText, StringCopy( sCommand ) );
+				pButton = new CCommandButton( iKeyBind, szText, StringCopy( szCommand ) );
 			}
 
 			if ( pButton )
@@ -352,7 +355,7 @@ void CClientCommandMenu::_Init()
 				m_pCurrentCommandMenu->AddItem( pButton );
 			}
 
-			if ( sCommand[0] == '{' && pButton )
+			if ( szCommand[0] == '{' && pButton )
 			{
 				CClientCommandMenu *cmdMenu = new CClientCommandMenu( true );
 				cmdMenu->SetParent( m_pCurrentCommandMenu );
