@@ -328,7 +328,10 @@ void CClientCommandMenu::_Init()
 				pFile = EngFuncs::COM_ParseFile( pFile, sToken );
 
 				if ( sToken[0] == '{' )
-					strncpy( szCommand, sToken, 32 );
+				{
+					strncpy( szCommand, sToken, 128 );
+					szCommand[127] = '\0';
+				}
 				else
 					bIsSubmenu = false;
 			}
