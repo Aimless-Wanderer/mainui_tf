@@ -200,8 +200,12 @@ if(MAINUI_USE_CUSTOM_FONT_RENDER)
 endif()
 
 # Name library as it named in Unkle Mike's Xash3D
-set_target_properties(${MAINUI_LIBRARY} PROPERTIES
-	OUTPUT_NAME menu PREFIX "")
+if(APPLE OR WIN32 OR ${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
+	set(MAINUI_NAME "menu")
+	set_target_properties(${MAINUI_LIBRARY} PROPERTIES
+		OUTPUT_NAME ${MAINUI_NAME}
+		PREFIX "")
+endif()
 
 if(XASH_64BIT)
 	get_target_property(MAINUI_NAME ${MAINUI_LIBRARY} OUTPUT_NAME)
