@@ -207,15 +207,6 @@ if(APPLE OR WIN32 OR ${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
 		PREFIX "")
 endif()
 
-if(XASH_64BIT)
-	get_target_property(MAINUI_NAME ${MAINUI_LIBRARY} OUTPUT_NAME)
-	if(NOT MAINUI_NAME)
-		set(MAINUI_NAME ${MAINUI_LIBRARY})
-	endif()
-	set_target_properties(${MAINUI_LIBRARY} PROPERTIES 
-		OUTPUT_NAME ${MAINUI_NAME}64)
-endif()
-
 fwgs_set_default_properties(${MAINUI_LIBRARY})
 
 install(TARGETS ${MAINUI_LIBRARY}
