@@ -96,7 +96,7 @@ set(MAINUI_MENUS_SOURCES
 	menus/ConnectionProgress.cpp
 	menus/ConnectionWarning.cpp
 	menus/dynamic/ScriptMenu.cpp
-	${XASH_SDK}/common/interface.cpp
+	${XASH_SDK}/public/interface.cpp
 	menus/client/ClassMenu.cpp
 	menus/client/ClientWindow.cpp
 	menus/client/CommandMenu.cpp
