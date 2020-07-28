@@ -5,7 +5,8 @@
 #include "EventSystem.h"
 #include "ClientMenuButton.h"
 
-#include "../cl_dll/tfc/tf_defs.h"
+#define TF_DEFS_ONLY
+#include "tf_defs.h"
 
 enum
 {

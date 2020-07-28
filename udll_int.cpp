@@ -14,7 +14,10 @@ GNU General Public License for more details.
 */
 
 #include "../cl_dll/IGameMenuExports.h"
-#include "../cl_dll/tfc/tf_defs.h"
+
+#define TF_DEFS_ONLY
+#include "tf_defs.h"
+
 #include "extdll_menu.h"
 #include "BaseMenu.h"
 #include "Utils.h"
