@@ -292,7 +292,7 @@ void CMenuMain::_Init( void )
 	AddItem( background );
 	AddItem( banner );
 
-	if ( EngFuncs::GetCvarFloat( "developer" ))
+	if ( gpGlobals->developer )
 		AddItem( console );
 
 	AddItem( disconnect );
@@ -333,7 +333,7 @@ void CMenuMain::VidInit( bool connected )
 	hazardCourse.SetCoord( 72, 330 );
 
 	bool isGameLoaded = EngFuncs::GetCvarFloat( "host_gameloaded" ) != 0.0f;
-	bool isSingle = EngFuncs::GetCvarFloat( "maxplayers" ) < 2.0f;
+	bool isSingle = gpGlobals->maxClients < 2;
 
 	if( isGameLoaded && isSingle )
 	{

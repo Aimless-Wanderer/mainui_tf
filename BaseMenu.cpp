@@ -1,4 +1,5 @@
 /*
+ui_menu.c -- main menu interface
 Copyright (C) 1997-2001 Id Software, Inc.
 Copyright (C) 2017 a1batross
 
@@ -18,11 +19,6 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
-
-
-// ui_menu.c -- main menu interface
-#define OEMRESOURCE		// for OCR_* cursor junk
-
 #include "extdll_menu.h"
 #include "BaseMenu.h"
 #include "PicButton.h"
@@ -838,7 +834,6 @@ void UI_SetActiveMenu( int fActive )
 #include <windows.h>
 #include <winbase.h>
 /*
-================
 Sys_DoubleTime
 ================
 */
@@ -910,6 +905,7 @@ double Sys_DoubleTime( void )
 }
 #endif
 
+=======
 /*
 =================
 UI_IsVisible
@@ -1140,7 +1136,6 @@ int UI_VidInit( void )
 	return 1;
 }
 
-#undef ShellExecute //  "thanks", windows.h!
 void UI_OpenUpdatePage( bool engine, bool preferstore )
 {
 	const char *updateUrl = NULL;
