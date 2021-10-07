@@ -15,9 +15,9 @@ GNU General Public License for more details.
 
 #ifndef BASEMENU_H
 #define BASEMENU_H
-#ifdef CS16CLIENT
+
 #include "../public/cl_dll/IGameClientExports.h"
-#endif
+
 #include "enginecallback_menu.h"
 #include "keydefs.h"
 #include "Primitive.h"
@@ -68,9 +68,7 @@ GNU General Public License for more details.
 // =====================================================================
 // Main menu interface
 
-#ifdef CS16CLIENT
 extern IGameClientExports *g_pClient;
-#endif
 extern cvar_t	*ui_precache;
 extern cvar_t	*ui_showmodels;
 extern cvar_t   *ui_show_window_stack;

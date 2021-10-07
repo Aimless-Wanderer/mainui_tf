@@ -366,6 +366,12 @@ void CMenuMain::VidInit( bool connected )
 		console.pos.y = 230;
 	}
 
+	if ( !EngFuncs::GetCvarFloat( "fullscreen" ) )
+	{
+		minimizeBtn.Hide();
+		quitButton.Hide();
+	}
+
 	console.pos.x = 72;
 	console.CalcPosition();
 	saveRestore.SetCoord( 72, bTrainMap ? 380 : 330 );

@@ -20,7 +20,7 @@
 # SOFTWARE.
 #
 
-cmake_minimum_required(VERSION  2.8.0)
+cmake_minimum_required(VERSION  2.8.12)
 project (MAINUI)
 
 include(FWGSLib)
@@ -30,7 +30,7 @@ include(FWGSLib)
 # It's not recommended and may not work(as it's done only for MSVC6 support)
 set(CMAKE_CXX_STANDARD 11)
 
-set(MAINUI_LIBRARY xashmenu)
+set(MAINUI_LIBRARY menu)
 fwgs_fix_default_msvc_settings()
 option(MAINUI_USE_CUSTOM_FONT_RENDER "Use custom font rendering" ON)
 option(MAINUI_USE_STB "Use stb_truetype.h for rendering(*nix-only)" OFF)
@@ -41,6 +41,7 @@ set(MAINUI_CONTROLS_SOURCES
 	controls/Framework.cpp
 	controls/BaseItem.cpp
 	controls/Action.cpp
+	controls/BaseClientWindow.cpp
 	controls/Bitmap.cpp
 	controls/CheckBox.cpp
 	controls/ItemsHolder.cpp
@@ -90,6 +91,7 @@ set(MAINUI_MENUS_SOURCES
 	menus/PlayerIntroduceDialog.cpp
 	menus/ConnectionProgress.cpp
 	menus/ConnectionWarning.cpp
+	menus/UpdateAvailableDialog.cpp
 	menus/dynamic/ScriptMenu.cpp
 )
 
@@ -103,19 +105,24 @@ set(MAINUI_FONT_RENDER_SOURCES
 )
 
 set(MAINUI_SOURCES
+	miniutl/bitstring.cpp
+	miniutl/generichash.cpp
+	miniutl/strtools.cpp
+	miniutl/utlbuffer.cpp
 	miniutl/utlmemory.cpp
+	miniutl/utlstring.cpp
 	unicode_strtools.cpp
 	EventSystem.cpp
 	EngineCallback.cpp
 	BaseMenu.cpp
 	Btns.cpp
-	Color.cpp
 	MenuStrings.cpp
 	CFGScript.cpp
 	Utils.cpp
 	Scissor.cpp
 	udll_int.cpp
 	WindowSystem.cpp
+	../public/interface.cpp
 )
 
 if(CS16CLIENT)
@@ -132,7 +139,7 @@ endif()
 list(APPEND MAINUI_SOURCES ${MAINUI_CONTROLS_SOURCES})
 list(APPEND MAINUI_SOURCES ${MAINUI_MENUS_SOURCES})
 list(APPEND MAINUI_SOURCES ${MAINUI_FONT_RENDER_SOURCES})
-add_library (${MAINUI_LIBRARY} SHARED ${MAINUI_SOURCES})
+add_library (${MAINUI_LIBRARY} MODULE ${MAINUI_SOURCES})
 
 if(NOT WIN32 AND NOT MINGW)
 	fwgs_add_compile_options(C -Wall -Wextra -Wno-unused-parameter -Wno-unused-variable)
@@ -156,11 +163,11 @@ endif()
 
 # Force stb_truetype for Apple devices, as there is no Apple native font renderer
 # And freetype&fontconfig isn't used on this platform by default
-if(APPLE)
+if(APPLE OR ANDROID)
 	set(MAINUI_USE_STB TRUE)
 endif()
 
-include_directories(${XASH_SDK}/common ${XASH_SDK}/engine ${XASH_SDK}/pm_shared . controls/ menus/ miniutl/ font/ model/)
+include_directories(${XASH_SDK}/common ${XASH_SDK}/engine ${XASH_SDK}/pm_shared . controls/ menus/ miniutl/ font/ model/ ../cl_dll)
 
 if(MSVC)
 	add_definitions(-D_CRT_SECURE_NO_WARNINGS)
@@ -190,22 +197,32 @@ if(MAINUI_USE_CUSTOM_FONT_RENDER)
 endif()
 
 # Name library as it named in Unkle Mike's Xash3D
-if(MAINUI_NAME)
+if(APPLE OR WIN32 OR ${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
+	set(MAINUI_NAME "menu")
 	set_target_properties(${MAINUI_LIBRARY} PROPERTIES
-		OUTPUT_NAME ${MAINUI_NAME})
-elseif(WIN32)
-	set_target_properties(${MAINUI_LIBRARY} PROPERTIES
-		OUTPUT_NAME menu PREFIX "")
+			OUTPUT_NAME ${MAINUI_NAME}
+			PREFIX "")
 endif()
 
-if(XASH_64BIT)
-	get_target_property(MAINUI_NAME ${MAINUI_LIBRARY} OUTPUT_NAME)
-	if(NOT MAINUI_NAME)
-		set(MAINUI_NAME ${MAINUI_LIBRARY})
-	endif()
-	set_target_properties(${MAINUI_LIBRARY} PROPERTIES 
-		OUTPUT_NAME ${MAINUI_NAME}64)
-endif()
+#if(XASH_64BIT)
+#	get_target_property(MAINUI_NAME ${MAINUI_LIBRARY} OUTPUT_NAME)
+#	if(NOT MAINUI_NAME)
+#		set(MAINUI_NAME ${MAINUI_LIBRARY})
+#	endif()
+#	set_target_properties(${MAINUI_LIBRARY} PROPERTIES
+#		OUTPUT_NAME ${MAINUI_NAME}64)
+#endif()
 
-fwgs_set_default_properties(${MAINUI_LIBRARY})
-fwgs_install(${MAINUI_LIBRARY})
+#fwgs_set_default_properties(${MAINUI_LIBRARY})
+
+install(TARGETS ${MAINUI_LIBRARY}
+	DESTINATION "${GAMEDIR}/${MENU_INSTALL_DIR}/"
+	PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE
+	    GROUP_READ GROUP_EXECUTE
+		WORLD_READ WORLD_EXECUTE)
+
+# Install PDB file on Windows
+if(WIN32 AND MSVC)
+	install(FILES $<TARGET_PDB_FILE:${MAINUI_LIBRARY}>
+		DESTINATION "${GAMEDIR}/${MENU_INSTALL_DIR}/" OPTIONAL)
+endif()

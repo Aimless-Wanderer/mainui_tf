@@ -550,6 +550,21 @@ void UI_DrawMouseCursor( void )
 #endif
 }
 
+/*
+=================
+UI_DrawVersion
+=================
+*/
+void UI_DrawVersion( void )
+{
+	char version[32];
+
+	sprintf( version, "tf15-client (%s)\n", g_pClient->GetVersion() );
+
+	UI_DrawString( uiStatic.hConsoleFont, 72, ScreenHeight, ScreenWidth, 0, version, uiColorConsole, // damn phones with round edges
+		g_FontMgr->GetFontTall( uiStatic.hConsoleFont ), QM_BOTTOMLEFT );
+}
+
 const char *COM_ExtractExtension( const char *s )
 {
 	int len = strlen( s );
@@ -697,6 +712,9 @@ void UI_UpdateMenu( float flTime )
 	}
 
 	uiStatic.menu.Update();
+
+	// draw tf15-client version info
+	UI_DrawVersion();
 }
 
 /*
