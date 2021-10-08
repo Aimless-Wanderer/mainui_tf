@@ -13,7 +13,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 */
 
-#include "../cl_dll/ext/IGameMenuExports.h"
+#include "../cl_dll/IGameMenuExports.h"
 
 #include "extdll_menu.h"
 #include "BaseMenu.h"
