@@ -142,7 +142,7 @@ list(APPEND MAINUI_SOURCES ${MAINUI_FONT_RENDER_SOURCES})
 add_library (${MAINUI_LIBRARY} MODULE ${MAINUI_SOURCES})
 
 if(NOT WIN32 AND NOT MINGW)
-	fwgs_add_compile_options(C -Wall -Wextra -Wno-unused-parameter -Wno-unused-variable)
+	fwgs_add_compile_options(C -Wall -Wextra -Wno-unused-parameter -Wno-unused-variable -Wno-unknown-pragmas -Wno-reorder-ctor)
 else()
 
 	# Only for MSVC6 compatibility mode! Newer VC does fail with this define
