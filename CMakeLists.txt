@@ -91,7 +91,6 @@ set(MAINUI_MENUS_SOURCES
 	menus/PlayerIntroduceDialog.cpp
 	menus/ConnectionProgress.cpp
 	menus/ConnectionWarning.cpp
-	menus/UpdateAvailableDialog.cpp
 	menus/dynamic/ScriptMenu.cpp
 )
 

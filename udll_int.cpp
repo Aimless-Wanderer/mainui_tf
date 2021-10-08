@@ -14,7 +14,6 @@ GNU General Public License for more details.
 */
 
 #include "../cl_dll/ext/IGameMenuExports.h"
-#include "menus/UpdateAvailableDialog.h"
 
 #include "extdll_menu.h"
 #include "BaseMenu.h"
@@ -177,11 +176,6 @@ public:
 	int DrawCharacter( HFont font, int ch, int x, int y, int charH, const unsigned int color, bool forceAdditive = false ) override
 	{
 		return g_FontMgr->DrawCharacter( font, ch, Point( x, y ), charH, color, forceAdditive );
-	}
-
-	void ShowUpdateDialog( void ) override
-	{
-		UI_UpdateAvailableDialog_Show();
 	}
 } s_Menu;
 
