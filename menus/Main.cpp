@@ -260,15 +260,18 @@ void CMenuMain::_Init( void )
 	minimizeBtn.onReleased.SetCommand( FALSE, "minimize\n" );
 
 	if ( gMenu.m_gameinfo.gamemode == GAME_MULTIPLAYER_ONLY || gMenu.m_gameinfo.startmap[0] == 0 )
-		newGame.SetGrayed( true );
+		newGame.Hide();
+		// newGame.SetGrayed( true );
 
 	if ( gMenu.m_gameinfo.gamemode == GAME_SINGLEPLAYER_ONLY )
 		multiPlayer.SetGrayed( true );
 
 	if ( gMenu.m_gameinfo.gamemode == GAME_MULTIPLAYER_ONLY )
 	{
-		saveRestore.SetGrayed( true );
-		hazardCourse.SetGrayed( true );
+		// saveRestore.SetGrayed( true );
+		// hazardCourse.SetGrayed( true );
+		saveRestore.Hide();
+		hazardCourse.Hide();
 	}
 
 	// too short execute string - not a real command
@@ -325,8 +328,10 @@ void CMenuMain::VidInit( bool connected )
 	// statically positioned items
 	minimizeBtn.SetRect( uiStatic.width - 72, 13, 32, 32 );
 	quitButton.SetRect( uiStatic.width - 36, 13, 32, 32 );
-	disconnect.SetCoord( 72, 180 );
-	resumeGame.SetCoord( 72, 230 );
+	// disconnect.SetCoord( 72, 180 );
+	// resumeGame.SetCoord( 72, 230 );
+	disconnect.SetCoord( 72, 330 );
+	resumeGame.SetCoord( 72, 380 );
 	newGame.SetCoord( 72, 280 );
 	hazardCourse.SetCoord( 72, 330 );
 
@@ -351,19 +356,22 @@ void CMenuMain::VidInit( bool connected )
 		if( !EngFuncs::GetCvarFloat( "host_gameloaded" ) && !isSingle )
 		{
 			disconnect.Show();
-			console.pos.y = 130;
+			// console.pos.y = 130;
+			console.pos.y = 280;
 		}
 		else
 		{
 			disconnect.Hide();
-			console.pos.y = 180;
+			// console.pos.y = 180;
+			console.pos.y = 330;
 		}
 	}
 	else
 	{
 		resumeGame.Hide();
 		disconnect.Hide();
-		console.pos.y = 230;
+		// console.pos.y = 230;
+		console.pos.y = 380;
 	}
 
 	if ( !EngFuncs::GetCvarFloat( "fullscreen" ) )
