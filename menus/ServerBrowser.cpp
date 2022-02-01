@@ -205,6 +205,10 @@ public:
 	CMenuYesNoMessageBox askPassword;
 	CMenuField password;
 
+#ifdef __ANDROID__
+	CMenuYesNoMessageBox warnServer;
+#endif
+
 	int	  refreshTime;
 	int   refreshTime2;
 
@@ -470,6 +474,13 @@ void CMenuServerBrowser::_Init( void )
 	joinGame->onReleasedClActive = msgBox.MakeOpenEvent();
 
 	createGame = AddButton( L( "GameUI_GameMenu_CreateServer" ), NULL, PC_CREATE_GAME );
+#ifdef __ANDROID__
+	createGame->onReleased = warnServer.MakeOpenEvent();
+
+	warnServer.SetMessage( L( "Creating a game is not currently possible.\n\nIf you would like to support development, consider donating :)" ) );
+	warnServer.HighlightChoice( CMenuYesNoMessageBox::HIGHLIGHT_YES );
+	warnServer.Link( this );
+#else
 	SET_EVENT_MULTI( createGame->onReleased,
 	{
 		if( ((CMenuServerBrowser*)pSelf->Parent())->m_bLanOnly )
@@ -478,9 +489,6 @@ void CMenuServerBrowser::_Init( void )
 
 		UI_CreateGame_Menu();
 	});
-
-#if __ANDROID__
-	createGame->SetGrayed( true );
 #endif
 
 	// TODO: implement!
