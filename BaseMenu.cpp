@@ -84,11 +84,6 @@ const unsigned int g_iColorTable[8] =
 0xFFFFFFFF, // white
 };
 
-bool UI_IsXashFWGS( void )
-{
-	return g_bIsForkedEngine;
-}
-
 CMenuEntry::CMenuEntry(const char *cmd, void (*pfnPrecache)(), void (*pfnShow)(), void (*pfnShutdown)() ) :
 	m_szCommand( cmd ),
 	m_pfnPrecache( pfnPrecache ),
@@ -601,7 +596,6 @@ UI_CloseMenu
 void UI_CloseMenu( void )
 {
 	uiStatic.menu.Clean();
-	CMenuPicButton::ClearButtonStack();
 
 //	EngFuncs::KEY_ClearStates ();
 	if( !uiStatic.client.IsActive() )
@@ -1066,13 +1060,10 @@ void UI_OpenUpdatePage( bool engine, bool preferstore )
 
 	if( engine || !gMenu.m_gameinfo.update_url[0] )
 	{
-		if( UI_IsXashFWGS() )
-		{
-			if( preferstore )
-				updateUrl = PLATFORM_UPDATE_PAGE;
-			else
-				updateUrl = GENERIC_UPDATE_PAGE;
-		}
+		if( preferstore )
+			updateUrl = PLATFORM_UPDATE_PAGE;
+		else
+			updateUrl = GENERIC_UPDATE_PAGE;
 	}
 	else
 	{
@@ -1154,14 +1145,13 @@ void UI_Init( void )
 
 	uiStatic.initialized = true;
 
+	uiStatic.lowmemory = (int)EngFuncs::GetCvarFloat( "host_lowmemorymode" );
+
 	// setup game info
 	EngFuncs::GetGameInfo( &gMenu.m_gameinfo );
 
 	// trying to load colors.lst
 	UI_ApplyCustomColors ();
-
-	//CR
-	CMenuPicButton::ClearButtonStack();
 }
 
 /*

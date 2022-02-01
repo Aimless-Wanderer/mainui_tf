@@ -323,8 +323,6 @@ UI_Main_Init
 */
 void CMenuMain::VidInit( bool connected )
 {
-	CMenuPicButton::ClearButtonStack();
-
 	// statically positioned items
 	minimizeBtn.SetRect( uiStatic.width - 72, 13, 32, 32 );
 	quitButton.SetRect( uiStatic.width - 36, 13, 32, 32 );
@@ -353,7 +351,7 @@ void CMenuMain::VidInit( bool connected )
 	if( connected )
 	{
 		resumeGame.Show();
-		if( !EngFuncs::GetCvarFloat( "host_gameloaded" ) && !isSingle )
+		if( CL_IsActive() && !isSingle )
 		{
 			disconnect.Show();
 			// console.pos.y = 130;

@@ -89,10 +89,9 @@ typedef struct
 	HFont hBigFont;
 	HFont hConsoleFont;
 	HFont hBoldFont;
-#ifdef MAINUI_RENDER_PICBUTTON_TEXT
 	HFont hLightBlur;
 	HFont hHeavyBlur;
-#endif
+
 	bool	m_fDemosPlayed;
 	bool	m_fNoOldBackground;
 	int 	m_iOldMenuDepth;
@@ -128,11 +127,12 @@ typedef struct
 	bool needMapListUpdate;
 
 	bool nextFrameActive;
+
+	int lowmemory;
 } uiStatic_t;
 
 extern float	cursorDY;			// use for touch scroll
 extern bool g_bCursorDown;
-extern bool g_bIsForkedEngine;
 extern uiStatic_t		uiStatic;
 
 #define DLG_X ((uiStatic.width - 640) / 2 - 192) // Dialogs are 640px in width
@@ -160,8 +160,6 @@ extern unsigned int	uiColorDkGrey;
 extern unsigned int	uiColorBlack;
 
 // TODO: Move it under namespace?
-
-bool UI_IsXashFWGS( void );
 
 void UI_ScaleCoords( int *x, int *y, int *w, int *h );
 void UI_ScaleCoords( int &x, int &y, int &w, int &h );
@@ -254,11 +252,11 @@ public:
 
 #define ADD_MENU3( cmd, type, showfunc ) \
 	static type * cmd = NULL; \
-	void cmd##_Precache( void ) \
+	static void cmd##_Precache( void ) \
 	{ \
 		cmd = new type(); \
 	} \
-	void cmd##_Shutdown( void ) \
+	static void cmd##_Shutdown( void ) \
 	{ \
 		delete cmd; \
 	} \
@@ -313,9 +311,6 @@ void UI_AdvServerOptions_Menu( void );
 void UI_InputDevices_Menu( void );
 
 void UI_OpenUpdatePage(bool engine , bool preferstore);
-
-// time
-double Sys_DoubleTime( void );
 
 //
 //-----------------------------------------------------

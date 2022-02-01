@@ -24,7 +24,6 @@ ui_extendedfuncs_t EngFuncs::textfuncs;
 ui_globalvars_t	*gpGlobals;
 IGameClientExports *g_pClient;
 CMenu gMenu;
-bool g_bIsForkedEngine;
 
 static UI_FUNCTIONS gFunctionTable = 
 {
@@ -62,11 +61,6 @@ extern "C" EXPORT int GetMenuAPI(UI_FUNCTIONS *pFunctionTable, ui_enginefuncs_t*
 	memset( &EngFuncs::textfuncs, 0, sizeof( ui_extendedfuncs_t ));
 
 	gpGlobals = pGlobals;
-
-	// can be hijacked, but please, don't do it
-	const char *version = EngFuncs::GetCvarString( "host_ver" );
-
-	g_bIsForkedEngine = version && version[0];
 
 	return TRUE;
 }
