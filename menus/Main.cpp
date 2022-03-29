@@ -42,10 +42,6 @@ public:
 
 	bool KeyDown( int key ) override;
 
-#ifdef __ANDROID__
-	void Show() override;
-#endif
-
 private:
 	void _Init() override;
 	void _VidInit( ) override;
@@ -82,10 +78,6 @@ private:
 
 	// quit dialog
 	CMenuYesNoMessageBox dialog;
-
-#ifdef __ANDROID__
-	CMenuYesNoMessageBox oldVersionDialog;
-#endif
 
 	bool bTrainMap;
 	bool bCustomGame;
@@ -400,30 +392,5 @@ void CMenuMain::_VidInit()
 {
 	VidInit( CL_IsActive() );
 }
-
-#ifdef __ANDROID__
-#define MIN_XASH_BUILD 2545
-
-void CMenuMain::Show()
-{
-	CMenuFramework::Show();
-
-	const char *szVer = EngFuncs::GetCvarString( "host_ver" );
-	char *c = (char *)szVer;
-
-	while ( *c++ ) if ( *c == ' ' ) *c = '\0';
-
-	int iVer = atoi( szVer );
-
-	if ( iVer < MIN_XASH_BUILD )
-	{
-		oldVersionDialog.SetMessage( L( "You are using an outdated version of the engine.\n\nUpdate is required to work properly." ) );
-		oldVersionDialog.HighlightChoice( CMenuYesNoMessageBox::HIGHLIGHT_YES );
-		oldVersionDialog.onPositive.SetCommand( FALSE, "quit\n" );
-		oldVersionDialog.onNegative.SetCommand( FALSE, "quit\n" );
-		oldVersionDialog.Show();
-	}
-}
-#endif
 
 ADD_MENU( menu_main, CMenuMain, UI_Main_Menu );
