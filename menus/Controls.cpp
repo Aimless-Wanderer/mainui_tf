@@ -123,7 +123,7 @@ void CMenuControls::GetKeyBindings( const char *command, int *twoKeys )
 {
 	twoKeys[0] = twoKeys[1] = -1;
 
-	for( int i = 0, count = 0; i < 256; i++ )
+	for( int i = 0, count = 0; i < MAX_KEYS; i++ )
 	{
 		const char *b = EngFuncs::KEY_GetBinding( i );
 		if( !b ) continue;
@@ -153,7 +153,7 @@ void CMenuControls::UnbindCommand( const char *command )
 
 	l = strlen( command );
 
-	for( i = 0; i < 256; i++ )
+	for( i = 0; i < MAX_KEYS; i++ )
 	{
 		b = EngFuncs::KEY_GetBinding( i );
 		if( !b ) continue;
@@ -187,7 +187,7 @@ void CMenuKeysModel::Update( void )
 		if( !stricmp( token, "blank" ))
 		{
 			// separator
-			pfile = EngFuncs::COM_ParseFile( pfile, token );
+			pfile = EngFuncs::COM_ParseFile( pfile, token, sizeof( token ));
 			if( !pfile ) break;	// technically an error
 
 			if( token[0] == '#' )
@@ -271,6 +271,8 @@ void CMenuControls::ResetKeysList( void )
 		Con_Printf( "UI_Parse_KeysList: kb_act.lst not found\n" );
 		return;
 	}
+	
+	EngFuncs::ClientCmd( TRUE, "unbindall" );
 
 	while(( pfile = EngFuncs::COM_ParseFile( pfile, token, sizeof( token ))) != NULL )
 	{
@@ -289,8 +291,6 @@ void CMenuControls::ResetKeysList( void )
 			key[1] = '\0';
 		}
 
-		UnbindCommand( token );
-
 		snprintf( cmd, sizeof( cmd ), "bind \"%s\" \"%s\"\n", key, token );
 		EngFuncs::ClientCmd( TRUE, cmd );
 	}
@@ -304,7 +304,8 @@ bool CMenuControls::CGrabKeyMessageBox::KeyUp( int key )
 	CMenuControls *parent = ((CMenuControls*)m_pParent);
 
 	// defining a key
-	if( key == '`' || key == '~' || key == K_ESCAPE )
+	// escape is special, should allow rebind all keys on gamepad
+	if( UI::Key::IsConsole( key ) || key == K_ESCAPE )
 	{
 		Hide();
 		PlayLocalSound( uiStatic.sounds[SND_BUZZ] );
