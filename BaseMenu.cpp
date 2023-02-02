@@ -1051,11 +1051,9 @@ int UI_VidInit( void )
 	uiStatic.outlineWidth = 4;
 
 	// all menu buttons have the same view sizes
-	uiStatic.buttons_draw_width = UI_BUTTONS_WIDTH;
-	uiStatic.buttons_draw_height = UI_BUTTONS_HEIGHT;
+	uiStatic.buttons_draw_size = Size( UI_BUTTONS_WIDTH, UI_BUTTONS_HEIGHT ).Scale();
 
 	UI_ScaleCoords( NULL, NULL, &uiStatic.outlineWidth, NULL );
-	UI_ScaleCoords( NULL, NULL, &uiStatic.buttons_draw_width, &uiStatic.buttons_draw_height );
 
 	// trying to load chapterbackgrounds.txt
 	UI_LoadBackgroundMapList ();
@@ -1164,11 +1162,7 @@ void UI_Init( void )
 
 	g_FontMgr = new CFontManager();
 
-	// EngFuncs::Cmd_AddCommand( "menu_zoo", UI_Zoo_Menu );
-	EngFuncs::CreateMapsList( TRUE );
-
 	uiStatic.initialized = true;
-
 	uiStatic.lowmemory = (int)EngFuncs::GetCvarFloat( "host_lowmemorymode" );
 
 	// setup game info
