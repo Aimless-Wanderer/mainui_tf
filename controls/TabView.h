@@ -24,27 +24,23 @@ public:
 	CMenuTabView();
 
 	void VidInit() override;
-	const char *Key( int key, int down ) override;
 	void Draw() override;
 	Point GetPositionOffset() const override;
 
 	inline void SetTabName( int idx, const char *name )
 	{
-		if( idx >= 0 && idx < UI_MAX_MENUITEMS )
-			m_szTabNames[idx] = name;
+		if( m_pItems.IsValidIndex( idx ))
+			m_pItems[idx]->szName = name;
 	}
 
 	inline void AddTabItem( CMenuBaseItem &item, const char *name )
 	{
 		AddItem( item );
-		SetTabName( m_numItems - 1, name );
+		SetTabName( m_pItems.Count() - 1, name );
 	}
 
 private:
 	void DrawTab(Point pt, const char *name, bool isEnd , bool isSelected, bool isHighlighted);
-
-	// number of tab names matches m_iNumItems
-	const char *m_szTabNames[UI_MAX_MENUITEMS];
 
 	Size m_szTab;
 };

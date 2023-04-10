@@ -26,7 +26,7 @@ const char *cvartypes[] = { NULL, "BOOL" , "NUMBER", "LIST", "STRING" };
 
 struct parserstate_t
 {
-	parserstate_t() : buf( NULL ), token(), filename( NULL ) {}
+	parserstate_t() : buf( NULL ), filename( NULL ) { token[0] = 0;}
 	char *buf;
 	char token[MAX_STRING];
 	const char *filename;
@@ -41,7 +41,7 @@ Return true if next token is pExpext and skip it
 */
 bool CSCR_ExpectString( parserstate_t *ps, const char *pExpect, bool skip, bool error )
 {
-	char *tmp = EngFuncs::COM_ParseFile( ps->buf, ps->token );
+	char *tmp = EngFuncs::COM_ParseFile( ps->buf, ps->token, sizeof( ps->token ));
 
 	if( !stricmp( ps->token, pExpect ) )
 	{
@@ -94,13 +94,13 @@ bool CSCR_ParseSingleCvar( parserstate_t *ps, scrvardef_t *result )
 	result->list.pArray = NULL;
 
 	// read the name
-	ps->buf = EngFuncs::COM_ParseFile( ps->buf, result->name );
+	ps->buf = EngFuncs::COM_ParseFile( ps->buf, result->name, sizeof( result->name ));
 
 	if( !CSCR_ExpectString( ps, "{", false, true ) )
 		goto error;
 
 	// read description
-	ps->buf = EngFuncs::COM_ParseFile( ps->buf, result->desc );
+	ps->buf = EngFuncs::COM_ParseFile( ps->buf, result->desc, sizeof( result->desc ));
 
 	if( !CSCR_ExpectString( ps, "{", false, true ) )
 		goto error;
@@ -116,11 +116,11 @@ bool CSCR_ParseSingleCvar( parserstate_t *ps, scrvardef_t *result )
 		break;
 	case T_NUMBER:
 		// min
-		ps->buf = EngFuncs::COM_ParseFile( ps->buf, ps->token );
+		ps->buf = EngFuncs::COM_ParseFile( ps->buf, ps->token, sizeof( ps->token ));
 		result->number.fMin = atof( ps->token );
 
 		// max
-		ps->buf = EngFuncs::COM_ParseFile( ps->buf, ps->token );
+		ps->buf = EngFuncs::COM_ParseFile( ps->buf, ps->token, sizeof( ps->token ));
 		result->number.fMax = atof( ps->token );
 
 		if( !CSCR_ExpectString( ps, "}", false, true ) )
@@ -141,11 +141,11 @@ bool CSCR_ParseSingleCvar( parserstate_t *ps, scrvardef_t *result )
 			// Read token for each item here
 
 			// ExpectString already moves buffer pointer, so just read from ps->token
-			// ps->buf = EngFuncs::COM_ParseFile( ps->buf, szName );
+			// ps->buf = EngFuncs::COM_ParseFile( ps->buf, szName, sizeof( szName ));
 			if( !szName[0] )
 				goto error;
 
-			ps->buf = EngFuncs::COM_ParseFile( ps->buf, szValue );
+			ps->buf = EngFuncs::COM_ParseFile( ps->buf, szValue, sizeof( szValue ));
 			if( !szValue[0] )
 				goto error;
 
@@ -172,7 +172,7 @@ bool CSCR_ParseSingleCvar( parserstate_t *ps, scrvardef_t *result )
 		goto error;
 
 	// default value
-	ps->buf = EngFuncs::COM_ParseFile( ps->buf, result->value );
+	ps->buf = EngFuncs::COM_ParseFile( ps->buf, result->value, sizeof( result->value ));
 
 	if( !CSCR_ExpectString( ps, "}", false, true ) )
 		goto error;
@@ -192,7 +192,6 @@ bool CSCR_ParseSingleCvar( parserstate_t *ps, scrvardef_t *result )
 
 		for( int i = 0; entry; entry = entry->next, i++ )
 		{
-
 			result->list.pArray[i] = L( entry->szName );
 		}
 	}
@@ -208,7 +207,7 @@ error:
 
 		while( result->list.pEntries )
 		{
-			scrvarlistentry_s *next = result->list.pEntries->next;
+			scrvarlistentry_t *next = result->list.pEntries->next;
 			delete[] result->list.pEntries->szName;
 			delete result->list.pEntries;
 
@@ -232,7 +231,7 @@ bool CSCR_ParseHeader( parserstate_t *ps )
 
 	// Parse in the version #
 	// Get the first token.
-	ps->buf = EngFuncs::COM_ParseFile( ps->buf, ps->token );
+	ps->buf = EngFuncs::COM_ParseFile( ps->buf, ps->token, sizeof( ps->token ));
 
 	if( atof( ps->token ) != 1 )
 	{
@@ -243,7 +242,7 @@ bool CSCR_ParseHeader( parserstate_t *ps )
 	if( !CSCR_ExpectString( ps, "DESCRIPTION", false, true ) )
 		return false;
 
-	ps->buf = EngFuncs::COM_ParseFile( ps->buf, ps->token );
+	ps->buf = EngFuncs::COM_ParseFile( ps->buf, ps->token, sizeof( ps->token ));
 
 	if( stricmp( ps->token, "INFO_OPTIONS") && stricmp( ps->token, "SERVER_OPTIONS" ) )
 	{
@@ -270,7 +269,7 @@ scrvardef_t *CSCR_LoadDefaultCVars( const char *scriptfilename, int *count )
 	char *start;
 	parserstate_t state;
 	bool success = false;
-	scrvardef_t *list = 0, *last;
+	scrvardef_t *list = 0, *last = 0;
 
 	*count = 0;
 
@@ -323,7 +322,7 @@ scrvardef_t *CSCR_LoadDefaultCVars( const char *scriptfilename, int *count )
 			break;
 	}
 
-	if( EngFuncs::COM_ParseFile( state.buf, state.token ) )
+	if( EngFuncs::COM_ParseFile( state.buf, state.token, sizeof( state.token )))
 		Con_DPrintf( "Got extra tokens!\n" );
 	else
 		success = true;
@@ -359,7 +358,7 @@ void CSCR_FreeList( scrvardef_t *list )
 
 			while( i->list.pEntries )
 			{
-				scrvarlistentry_s *next = i->list.pEntries->next;
+				scrvarlistentry_t *next = i->list.pEntries->next;
 				delete[] i->list.pEntries->szName;
 				delete i->list.pEntries;
 

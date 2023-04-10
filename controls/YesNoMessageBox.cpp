@@ -40,10 +40,10 @@ CMenuYesNoMessageBox::CMenuYesNoMessageBox( bool alert ) : BaseClass( "YesNoMess
 	}
 	no.SetRect( 338, 204, UI_BUTTONS_WIDTH / 2, UI_BUTTONS_HEIGHT );
 
-	yes.onActivated.pExtra = no.onActivated.pExtra = this;
+	yes.onReleased.pExtra = no.onReleased.pExtra = this;
 	yes.bEnableTransitions = no.bEnableTransitions = false;
 
-	SET_EVENT_MULTI( yes.onActivated,
+	SET_EVENT_MULTI( yes.onReleased,
 	{
 		CMenuYesNoMessageBox *msgBox = (CMenuYesNoMessageBox*)pExtra;
 
@@ -52,7 +52,7 @@ CMenuYesNoMessageBox::CMenuYesNoMessageBox( bool alert ) : BaseClass( "YesNoMess
 
 	});
 
-	SET_EVENT_MULTI( no.onActivated,
+	SET_EVENT_MULTI( no.onReleased,
 	{
 		CMenuYesNoMessageBox *msgBox = (CMenuYesNoMessageBox*)pExtra;
 
@@ -74,10 +74,10 @@ CMenuYesNoMessageBox::Init
 void CMenuYesNoMessageBox::_Init( void )
 {
 	if( !m_bSetYes )
-		SetPositiveButton( "Ok", PC_OK );
+		SetPositiveButton( L( "GameUI_OK" ), PC_OK );
 
 	if( !m_bSetNo )
-		SetNegativeButton( "Cancel", PC_CANCEL );
+		SetNegativeButton( L( "GameUI_Cancel" ), PC_CANCEL );
 
 	if( !(bool)onNegative )
 		onNegative = CEventCallback::NoopCb;
@@ -130,19 +130,17 @@ void CMenuYesNoMessageBox::Draw( void )
 CMenuYesNoMessageBox::Key
 ==============
 */
-const char *CMenuYesNoMessageBox::Key(int key, int down)
+bool CMenuYesNoMessageBox::KeyDown( int key )
 {
-	if( UI::Key::IsEscape( key ) && down )
+	if( UI::Key::IsEscape( key ) )
 	{
 		Hide();
 		onNegative( this );
 
-		return uiSoundNull;
+		return true;
 	}
-	else
-	{
-		return CMenuBaseWindow::Key( key, down );
-	}
+
+	return BaseClass::KeyDown( key );
 }
 
 /*
@@ -225,12 +223,12 @@ static void ToggleInactiveInternalCb( CMenuBaseItem *pSelf, void * )
 	pSelf->ToggleVisibility();
 }
 
-void CMenuYesNoMessageBox::UI_ShowMessageBox( void )
+void UI_ShowMessageBox( const char *text )
 {
 	static char msg[1024];
 	static CMenuYesNoMessageBox msgBox( true );
 
-	Q_strncpy( msg, EngFuncs::CmdArgv(1), sizeof( msg ) );
+	Q_strncpy( msg, text, sizeof( msg ) );
 
 	if( !UI_IsVisible() )
 	{
@@ -245,8 +243,8 @@ void CMenuYesNoMessageBox::UI_ShowMessageBox( void )
 
 		if( !init )
 		{
-			msgBoxInputDev.SetPositiveButton("Ok", PC_OK, 100 );
-			msgBoxInputDev.SetNegativeButton("Config", PC_CONFIG, -20 );
+			msgBoxInputDev.SetPositiveButton( L( "GameUI_OK" ), PC_OK, 100 );
+			msgBoxInputDev.SetNegativeButton( L( "GameUI_Options" ), PC_CONFIG, -20 );
 			msgBoxInputDev.onNegative = UI_InputDevices_Menu;
 			msgBoxInputDev.yes.SetCoord( 200, 204 );
 
@@ -262,4 +260,10 @@ void CMenuYesNoMessageBox::UI_ShowMessageBox( void )
 	msgBox.SetMessage( msg );
 	msgBox.Show();
 }
-ADD_COMMAND( menu_showmessagebox, CMenuYesNoMessageBox::UI_ShowMessageBox );
+
+void UI_ShowMessageBox_f( void )
+{
+	UI_ShowMessageBox( EngFuncs::CmdArgv(1) );
+}
+
+ADD_COMMAND( menu_showmessagebox, UI_ShowMessageBox_f );

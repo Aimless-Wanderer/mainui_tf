@@ -77,17 +77,27 @@ void CMenuBaseItem::Draw()
 	;
 }
 
-void CMenuBaseItem::Char(int key)
+void CMenuBaseItem::Think()
 {
 	;
 }
 
-const char *CMenuBaseItem::Key(int key, int down)
+void CMenuBaseItem::Char( int key )
 {
-	return 0;
+	;
 }
 
-void CMenuBaseItem::SetCharSize(EFontSizes fs)
+bool CMenuBaseItem::KeyUp( int key )
+{
+	return false;
+}
+
+bool CMenuBaseItem::KeyDown( int key )
+{
+	return false;
+}
+
+void CMenuBaseItem::SetCharSize( EFontSizes fs )
 {
 	font = fs + 1; // It's guaranteed that handles will match font sizes
 
@@ -95,10 +105,6 @@ void CMenuBaseItem::SetCharSize(EFontSizes fs)
 	{
 	case QM_DEFAULTFONT:
 	case QM_BOLDFONT:
-#ifdef MAINUI_RENDER_PICBUTTON_TEXT
-	case QM_LIGHTBLUR:
-	case QM_HEAVYBLUR:
-#endif
 		charSize = UI_MED_CHAR_HEIGHT;
 		break;
 	case QM_SMALLFONT:
@@ -110,21 +116,6 @@ void CMenuBaseItem::SetCharSize(EFontSizes fs)
 	}
 }
 
-/*
-=================
-CMenuBaseItem::Activate
-=================
-*/
-const char *CMenuBaseItem::Activate( )
-{
-	_Event( QM_ACTIVATED );
-
-	if( !( iFlags & QMF_SILENT ))
-		return uiSoundMove;
-	return 0;
-}
-
-
 void CMenuBaseItem::_Event( int ev )
 {
 	CEventCallback callback;
@@ -132,13 +123,17 @@ void CMenuBaseItem::_Event( int ev )
 	switch( ev )
 	{
 	case QM_CHANGED:   callback = onChanged; break;
-	case QM_PRESSED:   callback = onPressed; break;
+	case QM_PRESSED:
+		callback = onPressed;
+		m_bPressed = true;
+		break;
 	case QM_GOTFOCUS:  callback = onGotFocus; break;
 	case QM_LOSTFOCUS: callback = onLostFocus; break;
-	case QM_ACTIVATED:
-		if( (bool)onActivatedClActive && CL_IsActive( ))
-			callback = onActivatedClActive;
-		else callback = onActivated;
+	case QM_RELEASED:
+		if( (bool)onReleasedClActive && CL_IsActive( ))
+			callback = onReleasedClActive;
+		else callback = onReleased;
+		m_bPressed = false;
 		break;
 	}
 
@@ -319,11 +314,11 @@ bool CMenuBaseItem::KeyValueData(const char *key, const char *data)
 
 		if( m_pParent )
 		{
-			onActivated = m_pParent->FindEventByName( data );
+			onReleased = m_pParent->FindEventByName( data );
 		}
 		else if( !strcmp( data, "engine " ) )
 		{
-			onActivated.SetCommand( FALSE, data + sizeof( "engine " ) );
+			onReleased.SetCommand( FALSE, data + sizeof( "engine " ) );
 		}
 		else
 		{

@@ -32,6 +32,16 @@ class CMenuNewGame : public CMenuFramework
 public:
 	CMenuNewGame() : CMenuFramework( "CMenuNewGame" ) { }
 	static void StartGameCb( float skill );
+	void Show() override
+	{
+		if( gMenu.m_gameinfo.flags & GFL_NOSKILLS )
+		{
+			StartGameCb( 1.0f );
+			return;
+		}
+
+		CMenuFramework::Show();
+	}
 private:
 	void _Init() override;
 
@@ -43,8 +53,6 @@ private:
 	CEventCallback normCallback;
 	CEventCallback hardCallback;
 };
-
-static CMenuNewGame	uiNewGame;
 
 /*
 =================
@@ -92,46 +100,23 @@ void CMenuNewGame::_Init( void )
 	SET_EVENT( normCallback, CMenuNewGame::StartGameCb( 2.0f ) );
 	SET_EVENT( hardCallback, CMenuNewGame::StartGameCb( 3.0f ) );
 	
-	CMenuPicButton *easy = AddButton( "Easy", MenuStrings[IDS_NEWGAME_EASYHELP], PC_EASY, easyCallback, QMF_NOTIFY );
-	CMenuPicButton *norm = AddButton( "Medium", MenuStrings[IDS_NEWGAME_MEDIUMHELP], PC_MEDIUM, normCallback, QMF_NOTIFY );
-	CMenuPicButton *hard = AddButton( "Difficult", MenuStrings[IDS_NEWGAME_DIFFICULTHELP], PC_DIFFICULT, hardCallback, QMF_NOTIFY );
+	CMenuPicButton *easy = AddButton( L( "GameUI_Easy" ), L( "StringsList_200" ), PC_EASY, easyCallback, QMF_NOTIFY );
+	CMenuPicButton *norm = AddButton( L( "GameUI_Medium" ), L( "StringsList_201" ), PC_MEDIUM, normCallback, QMF_NOTIFY );
+	CMenuPicButton *hard = AddButton( L( "GameUI_Hard" ), L( "StringsList_202" ), PC_DIFFICULT, hardCallback, QMF_NOTIFY );
 
-	easy->onActivatedClActive =
-		norm->onActivatedClActive =
-		hard->onActivatedClActive = ShowDialogCb;
-	easy->onActivatedClActive.pExtra = &easyCallback;
-	norm->onActivatedClActive.pExtra = &normCallback;
-	hard->onActivatedClActive.pExtra = &hardCallback;
+	easy->onReleasedClActive =
+		norm->onReleasedClActive =
+		hard->onReleasedClActive = ShowDialogCb;
+	easy->onReleasedClActive.pExtra = &easyCallback;
+	norm->onReleasedClActive.pExtra = &normCallback;
+	hard->onReleasedClActive.pExtra = &hardCallback;
 
-	AddButton( "Cancel", "Go back to the main menu", PC_CANCEL, VoidCb( &CMenuNewGame::Hide ), QMF_NOTIFY );
+	AddButton( L( "GameUI_Cancel" ), L( "Go back to the Main menu" ), PC_CANCEL, VoidCb( &CMenuNewGame::Hide ), QMF_NOTIFY );
 
-	msgBox.SetMessage( MenuStrings[IDS_NEWGAME_NEWPROMPT] );
+	msgBox.SetMessage( L( "StringsList_240" ) );
 	msgBox.HighlightChoice( CMenuYesNoMessageBox::HIGHLIGHT_NO );
 	msgBox.Link( this );
 
 }
 
-/*
-=================
-UI_NewGame_Precache
-=================
-*/
-void UI_NewGame_Precache( void )
-{
-	EngFuncs::PIC_Load( ART_BANNER );
-}
-
-/*
-=================
-UI_NewGame_Menu
-=================
-*/
-void UI_NewGame_Menu( void )
-{
-	// completely ignore save\load menus for multiplayer_only
-	if( gMenu.m_gameinfo.gamemode == GAME_MULTIPLAYER_ONLY || !EngFuncs::CheckGameDll() )
-		return;
-
-	uiNewGame.Show();
-}
-ADD_MENU( menu_newgame, UI_NewGame_Precache, UI_NewGame_Menu );
+ADD_MENU( menu_newgame, CMenuNewGame, UI_NewGame_Menu );

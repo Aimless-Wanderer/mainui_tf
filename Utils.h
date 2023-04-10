@@ -23,14 +23,18 @@ GNU General Public License for more details.
 #include "gameinfo.h"
 #include "FontManager.h"
 #include "BMPUtils.h"
+#include "miniutl.h"
+#if 0
+#include <tgmath.h>
+#endif
 
 #define FILE_GLOBAL	static
 #define DLL_GLOBAL
 
 #define MAX_INFO_STRING	256	// engine limit
 
-#define RAD2DEG( x )	((float)(x) * (float)(180.f / M_PI))
-#define DEG2RAD( x )	((float)(x) * (float)(M_PI / 180.f))
+#define RAD2DEG( x )	((float)(x) * (float)(180.f / (float)M_PI))
+#define DEG2RAD( x )	((float)(x) * (float)((float)M_PI / 180.f))
 
 //
 // How did I ever live without ASSERT?
@@ -63,6 +67,22 @@ extern int UI_MouseInRect( void );
 extern int UI_IsVisible( void );
 extern int UI_CreditsActive( void );
 extern void UI_FinalCredits( void );
+
+// extended exports
+void UI_MenuResetPing_f( void );
+void UI_ConnectionWarning_f( void );
+void UI_ShowMessageBox( const char *text );
+void UI_UpdateDialog( int preferStore );
+void UI_ConnectionProgress_Disconnect( void );
+void UI_ConnectionProgress_Download( const char *pszFileName, const char *pszServerName, int iCurrent, int iTotal, const char *comment );
+void UI_ConnectionProgress_DownloadEnd( void );
+void UI_ConnectionProgress_Precache( void );
+void UI_ConnectionProgress_Connect( const char *server );
+void UI_ConnectionProgress_ChangeLevel( void );
+void UI_ConnectionProgress_ParseServerInfo( const char *server );
+
+// defined as exported to keep compatibility with old interface
+extern "C" EXPORT void AddTouchButtonToList( const char *name, const char *texture, const char *command, unsigned char *color, int flags );
 
 #include "cvardef.h"
 
@@ -101,7 +121,7 @@ inline void UnpackRGBA( int &r, int &g, int &b, int &a, const unsigned int ulRGB
 
 inline unsigned int PackAlpha( const unsigned int ulRGB, const unsigned int ulAlpha )
 {
-	return (ulRGB)|(ulAlpha<<24);
+	return (ulRGB & 0x00FFFFFF)|(ulAlpha<<24);
 }
 
 inline unsigned int UnpackAlpha( const unsigned int ulRGBA )
@@ -152,9 +172,9 @@ void UI_FreeCustomStrings( void );
 
 inline size_t Q_strncpy( char *dst, const char *src, size_t size )
 {
-	register char	*d = dst;
-	register const char	*s = src;
-	register size_t	n = size;
+	char	*d = dst;
+	const char	*s = src;
+	size_t	n = size;
 
 	if( !dst || !src || !size )
 		return 0;
@@ -179,8 +199,6 @@ inline size_t Q_strncpy( char *dst, const char *src, size_t size )
 	return ( s - src - 1 ); // count does not include NULL
 }
 
-#define ARRAYSIZE( x ) ( sizeof( x ) / sizeof( x[0] ) )
-
 #ifdef register
 #undef register
 #endif // register
@@ -203,23 +221,198 @@ namespace UI
 
 namespace Key
 {
+#ifndef K_A_BUTTON
+#define K_A_BUTTON	K_AUX1
+#define K_B_BUTTON	K_AUX2
+#endif // K_A_BUTTON
+
 inline bool IsEscape( int key )
 {
-	return ( key == K_ESCAPE
-#ifndef XASH_DISABLE_FWGS_EXTENSIONS
-	|| key == K_B_BUTTON
-#endif // XASH_DISABLE_FWGS_EXTENSIONS
-	);
+	switch( key )
+	{
+	case K_ESCAPE:
+	case K_B_BUTTON:
+		return true;
+	}
+	return false;
 }
 
 inline bool IsEnter( int key )
 {
-	return ( key == K_ENTER
-#ifndef XASH_DISABLE_FWGS_EXTENSIONS
-	|| key == K_A_BUTTON
-#endif // XASH_DISABLE_FWGS_EXTENSIONS
-	);
+	switch( key )
+	{
+	case K_ENTER:
+	case K_KP_ENTER:
+	case K_A_BUTTON:
+		return true;
+	}
+	return false;
 }
+
+inline bool IsBackspace( int key )
+{
+	switch( key )
+	{
+	case K_BACKSPACE:
+	case K_X_BUTTON:
+		return true;
+	}
+	return false;
+}
+
+inline bool IsDelete( int key, bool ignoreBackspace = false )
+{
+	if( key == K_DEL )
+		return true;
+	if( !ignoreBackspace )
+		return UI::Key::IsBackspace( key );
+	return false;
+}
+
+inline bool IsHome( int key )
+{
+	switch( key )
+	{
+	case K_HOME:
+	case K_KP_HOME:
+		return true;
+	}
+	return false;
+}
+
+inline bool IsEnd( int key )
+{
+	switch( key )
+	{
+	case K_HOME:
+	case K_KP_HOME:
+		return true;
+	}
+	return false;
+}
+
+inline bool IsLeftMouse( int key )
+{
+	return key == K_MOUSE1;
+}
+
+inline bool IsMouse( int key )
+{
+	switch( key )
+	{
+	case K_MOUSE1:
+	case K_MOUSE2:
+	case K_MOUSE3:
+	case K_MOUSE4:
+	case K_MOUSE5:
+		return true;
+	}
+	return false;
+}
+
+inline bool IsUpArrow( int key )
+{
+	switch( key )
+	{
+	case K_UPARROW:
+	case K_KP_UPARROW:
+	case K_DPAD_UP:
+		return true;
+	}
+	return false;
+}
+
+inline bool IsDownArrow( int key )
+{
+	switch( key )
+	{
+	case K_DOWNARROW:
+	case K_KP_DOWNARROW:
+	case K_DPAD_DOWN:
+		return true;
+	}
+	return false;
+}
+
+inline bool IsLeftArrow( int key )
+{
+	switch( key )
+	{
+	case K_LEFTARROW:
+	case K_KP_LEFTARROW:
+	case K_DPAD_LEFT:
+		return true;
+	}
+	return false;
+}
+
+inline bool IsRightArrow( int key )
+{
+	switch( key )
+	{
+	case K_RIGHTARROW:
+	case K_KP_RIGHTARROW:
+	case K_DPAD_RIGHT:
+		return true;
+	}
+	return false;
+}
+
+inline bool IsNavigationKey( int key )
+{
+	return IsUpArrow( key ) ||
+			IsDownArrow( key ) ||
+			IsLeftArrow( key ) ||
+			IsRightArrow( key ) ||
+			key == K_TAB;
+}
+
+inline bool IsPageUp( int key )
+{
+	switch( key )
+	{
+	case K_PGUP:
+	case K_KP_PGUP:
+	case K_L1_BUTTON:
+		return true;
+	}
+	return false;
+}
+
+inline bool IsPageDown( int key )
+{
+	switch( key )
+	{
+	case K_PGDN:
+	case K_KP_PGDN:
+	case K_R1_BUTTON:
+		return true;
+	}
+	return false;
+}
+
+inline bool IsConsole( int key )
+{
+	switch( key )
+	{
+	case '`':
+	case '~':
+		return true;
+	}
+	return false;
+}
+
+inline bool IsInsert( int key )
+{
+	switch( key )
+	{
+	case K_INS:
+	case K_KP_INS:
+		return true;
+	}
+	return false;
+}
+
 }
 
 namespace Names
@@ -227,6 +420,7 @@ namespace Names
 bool CheckIsNameValid( const char *name );
 }
 }
+extern const int table_cp1251[64];
 int Con_UtfProcessChar(int in );
 int Con_UtfMoveLeft( const char *str, int pos );
 int Con_UtfMoveRight( const char *str, int pos, int length );

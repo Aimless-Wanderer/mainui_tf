@@ -17,7 +17,7 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
-
+#include "BaseMenu.h" // ADD_MENU
 #include "Framework.h"
 #include "mobility_int.h"
 #include "Bitmap.h"
@@ -29,13 +29,12 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "CheckBox.h"
 #include "YesNoMessageBox.h"
 #include "StringArrayModel.h"
-
 #define ART_BANNER	  	"gfx/shell/head_touch_buttons"
 
 class CMenuTouchButtons : public CMenuFramework
 {
 public:
-	CMenuTouchButtons() : CMenuFramework( "CMenuTouchButtons" ) { }
+	CMenuTouchButtons() : CMenuFramework( "CMenuTouchButtons" ), model( this ) { }
 
 private:
 	void _Init() override;
@@ -98,7 +97,7 @@ public:
 	class CButtonListModel : public CStringArrayModel
 	{
 	public:
-		CButtonListModel() : CStringArrayModel( (const char*)&buttons, sizeof( buttons[0] ), 0 ) {}
+		CButtonListModel( CMenuTouchButtons *parent ) : CStringArrayModel( (const char*)&buttons, sizeof( buttons[0] ), 0 ), parent( parent ) {}
 
 		void Update() override;
 		void AddButtonToList( const char *name, const char *texture, const char *command, unsigned char *color, int flags );
@@ -114,15 +113,13 @@ public:
 
 		bool gettingList;
 		bool initialized;
+		CMenuTouchButtons *parent;
 	} model;
 	CMenuTable buttonList;
 
 	// prompt dialog
 	CMenuYesNoMessageBox msgBox;
 };
-
-static CMenuTouchButtons uiTouchButtons;
-
 
 void CMenuTouchButtons::CButtonListModel::AddButtonToList( const char *name, const char *texture, const char *command, unsigned char *color, int flags )
 {
@@ -138,13 +135,6 @@ void CMenuTouchButtons::CButtonListModel::AddButtonToList( const char *name, con
 	buttons[i].iFlags = flags;
 }
 
-// Engine callback
-extern "C" EXPORT void AddTouchButtonToList( const char *name, const char *texture, const char *command, unsigned char *color, int flags )
-{
-	uiTouchButtons.model.AddButtonToList( name, texture, command, color, flags );
-}
-
-
 void CMenuTouchButtons::CButtonListModel::Update()
 {
 	if( !initialized )
@@ -157,6 +147,8 @@ void CMenuTouchButtons::CButtonListModel::Update()
 	gettingList = true;
 	EngFuncs::ClientCmd( TRUE, "touch_list\n" );
 	gettingList = false;
+
+	parent->UpdateFields();
 }
 
 void CMenuTouchButtons::CMenuColor::Draw()
@@ -195,6 +187,8 @@ void CMenuTouchButtons::CMenuButtonPreview::Draw()
 
 void CMenuTouchButtons::DeleteButton()
 {
+	int i = buttonList.GetCurrentIndex();
+	if( i > 0 ) buttonList.SetCurrentIndex( i - 1 );
 	char command[512];
 	snprintf(command, 512, "touch_removebutton \"%s\"\n", selectedName );
 	EngFuncs::ClientCmd(1, command);
@@ -239,12 +233,13 @@ void CMenuTouchButtons::OpenFileDialog()
 	// TODO: Make uiFileDialog menu globally known
 	// TODO: Make FileDialogCallback as event
 	uiFileDialogGlobal.npatterns = 7;
-	strcpy( uiFileDialogGlobal.patterns[0], "touch/*.tga");
-	strcpy( uiFileDialogGlobal.patterns[1], "touch_default/*.tga");
+	strcpy( uiFileDialogGlobal.patterns[0], "touch/*");
+	strcpy( uiFileDialogGlobal.patterns[1], "touch_default/*");
 	strcpy( uiFileDialogGlobal.patterns[2], "gfx/touch/*");
 	strcpy( uiFileDialogGlobal.patterns[3], "gfx/vgui/*");
 	strcpy( uiFileDialogGlobal.patterns[4], "gfx/shell/*");
 	strcpy( uiFileDialogGlobal.patterns[5], "*.tga");
+	strcpy( uiFileDialogGlobal.patterns[6], "*.png");
 	uiFileDialogGlobal.preview = true;
 	uiFileDialogGlobal.valid = true;
 	uiFileDialogGlobal.callback = CMenuTouchButtons::FileDialogCallback;
@@ -333,25 +328,16 @@ void CMenuTouchButtons::SaveButton()
 
 void CMenuTouchButtons::RemoveMsgBox()
 {
-	msgBox.SetMessage( "Delete selected button?" );
+	msgBox.SetMessage( L( "Delete selected button?" ) );					// Delete ??? Может быть Clear ? Или Reset ?
 	msgBox.onPositive = VoidCb( &CMenuTouchButtons::DeleteButton );
 	msgBox.Show();
 }
 
 void CMenuTouchButtons::ResetMsgBox()
 {
-	msgBox.SetMessage( "Reset all buttons?" );
+	msgBox.SetMessage( L( "Reset all buttons?" ) );
 	msgBox.onPositive = VoidCb( &CMenuTouchButtons::ResetButtons );
 	msgBox.Show();
-}
-
-void CMenuTouchButtons::FileDialogCallback( bool success )
-{
-	if( success )
-	{
-		uiTouchButtons.texture.SetBuffer( uiFileDialogGlobal.result );
-		uiTouchButtons.UpdateTexture();
-	}
 }
 
 void CMenuTouchButtons::ExitMenuCb(CMenuBaseItem *pSelf, void *pExtra)
@@ -373,88 +359,88 @@ void CMenuTouchButtons::_Init( void )
 
 	banner.SetPicture(ART_BANNER);
 
-	done.SetNameAndStatus( "Done", "Save changes and go back to the Touch Menu" );
+	done.SetNameAndStatus( L( "Done" ), L( "Save changes and go back to the Touch Menu" ) );
 	done.SetPicture( PC_DONE );
-	done.onActivated = ExitMenuCb;
-	done.onActivated.pExtra = (void*)"touch_writeconfig\n";
+	done.onReleased = ExitMenuCb;
+	done.onReleased.pExtra = (void*)"touch_writeconfig\n";
 
-	cancel.SetNameAndStatus( "Cancel", "Discard changes and go back to the Touch Menu" );
+	cancel.SetNameAndStatus( L( "GameUI_Cancel" ), L( "Discard changes and go back to the Touch Menu" ) );
 	cancel.SetPicture( PC_CANCEL );
-	cancel.onActivated = ExitMenuCb;
-	cancel.onActivated.pExtra = (void*)"touch_loadconfig\n";
+	cancel.onReleased = ExitMenuCb;
+	cancel.onReleased.pExtra = (void*)"touch_reloadconfig\n";
 
 	red.eFocusAnimation = QM_PULSEIFFOCUS;
-	red.SetNameAndStatus( "Red:", "Texture red channel" );
+	red.SetNameAndStatus( L( "Red:" ), L( "Texture red channel" ) );
 	red.Setup( 0, 255, 1 );
 
 	green.eFocusAnimation = QM_PULSEIFFOCUS;
-	green.SetNameAndStatus( "Green:", "Texture green channel" );
+	green.SetNameAndStatus( L( "Green:" ), L( "Texture green channel" ) );
 	green.Setup( 0, 255, 1 );
 
 	blue.eFocusAnimation = QM_PULSEIFFOCUS;
-	blue.SetNameAndStatus( "Blue:", "Texture blue channel" );
+	blue.SetNameAndStatus( L( "Blue:" ), L( "Texture blue channel" ) );
 	blue.Setup( 0, 255, 1 );
 
 	alpha.eFocusAnimation = QM_PULSEIFFOCUS;
-	alpha.SetNameAndStatus( "Alpha:", "Texture alpha channel" );
+	alpha.SetNameAndStatus( L( "Alpha:" ), L( "Texture alpha channel" ) );
 	alpha.Setup( 0, 255, 1 );
 
-	hide.SetNameAndStatus( "Hide", "Show/hide button" );
+	hide.SetNameAndStatus( L( "Hide" ), L( "Show/hide button" ) );
 	hide.iMask = TOUCH_FL_HIDE;
 	hide.onChanged.pExtra = &curflags;
 	hide.onChanged = CMenuCheckBox::BitMaskCb;
 
-	additive.SetNameAndStatus( "Additive", "Set button additive draw mode" );
+	additive.SetNameAndStatus( L( "Additive" ), L( "Set button additive draw mode" ) );
 	additive.iMask = TOUCH_FL_DRAW_ADDITIVE;
 	additive.onChanged.pExtra = &curflags;
 	additive.onChanged = CMenuCheckBox::BitMaskCb;
 
-	mp.SetNameAndStatus( "MP", "Show button only in multiplayer" );
+	mp.SetNameAndStatus( L( "MP" ), L( "Show button only in multiplayer" ) );
 	mp.onChanged = VoidCb( &CMenuTouchButtons::UpdateMP );
 
-	sp.SetNameAndStatus( "SP", "Show button only in singleplayer" );
+	sp.SetNameAndStatus( L( "SP" ), L( "Show button only in singleplayer" ) );
 	sp.onChanged = VoidCb( &CMenuTouchButtons::UpdateSP );
 
-	lock.SetNameAndStatus( "Lock", "Lock button editing" );
+	lock.SetNameAndStatus( L( "Lock" ), L( "Lock button editing" ) );
 	lock.iMask = TOUCH_FL_NOEDIT;
 	lock.onChanged.pExtra = &curflags;
 	lock.onChanged = CMenuCheckBox::BitMaskCb;
 
-	precision.SetNameAndStatus( "Look precision", "Increase look precision" );
+	precision.SetNameAndStatus( L( "Look precision" ), L( "Increase look precision" ) );
 	precision.iMask = TOUCH_FL_PRECISION;
 	precision.onChanged.pExtra = &curflags;
 	precision.onChanged = CMenuCheckBox::BitMaskCb;
 
-	save.SetNameAndStatus( "Save", "Save as new button" );
+	save.SetNameAndStatus( L( "GameUI_Save" ), L( "Save as new button" ) );
 	save.SetPicture("gfx/shell/btn_touch_save");
-	save.onActivated = VoidCb( &CMenuTouchButtons::SaveButton );
+	save.onReleased = VoidCb( &CMenuTouchButtons::SaveButton );
 
-	editor.SetNameAndStatus( "Editor", "Open interactive editor" );
+	editor.SetNameAndStatus( L( "Editor" ), L( "Open interactive editor" ) );
 	editor.SetPicture("gfx/shell/btn_touch_editor");
-	editor.onActivated = UI_TouchEdit_Menu;
+	editor.onReleased = UI_TouchEdit_Menu;
 
-	select.SetNameAndStatus( "Select", "Select texture from list" );
+	select.SetNameAndStatus( L( "Select" ), L( "Select texture from list" ) );
 	select.SetPicture("gfx/shell/btn_touch_select");
-	select.onActivated = VoidCb( &CMenuTouchButtons::OpenFileDialog );
+	select.onReleased = VoidCb( &CMenuTouchButtons::OpenFileDialog );
 
-	name.szName = "New Button:";
+	name.szName = L( "New Button:" );
 	name.iMaxLength = 255;
 
-	command.szName = "Command:";
+	command.szName = L( "Command:" );
 	command.iMaxLength = 255;
 
-	texture.szName = "Texture:";
+	texture.szName = L( "Texture:" );
 	texture.iMaxLength = 255;
 	texture.onChanged = VoidCb( &CMenuTouchButtons::UpdateTexture );
 	texture.eTextAlignment = QM_RIGHT;
 
-	reset.SetNameAndStatus( "Reset", "Reset touch to default state" );
+	reset.SetNameAndStatus( L( "Reset" ), L( "Reset touch to default state" ) );
 	reset.SetPicture( "gfx/shell/btn_touch_reset" );
-	reset.onActivated = VoidCb( &CMenuTouchButtons::ResetMsgBox );
+	reset.onReleased = VoidCb( &CMenuTouchButtons::ResetMsgBox );
 
-	remove.SetNameAndStatus( "Delete", "Delete selected button" );
+	remove.SetNameAndStatus( L( "Delete" ), L( "Delete selected button" ) );		// Delete - уже было раньше
 	remove.SetPicture( PC_DELETE );
-	remove.onActivated = VoidCb( &CMenuTouchButtons::RemoveMsgBox );
+	remove.onReleased = VoidCb( &CMenuTouchButtons::RemoveMsgBox );
 
 	buttonList.SetModel( &model );
 	buttonList.onChanged = VoidCb( &CMenuTouchButtons::UpdateFields );
@@ -530,15 +516,15 @@ void CMenuTouchButtons::_VidInit()
 	remove.SetRect( 384 - 72 + 480, 550, 130, 50 );
 }
 
-/*
-=================
-UI_TouchButtons_Precache
-=================
-*/
-void UI_TouchButtons_Precache( void )
+ADD_MENU3( menu_touchbuttons, CMenuTouchButtons, UI_TouchButtons_Menu );
+
+void CMenuTouchButtons::FileDialogCallback( bool success )
 {
-	EngFuncs::PIC_Load( ART_BANNER );
-	uiTouchButtons.model.gettingList = false; // prevent filling list before init
+	if( success )
+	{
+		menu_touchbuttons->texture.SetBuffer( uiFileDialogGlobal.result );
+		menu_touchbuttons->UpdateTexture();
+	}
 }
 
 /*
@@ -549,11 +535,16 @@ UI_TouchButtons_Menu
 void UI_TouchButtons_Menu( void )
 {
 	UI_TouchButtons_GetButtonList();
-	uiTouchButtons.Show();
+	menu_touchbuttons->Show();
 }
 
 void UI_TouchButtons_GetButtonList()
 {
-	uiTouchButtons.model.Update();
+	menu_touchbuttons->model.Update();
 }
-ADD_MENU( menu_touchbuttons, UI_TouchButtons_Precache, UI_TouchButtons_Menu );
+
+// Engine callback
+extern "C" EXPORT void AddTouchButtonToList( const char *name, const char *texture, const char *command, unsigned char *color, int flags )
+{
+	menu_touchbuttons->model.AddButtonToList( name, texture, command, color, flags );
+}

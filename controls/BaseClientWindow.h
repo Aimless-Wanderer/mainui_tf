@@ -12,7 +12,6 @@ but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 */
-#pragma once
 #ifndef BASECLIENTWINDOW_H
 #define BASECLIENTWINDOW_H
 
@@ -24,7 +23,7 @@ public:
 	typedef CMenuBaseWindow BaseClass;
 	CMenuBaseClientWindow( const char *name = "BaseClientWindow" );
 
-	const char *Key( int key, int down ) override;
+	bool KeyDown( int key ) override;
 };
 
 #endif // BASECLIENTWINDOW_H

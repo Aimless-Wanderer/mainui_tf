@@ -9,12 +9,12 @@ class CMenuScrollView : public CMenuItemsHolder
 public:
 	CMenuScrollView();
 
-	void VidInit();
-	void Draw();
-	const char *Key( int key, int down );
-	bool MouseMove( int x, int y  );
+	void VidInit() override;
+	void Draw() override;
+	bool KeyDown( int key ) override;
+	bool MouseMove( int x, int y ) override;
 
-	Point GetPositionOffset() const;
+	Point GetPositionOffset() const override;
 
 private:
 	bool IsRectVisible( Point pt, Size sz );

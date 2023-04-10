@@ -15,10 +15,17 @@ GNU General Public License for more details.
 #include "Framework.h"
 #include "PicButton.h"
 
+// menu banners used fiexed rectangle (virtual screenspace at 640x480)
+#define UI_BANNER_POSX		72
+#define UI_BANNER_POSY		72
+#define UI_BANNER_WIDTH		736
+#define UI_BANNER_HEIGHT		128
+
 CMenuFramework::CMenuFramework( const char *name ) : BaseClass( name )
 {
 	memset( m_apBtns, 0, sizeof( m_apBtns ) );
 	m_iBtnsNum = 0;
+	bannerAnimDirection = ANIM_NO;
 }
 
 CMenuFramework::~CMenuFramework()
@@ -33,11 +40,7 @@ CMenuFramework::~CMenuFramework()
 
 void CMenuFramework::Show()
 {
-	CMenuPicButton::RootChanged( true );
 	BaseClass::Show();
-
-	m_pStack->rootActive = this;
-	m_pStack->rootPosition = m_pStack->menuDepth-1;
 }
 
 void CMenuFramework::Draw()
@@ -70,7 +73,7 @@ void CMenuFramework::Draw()
 
 		UnpackRGB( r, g, b, uiColorHelp );
 		EngFuncs::DrawSetTextColor( r, g, b, alpha * 255 );
-		x = ( ScreenWidth - len ) * 0.5; // centering
+		x = ( ScreenWidth - len ) * 0.5f; // centering
 
 		EngFuncs::DrawConsoleString( x, uiStatic.yOffset + 720 * uiStatic.scaleY, statusText );
 	}
@@ -79,24 +82,7 @@ void CMenuFramework::Draw()
 
 void CMenuFramework::Hide()
 {
-	int i;
 	BaseClass::Hide();
-
-	for( i = m_pStack->menuDepth-1; i >= 0; i-- )
-	{
-		if( m_pStack->menuStack[i]->IsRoot() )
-		{
-			m_pStack->rootActive = m_pStack->menuStack[i];
-			m_pStack->rootPosition = i;
-			CMenuPicButton::RootChanged( false );
-			return;
-		}
-	}
-
-
-	// looks like we are have a modal or some window over game
-	m_pStack->rootActive = NULL;
-	m_pStack->rootPosition = 0;
 }
 
 void CMenuFramework::Init()
@@ -117,7 +103,7 @@ void CMenuFramework::VidInit()
 	BaseClass::VidInit();
 }
 
-CMenuPicButton * CMenuFramework::AddButton(const char *szName, const char *szStatus, EDefaultBtns buttonPicId, CEventCallback onActivated, int iFlags)
+CMenuPicButton * CMenuFramework::AddButton(const char *szName, const char *szStatus, EDefaultBtns buttonPicId, CEventCallback onReleased, int iFlags)
 {
 	if( m_iBtnsNum >= MAX_FRAMEWORK_PICBUTTONS )
 	{
@@ -130,7 +116,7 @@ CMenuPicButton * CMenuFramework::AddButton(const char *szName, const char *szSta
 	btn->SetNameAndStatus( szName, szStatus );
 	btn->SetPicture( buttonPicId );
 	btn->iFlags |= iFlags;
-	btn->onActivated = onActivated;
+	btn->onReleased = onReleased;
 	btn->SetCoord( 72, 230 + m_iBtnsNum * 50 );
 	AddItem( btn );
 
@@ -139,7 +125,7 @@ CMenuPicButton * CMenuFramework::AddButton(const char *szName, const char *szSta
 	return btn;
 }
 
-CMenuPicButton * CMenuFramework::AddButton(const char *szName, const char *szStatus, const char *szButtonPath, CEventCallback onActivated, int iFlags)
+CMenuPicButton * CMenuFramework::AddButton(const char *szName, const char *szStatus, const char *szButtonPath, CEventCallback onReleased, int iFlags)
 {
 	if( m_iBtnsNum >= MAX_FRAMEWORK_PICBUTTONS )
 	{
@@ -152,7 +138,7 @@ CMenuPicButton * CMenuFramework::AddButton(const char *szName, const char *szSta
 	btn->SetNameAndStatus( szName, szStatus );
 	btn->SetPicture( szButtonPath );
 	btn->iFlags |= iFlags;
-	btn->onActivated = onActivated;
+	btn->onReleased = onReleased;
 	btn->SetCoord( 72, 230 + m_iBtnsNum * 50 );
 	AddItem( btn );
 
@@ -161,16 +147,99 @@ CMenuPicButton * CMenuFramework::AddButton(const char *szName, const char *szSta
 	return btn;
 }
 
-
-bool CMenuFramework::DrawAnimation(EAnimation anim)
+bool CMenuFramework::KeyDown( int key )
 {
-	bool b = CMenuBaseWindow::DrawAnimation( anim );
+	bool b = BaseClass::KeyDown( key );
 
-#ifndef CS16CLIENT
-	if( IsRoot() )
-		b = CMenuPicButton::DrawTitleAnim( anim );
-#endif
+	if( UI::Key::IsEscape( key ))
+	{
+		const CMenuBaseWindow *newWindow = WindowStack()->Current();
+
+		if( newWindow != nullptr && newWindow != this && newWindow->IsRoot() )
+		{
+			PrepareBannerAnimation( ANIM_CLOSING, nullptr );
+		}
+	}
 
 	return b;
+}
+
+void CMenuFramework::PrepareBannerAnimation( EAnimation direction, CMenuPicButton *initiator )
+{
+	// banner is not present, ignore
+	if( banner.Parent() != this )
+		return;
+
+	bannerAnimDirection = direction;
+	if( initiator )
+	{
+		bannerRects[0].pt = initiator->GetRenderPosition();
+		bannerRects[0].sz = initiator->GetRenderSize();
+
+		bannerRects[1].pt = banner.GetRenderPosition();
+		bannerRects[1].sz = banner.GetRenderSize();
+
+		banner.szName = initiator->szName;
+	}
+}
+
+bool CMenuFramework::DrawAnimation()
+{
+	bool b = CMenuBaseWindow::DrawAnimation( );
+
+	if( bannerAnimDirection != ANIM_NO )
+	{
+		float frac;
+
+		if( bannerAnimDirection == ANIM_OPENING )
+			frac = ( uiStatic.realTime - m_iTransitionStartTime ) / TTT_PERIOD;
+		else
+			frac = 1.0f - ( uiStatic.realTime - m_iTransitionStartTime ) / TTT_PERIOD;
+		Rect r = Rect::Lerp( bannerRects[0], bannerRects[1], frac );
+
+		banner.Draw( r.pt, r.sz );
+	}
+
+	if( b )
+		bannerAnimDirection = ANIM_NO;
+
+	return b;
+}
+
+CMenuFramework::CMenuBannerBitmap::CMenuBannerBitmap()
+{
+	SetRect( UI_BANNER_POSX, UI_BANNER_POSY, UI_BANNER_WIDTH, UI_BANNER_HEIGHT );
+}
+
+void CMenuFramework::CMenuBannerBitmap::SetPicture(const char *pic)
+{
+	image.Load( pic );
+}
+
+void CMenuFramework::CMenuBannerBitmap::Draw( Point pt, Size sz )
+{
+	if( image.IsValid() )
+	{
+		UI_DrawPic( pt, sz, uiColorWhite, image, QM_DRAWADDITIVE );
+	}
+	else
+	{
+		UI_DrawString( uiStatic.hHeavyBlur, pt,
+			sz,
+			szName,
+			uiPromptTextColor, m_scChSize,
+			QM_LEFT, ETF_ADDITIVE | ETF_NOSIZELIMIT | ETF_FORCECOL );
+
+		UI_DrawString( uiStatic.hLightBlur, pt,
+			sz,
+			szName,
+			uiPromptTextColor, m_scChSize,
+			QM_LEFT, ETF_ADDITIVE | ETF_NOSIZELIMIT | ETF_FORCECOL );
+	}
+}
+
+void CMenuFramework::CMenuBannerBitmap::Draw()
+{
+	Draw( m_scPos, m_scSize );
 }
 

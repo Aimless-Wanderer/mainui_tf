@@ -27,6 +27,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define ART_BANNER	  	"gfx/shell/head_vidoptions"
 #define ART_GAMMA		"gfx/shell/gamma"
 
+#define LEGACY_VIEWSIZE 0
+
 class CMenuVidOptions : public CMenuFramework
 {
 private:
@@ -36,8 +38,8 @@ private:
 public:
 	CMenuVidOptions() : CMenuFramework( "CMenuVidOptions" ) { }
 	void SaveAndPopMenu() override;
-	void GammaUpdate();
-	void GammaGet();
+	void UpdateConfig();
+	void GetConfig();
 
 	int		outlineWidth;
 
@@ -48,49 +50,50 @@ public:
 
 	CMenuPicButton	done;
 
+#if LEGACY_VIEWSIZE
 	CMenuSlider	screenSize;
+#endif
 	CMenuSlider	gammaIntensity;
 	CMenuSlider	glareReduction;
-	CMenuCheckBox	fastSky;
-	CMenuCheckBox	hiTextures;
 	CMenuCheckBox   vbo;
-	CMenuCheckBox   bump;
 
 	HIMAGE		hTestImage;
-} uiVidOptions;
-
+};
 
 /*
 =================
-CMenuVidOptions::GammaUpdate
+CMenuVidOptions::UpdateConfig
 =================
 */
-void CMenuVidOptions::GammaUpdate( void )
+void CMenuVidOptions::UpdateConfig( void )
 {
-	float val = RemapVal( uiVidOptions.gammaIntensity.GetCurrentValue(), 0.0, 1.0, 1.8, 7.0 );
-	EngFuncs::CvarSetValue( "gamma", val );
-	EngFuncs::ProcessImage( uiVidOptions.hTestImage, val );
+	float val1 = RemapVal( gammaIntensity.GetCurrentValue(), 0.0, 1.0, 1.8, 3.0 );
+	float val2 = RemapVal( glareReduction.GetCurrentValue(), 0.0, 1.0, 0.0, 3.0 );
+	EngFuncs::CvarSetValue( "gamma", val1 );
+	EngFuncs::CvarSetValue( "brightness", val2 );
+	EngFuncs::ProcessImage( hTestImage, val1, val2 );
 }
 
-void CMenuVidOptions::GammaGet( void )
+void CMenuVidOptions::GetConfig( void )
 {
-	float val = EngFuncs::GetCvarFloat( "gamma" );
+	float val1 = EngFuncs::GetCvarFloat( "gamma" );
+	float val2 = EngFuncs::GetCvarFloat( "brightness" );
 
-	uiVidOptions.gammaIntensity.SetCurrentValue( RemapVal( val, 1.8f, 7.0f, 0.0f, 1.0f ) );
-	EngFuncs::ProcessImage( uiVidOptions.hTestImage, val );
+	gammaIntensity.SetCurrentValue( RemapVal( val1, 1.8f, 3.0f, 0.0f, 1.0f ) );
+	glareReduction.SetCurrentValue( RemapVal( val2, 0.0f, 3.0f, 0.0f, 1.0f ) );
+	EngFuncs::ProcessImage( hTestImage, val1, val2 );
 
-	uiVidOptions.gammaIntensity.SetOriginalValue( val );
+	gammaIntensity.SetOriginalValue( val1 );
+	glareReduction.SetOriginalValue( val2 );
 }
 
 void CMenuVidOptions::SaveAndPopMenu( void )
 {
+#if LEGACY_VIEWSIZE
 	screenSize.WriteCvar();
-	glareReduction.WriteCvar();
-	fastSky.WriteCvar();
-	hiTextures.WriteCvar();
+#endif
 	vbo.WriteCvar();
-	bump.WriteCvar();
-	// gamma is already written
+	// gamma and brightness is already written
 
 	CMenuFramework::SaveAndPopMenu();
 }
@@ -106,7 +109,11 @@ void CMenuVidOptions::CMenuVidPreview::Draw( )
 	int		viewport[4];
 	int		viewsize, size, sb_lines;
 
+#if LEGACY_VIEWSIZE
 	viewsize = EngFuncs::GetCvarFloat( "viewsize" );
+#else
+	viewsize = 120;
+#endif
 
 	if( viewsize >= 120 )
 		sb_lines = 0;	// no status bar at all
@@ -144,7 +151,7 @@ void CMenuVidOptions::_Init( void )
 #ifdef PIC_KEEP_RGBDATA
 	hTestImage = EngFuncs::PIC_Load( ART_GAMMA, PIC_KEEP_RGBDATA );
 #else
-	hTestImage = EngFuncs::PIC_Load( ART_GAMMA, PIC_KEEP_SOURCE );
+	hTestImage = EngFuncs::PIC_Load( ART_GAMMA, PIC_KEEP_SOURCE | PIC_EXPAND_SOURCE );
 #endif
 
 	banner.SetPicture(ART_BANNER);
@@ -153,71 +160,57 @@ void CMenuVidOptions::_Init( void )
 	testImage.SetRect( 390, 225, 480, 450 );
 	testImage.SetPicture( ART_GAMMA );
 
-	done.SetNameAndStatus( "Done", "Go back to the Video Menu" );
+	done.SetNameAndStatus( L( "GameUI_OK" ), L( "Go back to the Video Menu" ) );
 	done.SetCoord( 72, 435 );
 	done.SetPicture( PC_DONE );
-	done.onActivated = VoidCb( &CMenuVidOptions::SaveAndPopMenu );
+	done.onReleased = VoidCb( &CMenuVidOptions::SaveAndPopMenu );
 
-	screenSize.SetNameAndStatus( "Screen size",  "Set the screen size" );
-	screenSize.SetCoord( 72, 280 );
+	int height = 280;
+
+#if LEGACY_VIEWSIZE
+	screenSize.SetNameAndStatus( L( "Screen size" ), L( "Set the screen size" ) );
+	screenSize.SetCoord( 72, height );
 	screenSize.Setup( 30, 120, 10 );
-	screenSize.LinkCvar( "viewsize" );
 	screenSize.onChanged = CMenuEditable::WriteCvarCb;
 
-	gammaIntensity.SetNameAndStatus( "Gamma", "Set gamma value (0.5 - 2.3)" );
-	gammaIntensity.SetCoord( 72, 340 );
+	height += 60;
+#endif
+
+	gammaIntensity.SetNameAndStatus( L( "GameUI_Gamma" ), L( "Set gamma value" ) );
+	gammaIntensity.SetCoord( 72, height );
 	gammaIntensity.Setup( 0.0, 1.0, 0.025 );
-	gammaIntensity.onChanged = VoidCb( &CMenuVidOptions::GammaUpdate );
-	gammaIntensity.onCvarGet = VoidCb( &CMenuVidOptions::GammaGet );
-	gammaIntensity.LinkCvar( "gamma" );
+	gammaIntensity.onChanged = VoidCb( &CMenuVidOptions::UpdateConfig );
+	gammaIntensity.onCvarGet = VoidCb( &CMenuVidOptions::GetConfig );
+	height += 60;
 
-	glareReduction.SetCoord( 72, 400 );
-	if( UI_IsXashFWGS() )
-	{
-		glareReduction.SetNameAndStatus( "Glare reduction", "Set glare reduction level" );
-		glareReduction.Setup( 100, 300, 15 );
-		glareReduction.LinkCvar( "r_flaresize" );
-	}
-	else
-	{
-		glareReduction.SetNameAndStatus( "Brightness", "Set brightness level" );
-		glareReduction.Setup( 0, 3, 0.1 );
-		glareReduction.LinkCvar( "brightness" );
-	}
+	glareReduction.SetCoord( 72, height );
+	glareReduction.SetNameAndStatus( L( "GameUI_Brightness" ), L( "Set brightness level" ) );
+	glareReduction.Setup( 0, 1.0, 0.025 );
+	glareReduction.onChanged = VoidCb( &CMenuVidOptions::UpdateConfig );
+	glareReduction.onCvarGet = VoidCb( &CMenuVidOptions::GetConfig );
+	height += 60;
 
-	bump.SetNameAndStatus( "Bump-mapping", "Enable bump mapping" );
-	bump.SetCoord( 72, 515 );
-	bump.LinkCvar( "r_bump" );
-	if( !EngFuncs::GetCvarFloat( "r_vbo" ) )
-		bump.SetGrayed( true );
-
-	vbo.SetNameAndStatus( "Use VBO", "Use new world renderer. Faster, but rarely glitchy" );
+	vbo.SetNameAndStatus( L( "Use VBO" ), L( "Use new world renderer. Faster, but rarely glitchy" ) );
 	vbo.SetCoord( 72, 565 );
-	vbo.LinkCvar( "r_vbo" );
-	vbo.onChanged = CMenuCheckBox::BitMaskCb;
-	vbo.onChanged.pExtra = &bump.iFlags;
-	vbo.bInvertMask = true;
-	vbo.iMask = QMF_GRAYED;
-
-	fastSky.SetNameAndStatus( "Draw simple sky", "enable/disable fast sky rendering (for old computers)" );
-	fastSky.SetCoord( 72, 615 );
-	fastSky.LinkCvar( "r_fastsky" );
-
-	hiTextures.SetNameAndStatus( "Allow materials", "let engine replace 8-bit textures with full color hi-res prototypes (if present)" );
-	hiTextures.SetCoord( 72, 665 );
-	hiTextures.LinkCvar( "host_allow_materials" );
 
 	AddItem( background );
 	AddItem( banner );
 	AddItem( done );
+#if LEGACY_VIEWSIZE
 	AddItem( screenSize );
+#endif
 	AddItem( gammaIntensity );
 	AddItem( glareReduction );
-	AddItem( bump );
-	AddItem( vbo );
-	AddItem( fastSky );
-	AddItem( hiTextures );
+	// AddItem( vbo );
 	AddItem( testImage );
+
+#if LEGACY_VIEWSIZE
+	screenSize.LinkCvar( "viewsize" );
+#endif
+
+	gammaIntensity.LinkCvar( "gamma" );
+	glareReduction.LinkCvar( "brightness" );
+	vbo.LinkCvar( "gl_vbo" );
 }
 
 void CMenuVidOptions::_VidInit()
@@ -226,23 +219,4 @@ void CMenuVidOptions::_VidInit()
 	UI_ScaleCoords( NULL, NULL, &outlineWidth, NULL );
 }
 
-/*
-=================
-CMenuVidOptions::Precache
-=================
-*/
-void UI_VidOptions_Precache( void )
-{
-	EngFuncs::PIC_Load( ART_BANNER );
-}
-
-/*
-=================
-CMenuVidOptions::Menu
-=================
-*/
-void UI_VidOptions_Menu( void )
-{
-	uiVidOptions.Show();
-}
-ADD_MENU( menu_vidoptions, UI_VidOptions_Precache, UI_VidOptions_Menu );
+ADD_MENU( menu_vidoptions, CMenuVidOptions, UI_VidOptions_Menu );

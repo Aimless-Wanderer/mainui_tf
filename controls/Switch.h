@@ -17,7 +17,6 @@ You should have received a copy of the GNU General Public License
 along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
-#pragma once
 #ifndef SWITCH_H
 #define SWITCH_H
 
@@ -30,7 +29,8 @@ public:
 
 	CMenuSwitch();
 
-	const char *Key(int key, int down) override;
+	bool KeyDown( int key ) override;
+	bool KeyUp( int key ) override;
 	void VidInit() override;
 	void Draw() override;
 	void UpdateEditable() override;
@@ -44,6 +44,7 @@ public:
 
 	bool bMouseToggle;
 	bool bKeepToggleWidth;
+	bool bChangeOnPressed;
 
 	CColor iSelectColor;
 	CColor iBackgroundColor;
@@ -53,6 +54,7 @@ public:
 	float fTextOffsetX;
 	float fTextOffsetY;
 private:
+	int IsNewStateByMouseClick( void );
 	int m_iSwitches;
 	int m_iState;
 

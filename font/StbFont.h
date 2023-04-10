@@ -16,15 +16,10 @@ GNU General Public License for more details.
 
 #if defined(MAINUI_USE_CUSTOM_FONT_RENDER) && defined(MAINUI_USE_STB)
 #include "BaseFontBackend.h"
-#include "utl/utlmemory.h"
-#include "utl/utlrbtree.h"
+#include "utlmemory.h"
+#include "utlrbtree.h"
 #include "stb_truetype.h"
 
-struct abc_t
-{
-	int ch;
-	int a, b, c;
-};
 
 class CStbFont : public CBaseFont
 {
@@ -39,12 +34,10 @@ public:
 		int scanlineOffset, float scanlineScale,
 		int flags) override;
 	void GetCharRGBA(int ch, Point pt, Size sz, unsigned char *rgba, Size &drawSize) override;
-	void GetCharABCWidths( int ch, int &a, int &b, int &c ) override;
+	void GetCharABCWidthsNoCache( int ch, int &a, int &b, int &c ) override;
 	bool HasChar( int ch ) const override;
 
 private:
-	CUtlRBTree<abc_t, int> m_ABCCache;
-
 	char m_szRealFontFile[4096];
 	bool FindFontDataFile(const char *name, int tall, int weight, int flags, char *dataFile, int dataFileChars);
 
@@ -52,7 +45,6 @@ private:
 	stbtt_fontinfo m_fontInfo;
 
 	float scale;
-
 
 	friend class CFontManager;
 };

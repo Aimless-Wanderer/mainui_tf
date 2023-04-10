@@ -13,7 +13,6 @@ but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 */
-#pragma once
 #ifndef MENU_ACTION_H
 #define MENU_ACTION_H
 
@@ -27,7 +26,8 @@ public:
 	CMenuAction();
 
 	void VidInit( void ) override;
-	const char * Key( int key, int down ) override;
+	bool KeyUp( int key ) override;
+	bool KeyDown( int key ) override;
 	void Draw( void ) override;
 
 	void SetBackground( const char *path, unsigned int color = uiColorWhite );
@@ -39,7 +39,7 @@ public:
 private:
 	CColor m_iBackcolor;
 	CColor m_iBackColorFocused;
-	const char *m_szBackground;
+	CImage m_szBackground;
 	bool m_bfillBackground;
 	bool forceCalcW, forceCalcY;
 };

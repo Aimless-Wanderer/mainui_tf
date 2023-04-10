@@ -14,7 +14,6 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 */
 
-#pragma once
 #ifndef MENU_FIELD_H
 #define MENU_FIELD_H
 
@@ -30,7 +29,7 @@ public:
 	CMenuField();
 	void Init( void ) override;
 	void VidInit( void ) override;
-	const char * Key( int key, int down ) override;
+	bool KeyDown( int key ) override;
 	void Draw( void ) override;
 	void Char( int key ) override;
 	void UpdateEditable() override;
@@ -48,7 +47,8 @@ public:
 	{
 		Q_strncpy( szBuffer, buffer, UI_MAX_FIELD_LINE );
 		iCursor = strlen( szBuffer );
-		iScroll = g_FontMgr.CutText( font, szBuffer, m_scChSize, iRealWidth, true );
+		iScroll = g_FontMgr->CutText( font, szBuffer, m_scChSize, iRealWidth, true );
+		SetCvarString( szBuffer );
 	}
 
 	const char *GetBuffer()
@@ -59,8 +59,8 @@ public:
 	bool bAllowColorstrings;
 	bool bHideInput;
 	bool bNumbersOnly;
-	const char	*szBackground;
-	int		iMaxLength;		// can't be more than UI_MAX_FIELD_LINE
+	CImage szBackground;
+	int    iMaxLength;		// can't be more than UI_MAX_FIELD_LINE
 
 protected:
 	void _Event( int ev ) override;

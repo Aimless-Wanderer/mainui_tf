@@ -26,6 +26,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "CheckBox.h"
 #include "Action.h"
 #include "YesNoMessageBox.h"
+#include "SpinControl.h"
+#include "utlvector.h"
 
 #define ART_BANNER		"gfx/shell/head_vidmodes"
 
@@ -50,6 +52,43 @@ private:
 	const char *m_szModes[64];
 };
 
+class CMenuRenderersModel : public CMenuBaseArrayModel
+{
+public:
+	void Update() override
+	{
+		refdll temp;
+
+		for( unsigned int i = 0;
+			EngFuncs::GetRenderers( i, temp.shortName, sizeof( temp.shortName ), temp.readable, sizeof( temp.readable ));
+			i++ )
+		{
+			m_refs.AddToTail( temp );
+		}
+	}
+	int GetRows() const override { return m_refs.Count(); }
+	const char *GetText( int i ) override { return m_refs[i].readable; }
+
+	const char *GetShortName( int i ) { return m_refs[i].shortName; }
+	void Add( const char *str )
+	{
+		refdll temp;
+
+		Q_strncpy( temp.shortName, str, sizeof( temp.shortName ));
+		Q_strncpy( temp.readable, str, sizeof( temp.readable ));
+
+		m_refs.AddToTail( temp );
+	}
+private:
+	struct refdll
+	{
+		char shortName[64];
+		char readable[64];
+	};
+
+	CUtlVector<refdll> m_refs;
+};
+
 class CMenuVidModes : public CMenuFramework
 {
 private:
@@ -58,9 +97,43 @@ private:
 	void Draw(); // put test mode timer here
 public:
 	CMenuVidModes() : CMenuFramework( "CMenuVidModes" ) { testModeTimer = 0; }
+
+	void SetMode( int mode );
+	void SetMode( int w, int h );
 	void SetConfig( );
 	void RevertChanges();
 	void ApplyChanges();
+	void GetRendererConfig()
+	{
+		const char *refdll = EngFuncs::GetCvarString( "r_refdll" );
+
+		if( !refdll[0] )
+		{
+			renderers.SetCurrentValue( 0.0f );
+		}
+
+		int i;
+		for( i = 0; i < renderersModel.GetRows(); i++ )
+		{
+			if( !stricmp( renderersModel.GetShortName( i ), refdll ) )
+			{
+				renderers.SetCurrentValue( i );
+				break;
+			}
+		}
+
+		if( i == renderersModel.GetRows() )
+		{
+			renderersModel.Add( refdll );
+			renderers.SetCurrentValue( i );
+		}
+	}
+
+	void WriteRendererConfig()
+	{
+		int i = renderers.GetCurrentValue();
+		EngFuncs::CvarSetString( "r_refdll", renderersModel.GetShortName( i ));
+	}
 
 	CMenuCheckBox	windowed;
 	CMenuCheckBox	vsync;
@@ -70,11 +143,16 @@ public:
 
 	CMenuYesNoMessageBox testModeMsgBox;
 
+	CMenuRenderersModel renderersModel;
+	CMenuSpinControl renderers;
+
 	int prevMode;
+	int prevModeX;
+	int prevModeY;
 	bool prevFullscreen;
 	float testModeTimer;
 	char testModeMsg[256];
-} uiVidModes;
+};
 
 
 /*
@@ -86,8 +164,8 @@ void CMenuVidModesModel::Update( void )
 {
 	unsigned int i;
 
-	m_szModes[0] = "<Current window size>";
-	m_szModes[1] = "<Desktop size>";
+	m_szModes[0] = L( "<Current window size>" );
+	m_szModes[1] = L( "<Desktop size>" );
 
 	for( i = VID_MODES_POS; i < 64 - VID_MODES_POS; i++ )
 	{
@@ -98,6 +176,26 @@ void CMenuVidModesModel::Update( void )
 	m_iNumModes = i;
 }
 
+void CMenuVidModes::SetMode( int w, int h )
+{
+	// only possible on Xash3D FWGS!
+	char cmd[64];
+	snprintf( cmd, sizeof( cmd ), "vid_setmode %i %i\n", w, h );
+	EngFuncs::ClientCmd( TRUE, cmd );
+}
+
+void CMenuVidModes::SetMode( int mode )
+{
+	char cmd[64];
+
+	// vid_setmode is a new command, which does not depends on 
+	// static resolution list but instead uses dynamic resolution
+	// list provided by video backend
+	snprintf( cmd, sizeof( cmd ), "vid_setmode %i\n", mode );
+
+	EngFuncs::ClientCmd( TRUE, cmd );
+}
+
 /*
 =================
 UI_VidModes_SetConfig
@@ -106,36 +204,29 @@ UI_VidModes_SetConfig
 void CMenuVidModes::SetConfig( )
 {
 	bool testMode = false;
-	if( prevMode != vidList.GetCurrentIndex() - VID_MODES_POS )
+	int  currentModeIndex = vidList.GetCurrentIndex() - VID_MODES_POS;
+	bool isVidModeChanged = prevMode != currentModeIndex;
+	bool isWindowedModeChanged = prevFullscreen != !windowed.bChecked;
+
+	/*
+	checking windowed mode first because it'll be checked next in
+	screen resolution changing code, otherwise when user try to
+	change screen resolution and windowed flag at same time,
+	only resolution will be changed.
+	*/
+	if( isWindowedModeChanged )
 	{
-		char cmd[64];
-
-		// vid_setmode is a new command, which does not depends on 
-		// static resolution list but instead uses dynamic resolution
-		// list provided by video backend
-#ifdef NEW_ENGINE_INTERFACE
-		if( UI_IsXashFWGS() )
-		{
-			snprintf( cmd, sizeof( cmd ), "vid_setmode %i\n", vidList.GetCurrentIndex() - VID_MODES_POS );
-		}
-		else
-#else
-		{
-			snprintf( cmd, sizeof( cmd ), "vid_mode %i\n", vidList.GetCurrentIndex() - VID_MODES_POS );
-		}
-#endif
-		EngFuncs::ClientCmd( TRUE, cmd );
-		
-
-		// have changed resolution, but enable test mode only in fullscreen
+		EngFuncs::CvarSetValue( "fullscreen", !windowed.bChecked );
+		// moved to fullscreen, enable test mode
 		testMode |= !windowed.bChecked;
 	}
 
-	if( prevFullscreen == windowed.bChecked )
+	if( isVidModeChanged )
 	{
-		EngFuncs::CvarSetValue( "fullscreen", !windowed.bChecked );
-
-		// moved to fullscreen, enable test mode
+		SetMode( currentModeIndex );
+		EngFuncs::CvarSetValue( "vid_mode", currentModeIndex );
+		vidList.SetCurrentIndex( currentModeIndex + VID_MODES_POS );
+		// have changed resolution, but enable test mode only in fullscreen
 		testMode |= !windowed.bChecked;
 	}
 
@@ -148,7 +239,6 @@ void CMenuVidModes::SetConfig( )
 	}
 	else
 	{
-		// We're done now, just close
 		Hide();
 	}
 }
@@ -157,12 +247,29 @@ void CMenuVidModes::ApplyChanges()
 {
 	prevMode = EngFuncs::GetCvarFloat( "vid_mode" );
 	prevFullscreen = EngFuncs::GetCvarFloat( "fullscreen" );
+	prevModeX = EngFuncs::GetCvarFloat( "width" );
+	prevModeY = EngFuncs::GetCvarFloat( "height" );
 }
 
 void CMenuVidModes::RevertChanges()
 {
-	EngFuncs::CvarSetValue( "vid_mode", prevMode );
-	EngFuncs::CvarSetValue( "fullscreen", prevFullscreen );
+	bool fullscreenChanged = false;
+
+	// if we switched FROM fullscreen TO windowed, then we must get rid of fullscreen mode
+	// so we can easily change the window size, without jerking display mode
+	if( prevFullscreen == false && EngFuncs::GetCvarFloat( "fullscreen" ) != 0.0f )
+	{
+		EngFuncs::CvarSetValue( "fullscreen", prevFullscreen );
+		fullscreenChanged = true;
+	}
+
+	SetMode( prevModeX, prevModeY );
+
+	// otherwise, we better to set window size at first, then switch TO fullscreen
+	if( !fullscreenChanged )
+	{
+		EngFuncs::CvarSetValue( "fullscreen", prevFullscreen );
+	}
 }
 
 void CMenuVidModes::Draw()
@@ -171,7 +278,7 @@ void CMenuVidModes::Draw()
 	{
 		if( testModeTimer - gpGlobals->time > 0 )
 		{
-			snprintf( testModeMsg, sizeof( testModeMsg ) - 1, "Keep this resolution? %i seconds remaining", (int)(testModeTimer - gpGlobals->time) );
+			snprintf( testModeMsg, sizeof( testModeMsg ) - 1, L( "Keep this resolution? %i seconds remaining" ), (int)(testModeTimer - gpGlobals->time) );
 			testModeMsg[sizeof(testModeMsg)-1] = 0;
 		}
 		else
@@ -193,39 +300,53 @@ void CMenuVidModes::_Init( void )
 	banner.SetPicture(ART_BANNER);
 
 	vidList.SetRect( 360, 230, -20, 365 );
-	vidList.SetupColumn( 0, MenuStrings[IDS_VIDEO_MODECOL], 1.0f );
+	vidList.SetupColumn( 0, L( "GameUI_Resolution" ), 1.0f );
 	vidList.SetModel( &vidListModel );
 
-	windowed.SetNameAndStatus( "Run in a window", "Run game in window mode" );
+	windowed.SetNameAndStatus( L( "GameUI_Windowed" ), L( "GameUI_Windowed" ) );
 	windowed.SetCoord( 360, 620 );
 	SET_EVENT_MULTI( windowed.onChanged,
 	{
-		if( !uiVidModes.windowed.bChecked && uiVidModes.vidList.GetCurrentIndex() < VID_AUTOMODE_POS )
-			uiVidModes.vidList.SetCurrentIndex( VID_AUTOMODE_POS );
+		CMenuVidModes *parent = pSelf->GetParent(CMenuVidModes);
+		if( !parent->windowed.bChecked && parent->vidList.GetCurrentIndex() < VID_AUTOMODE_POS )
+			parent->vidList.SetCurrentIndex( VID_AUTOMODE_POS );
 	});
 
 	SET_EVENT_MULTI( vidList.onChanged,
 	{
-		if( !uiVidModes.windowed.bChecked && uiVidModes.vidList.GetCurrentIndex() < VID_AUTOMODE_POS )
-			uiVidModes.vidList.SetCurrentIndex( VID_AUTOMODE_POS );
+		CMenuVidModes *parent = pSelf->GetParent(CMenuVidModes);
+		if( !parent->windowed.bChecked && parent->vidList.GetCurrentIndex() < VID_AUTOMODE_POS )
+			parent->vidList.SetCurrentIndex( VID_AUTOMODE_POS );
 	});
 
-	vsync.SetNameAndStatus( "Vertical sync", "Enable vertical synchronization" );
+	vsync.SetNameAndStatus( L( "GameUI_VSync" ), L( "GameUI_VSync" ) );
 	vsync.SetCoord( 360, 670 );
-	vsync.LinkCvar( "gl_swapInterval" );
+	vsync.LinkCvar( "gl_vsync" );
 
 	testModeMsgBox.SetMessage( testModeMsg );
 	testModeMsgBox.onPositive = VoidCb( &CMenuVidModes::ApplyChanges );
 	testModeMsgBox.onNegative = VoidCb( &CMenuVidModes::RevertChanges );
 	testModeMsgBox.Link( this );
 
+	renderersModel.Update();
+	renderers.szName = L( "GameUI_Renderer" );
+	renderers.Setup( &renderersModel );
+	renderers.SetRect( 80, 480, 250, 32 );
+	renderers.SetCharSize( QM_SMALLFONT );
+	renderers.onCvarGet = VoidCb( &CMenuVidModes::GetRendererConfig );
+	renderers.onCvarWrite = VoidCb( &CMenuVidModes::WriteRendererConfig );
+	renderers.bUpdateImmediately = true;
+
 	AddItem( background );
 	AddItem( banner );
-	AddButton( "Apply", "Apply changes", PC_OK, VoidCb( &CMenuVidModes::SetConfig ) );
-	AddButton( "Cancel", "Return back to previous menu", PC_CANCEL, VoidCb( &CMenuVidModes::Hide ) );
+	AddButton( L( "GameUI_Apply" ), L( "Apply changes" ), PC_OK, VoidCb( &CMenuVidModes::SetConfig ) );
+	AddButton( L( "GameUI_Cancel" ), L( "Return back to previous menu" ), PC_CANCEL, VoidCb( &CMenuVidModes::Hide ) );
+	AddItem( renderers );
 	AddItem( windowed );
 	AddItem( vsync );
 	AddItem( vidList );
+
+	renderers.LinkCvar( "r_refdll", CMenuEditable::CVAR_STRING );
 }
 
 void CMenuVidModes::_VidInit()
@@ -233,31 +354,10 @@ void CMenuVidModes::_VidInit()
 	// don't overwrite prev values
 	if( !testModeMsgBox.IsVisible() )
 	{
-		prevMode = EngFuncs::GetCvarFloat( "vid_mode" );
+		ApplyChanges( );
 		vidList.SetCurrentIndex( prevMode + VID_MODES_POS );
-
-		prevFullscreen = EngFuncs::GetCvarFloat( "fullscreen" );
 		windowed.bChecked = !prevFullscreen;
 	}
 }
 
-/*
-=================
-UI_VidModes_Precache
-=================
-*/
-void UI_VidModes_Precache( void )
-{
-	EngFuncs::PIC_Load( ART_BANNER );
-}
-
-/*
-=================
-UI_VidModes_Menu
-=================
-*/
-void UI_VidModes_Menu( void )
-{
-	uiVidModes.Show();
-}
-ADD_MENU( menu_vidmodes, UI_VidModes_Precache, UI_VidModes_Menu );
+ADD_MENU( menu_vidmodes, CMenuVidModes, UI_VidModes_Menu );

@@ -1,4 +1,5 @@
 /*
+ui_menu.c -- main menu interface
 Copyright (C) 1997-2001 Id Software, Inc.
 Copyright (C) 2017 a1batross
 
@@ -18,11 +19,6 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
-
-
-// ui_menu.c -- main menu interface
-#define OEMRESOURCE		// for OCR_* cursor junk
-
 #include "extdll_menu.h"
 #include "BaseMenu.h"
 #include "PicButton.h"
@@ -30,10 +26,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "Utils.h"
 #include "BtnsBMPTable.h"
 #include "YesNoMessageBox.h"
-#include "ConnectionProgress.h"
-#include "ConnectionWarning.h"
 #include "BackgroundBitmap.h"
-#include "con_nprint.h"
 #include "FontManager.h"
 #ifdef CS16CLIENT
 #include "Scoreboard.h"
@@ -42,27 +35,32 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 cvar_t		*ui_showmodels;
 cvar_t		*ui_show_window_stack;
 cvar_t		*ui_borderclip;
+cvar_t		*ui_language;
 
 uiStatic_t	uiStatic;
 static CMenuEntry	*s_pEntries = NULL;
 
+const char	*uiSoundOldPrefix	= "media/";
+const char	*uiSoundNewPrefix	= "sound/common/";
+const char	*uiSounds[] = {
 #ifdef CS16CLIENT
-const char	*uiSoundIn			= "";
-const char	*uiSoundOut         = "";
-const char	*uiSoundLaunch      = "sound/UI/buttonclickrelease.wav";
-const char	*uiSoundRollOver	= "sound/UI/buttonrollover.wav";
+	"",
+	"",
+	"sound/UI/buttonclickrelease.wav",
+	"sound/UI/buttonrollover.wav",
 #else
-const char	*uiSoundIn			= "media/launch_upmenu1.wav";
-const char	*uiSoundOut			= "media/launch_dnmenu1.wav";
-const char	*uiSoundLaunch		= "media/launch_select2.wav";
-const char	*uiSoundRollOver	= "";
+	"media/launch_upmenu1.wav",
+	"media/launch_dnmenu1.wav",
+	"media/launch_select2.wav",
+	"",
 #endif
-const char	*uiSoundGlow        = "media/launch_glow1.wav";
-const char	*uiSoundBuzz        = "media/launch_deny2.wav";
-const char	*uiSoundKey         = "media/launch_select1.wav";
-const char	*uiSoundRemoveKey   = "media/launch_deny1.wav";
-const char	*uiSoundMove        = "";		// Xash3D not use movesound
-const char	*uiSoundNull        = "";
+	"media/launch_glow1.wav",
+	"media/launch_deny2.wav",
+	"media/launch_select1.wav",
+	"media/launch_deny1.wav",
+	"",
+	""
+};
 
 // they match default WON colors.lst now, except alpha
 unsigned int		uiColorHelp         = 0xFF7F7F7F;	// 127, 127, 127, 255	// hint letters color
@@ -90,15 +88,11 @@ const unsigned int g_iColorTable[8] =
 0xFFFFFFFF, // white
 };
 
-bool UI_IsXashFWGS( void )
-{
-	return uiStatic.isForkedEngine;
-}
-
-CMenuEntry::CMenuEntry(const char *cmd, void (*pfnPrecache)(), void (*pfnShow)()) :
+CMenuEntry::CMenuEntry(const char *cmd, void (*pfnPrecache)(), void (*pfnShow)(), void (*pfnShutdown)() ) :
 	m_szCommand( cmd ),
 	m_pfnPrecache( pfnPrecache ),
 	m_pfnShow( pfnShow ),
+	m_pfnShutdown( pfnShutdown ),
 	m_pNext( s_pEntries )
 {
 	s_pEntries = this;
@@ -181,9 +175,9 @@ void UI_DisableAlphaFactor()
 UI_DrawPic
 =================
 */
-void UI_DrawPic( int x, int y, int width, int height, const unsigned int color, const char *pic, const ERenderMode eRenderMode )
+void UI_DrawPic( int x, int y, int width, int height, const unsigned int color, CImage &pic, const ERenderMode eRenderMode )
 {
-	HIMAGE hPic = EngFuncs::PIC_Load( pic );
+	HIMAGE hPic = pic.Handle();
 
 	if( !hPic )
 		return;
@@ -321,7 +315,7 @@ int UI_DrawString( HFont font, int x, int y, int w, int h,
 	}
 
 	int i = 0;
-	int ellipsisWide = g_FontMgr.GetEllipsisWide( font );
+	int ellipsisWide = g_FontMgr->GetEllipsisWide( font );
 	bool giveup = false;
 
 	while( string[i] && !giveup )
@@ -382,7 +376,7 @@ int UI_DrawString( HFont font, int x, int y, int w, int h,
 					}
 				}
 
-				charWide = g_FontMgr.GetCharacterWidthScaled( font, uch, charH );
+				charWide = g_FontMgr->GetCharacterWidthScaled( font, uch, charH );
 
 				if( !(flags & ETF_NOSIZELIMIT) && pixelWide + charWide > w )
 				{
@@ -479,18 +473,18 @@ int UI_DrawString( HFont font, int x, int y, int w, int h,
 				continue;
 
 			if( flags & ETF_SHADOW )
-				g_FontMgr.DrawCharacter( font, ch, Point( xx + ofsX, yy + ofsY ), charH, shadowModulate, flags & ETF_ADDITIVE );
+				g_FontMgr->DrawCharacter( font, ch, Point( xx + ofsX, yy + ofsY ), charH, shadowModulate, flags & ETF_ADDITIVE );
 
 #ifdef DEBUG_WHITESPACE
 			if( ch == ' ' )
 			{
-				g_FontMgr.DrawCharacter( font, '_', Point( xx, yy ), charH, modulate, flags & ETF_ADDITIVE );
-				xx += g_FontMgr.GetCharacterWidthScaled( font, ch, charH );
+				g_FontMgr->DrawCharacter( font, '_', Point( xx, yy ), charH, modulate, flags & ETF_ADDITIVE );
+				xx += g_FontMgr->GetCharacterWidthScaled( font, ch, charH );
 				continue;
 			}
 #endif
 
-			xx += g_FontMgr.DrawCharacter( font, ch, Point( xx, yy ), charH, modulate, flags & ETF_ADDITIVE );
+			xx += g_FontMgr->DrawCharacter( font, ch, Point( xx, yy ), charH, modulate, flags & ETF_ADDITIVE );
 
 			maxX = Q_max( xx, maxX );
 		}
@@ -504,26 +498,22 @@ int UI_DrawString( HFont font, int x, int y, int w, int h,
 	return maxX;
 }
 
-#ifdef _WIN32
-#include <windows.h> // DrawMouseCursor
-#endif
-
 /*
 =================
 UI_DrawMouseCursor
 =================
 */
 void UI_DrawMouseCursor( void )
-{	
-#ifdef _WIN32
+{
+#if 0 // a1ba: disable until we will manage to provide an API for crossplatform cursor replacing
 	CMenuBaseItem	*item;
 	HICON		hCursor = NULL;
 	int		i;
 
 	if( uiStatic.hideCursor || UI_IsXashFWGS() ) return;
 
-	int cursor = uiStatic.menu.menuActive->GetCursor();
-	item = uiStatic.menu.menuActive->m_pItems[cursor];
+	int cursor = uiStatic.menu.Current()->GetCursor();
+	item = uiStatic.menu.Current()->GetItemByIndex(cursor);
 
 	if( item->iFlags & QMF_HASMOUSEFOCUS ) 	// fast approach
 	{
@@ -534,9 +524,9 @@ void UI_DrawMouseCursor( void )
 	}
 	else
 	{
-		for( i = 0; i < uiStatic.menu.menuActive->m_numItems; i++ )
+		FOR_EACH_VEC( uiStatic.menu.Current()->m_pItems, i )
 		{
-			item = (CMenuBaseItem *)uiStatic.menu.menuActive->m_pItems[i];
+			item = (CMenuBaseItem *)uiStatic.menu.Current()->GetItemByIndex(cursor);
 
 			if ( !item->IsVisible() )
 				continue;
@@ -556,19 +546,7 @@ void UI_DrawMouseCursor( void )
 		hCursor = (HICON)LoadCursor( NULL, (LPCTSTR)OCR_NORMAL );
 
 	EngFuncs::SetCursor( hCursor );
-#else // _WIN32
-	// TODO: Unified LoadCursor interface extension
-#endif // _WIN32
-}
-
-const char *COM_ExtractExtension( const char *s )
-{
-	int len = strlen( s );
-
-	for( int i = len; i >= 0; i-- )
-		if( s[i] == '.' )
-			return s + i + 1;
-	return s;
+#endif
 }
 
 // =====================================================================
@@ -611,8 +589,7 @@ UI_CloseMenu
 */
 void UI_CloseMenu( void )
 {
-	uiStatic.menu.Close();
-	CMenuPicButton::ClearButtonStack();
+	uiStatic.menu.Clean();
 
 //	EngFuncs::KEY_ClearStates ();
 	if( !uiStatic.client.IsActive() )
@@ -621,78 +598,6 @@ void UI_CloseMenu( void )
 
 // =====================================================================
 
-void windowStack_t::Update( )
-{
-	if( !IsActive() )
-		return;
-
-	// find last root element
-	int i;
-	for( i = rootPosition ; i < menuDepth; i++ )
-	{
-		CMenuBaseWindow *window = menuStack[i];
-
-		if( window->bInTransition )
-		{
-			window->eTransitionType = CMenuBaseWindow::ANIM_IN;
-			if( window->DrawAnimation( window->eTransitionType ) )
-				window->bInTransition = false;
-		}
-
-		// transition is ended, so just draw
-		if( !window->bInTransition )
-		{
-			window->Draw();
-		}
-	}
-
-	if( prevMenu && prevMenu->bInTransition )
-	{
-		prevMenu->eTransitionType = CMenuBaseWindow::ANIM_OUT;
-		if( prevMenu->DrawAnimation( prevMenu->eTransitionType ) )
-		{
-			prevMenu->bInTransition = false;
-		}
-	}
-
-	con_nprint_t con;
-	con.time_to_live = 0.1f;
-
-	if( ui_show_window_stack && ui_show_window_stack->value )
-	{
-		for( int i = 0; i < menuDepth; i++ )
-		{
-			con.index++;
-			if( menuActive == menuStack[i] )
-			{
-				con.color[0] = 0.0f;
-				con.color[1] = 1.0f;
-				con.color[2] = 0.0f;
-			}
-			else
-			{
-				con.color[0] = con.color[1] = con.color[2] = 1.0f;
-			}
-
-
-			if( menuStack[i]->IsRoot() )
-			{
-				if( rootActive == menuStack[i] &&
-					rootActive != menuActive )
-				{
-					con.color[0] = 1.0f;
-					con.color[1] = 1.0f;
-					con.color[2] = 0.0f;
-				}
-				Con_NXPrintf( &con, "%p - %s\n", menuStack[i], menuStack[i]->szName );
-			}
-			else
-			{
-				Con_NXPrintf( &con, "     %p - %s\n", menuStack[i], menuStack[i]->szName );
-			}
-		}
-	}
-}
 
 /*
 =================
@@ -704,7 +609,28 @@ void UI_UpdateMenu( float flTime )
 	if( !uiStatic.initialized )
 		return;
 
+	static bool loadStuff = true;
+
+	if( loadStuff )
+	{
+		// load localized strings
+		UI_LoadCustomStrings();
+
+		// load scr
+		UI_LoadScriptConfig();
+
+		loadStuff = false;
+	}
+
 	UI_DrawFinalCredits ();
+
+	if( uiStatic.nextFrameActive )
+	{
+		if( !uiStatic.menu.IsActive() )
+			UI_Main_Menu();
+
+		uiStatic.nextFrameActive = false;
+	}
 
 	// let's use engine credits "feature" for drawing client windows
 	if( uiStatic.client.IsActive() )
@@ -735,8 +661,6 @@ void UI_UpdateMenu( float flTime )
 		// we loading background so skip SCR_Update
 		if( UI_StartBackGroundMap( )) return;
 
-		uiStatic.menu.menuActive->Activate();
-
 		uiStatic.firstDraw = false;
 		static int first = TRUE;
                     
@@ -756,37 +680,11 @@ void UI_UpdateMenu( float flTime )
 	// drawn, to avoid delay while caching images
 	if( uiStatic.enterSound > 0.0f && uiStatic.enterSound <= gpGlobals->time )
 	{
-		EngFuncs::PlayLocalSound( uiSoundIn );
+		EngFuncs::PlayLocalSound( uiStatic.sounds[SND_IN] );
 		uiStatic.enterSound = -1;
 	}
 
 	uiStatic.menu.Update();
-}
-
-void windowStack_t::KeyEvent( int key, int down )
-{
-	const char	*sound = NULL;
-
-	if( !IsActive() )
-		return;
-
-	if( key == K_MOUSE1 )
-	{
-		g_bCursorDown = !!down;
-	}
-
-	// go down on stack to nearest root or dialog
-	int rootPos = rootPosition;
-	for( int i = menuDepth-1; i >= rootPos; i-- )
-	{
-		sound = menuStack[i]->Key( key, down );
-
-		if( !down && sound && sound != uiSoundNull )
-			EngFuncs::PlayLocalSound( sound );
-
-		if( menuStack[i]->iFlags & QMF_DIALOG )
-			break;
-	}
 }
 
 /*
@@ -801,29 +699,21 @@ void UI_KeyEvent( int key, int down )
 	if( !uiStatic.initialized )
 		return;
 
+	if( key == K_MOUSE1 )
+	{
+		g_bCursorDown = !!down;
+	}
+
 	clientActive = uiStatic.client.IsActive();
 	menuActive = uiStatic.menu.IsActive();
 
 	if( clientActive && !menuActive )
-		uiStatic.client.KeyEvent( key, down );
+		down ? uiStatic.client.KeyDownEvent( key ) :
+			uiStatic.client.KeyUpEvent( key );
 
 	if( menuActive )
-		uiStatic.menu.KeyEvent( key, down );
-}
-
-void windowStack_t::CharEvent( int key )
-{
-	if( !menuActive )
-		return;
-
-	int rootPos = rootPosition;
-	for( int i = menuDepth-1; i >= rootPos; i-- )
-	{
-		menuStack[i]->Char( key );
-
-		if( menuStack[i]->iFlags & QMF_DIALOG )
-			break;
-	}
+		down ? uiStatic.menu.KeyDownEvent( key ) :
+			uiStatic.menu.KeyUpEvent( key );
 }
 
 /*
@@ -845,23 +735,6 @@ void UI_CharEvent( int key )
 	if( menuActive )
 		uiStatic.menu.CharEvent( key );
 }
-
-void windowStack_t::MouseEvent( int x, int y )
-{
-	int		i;
-
-	// go down on stack to nearest root or dialog
-	int rootPos = rootPosition;
-	for( i = menuDepth-1; i >= rootPos; i-- )
-	{
-		menuStack[i]->MouseMove( x, y );
-
-		if( menuStack[i]->iFlags & QMF_DIALOG )
-			break;
-	}
-
-}
-
 
 bool g_bCursorDown;
 float cursorDY;
@@ -890,11 +763,16 @@ void UI_MouseMove( int x, int y )
 	if( g_bCursorDown )
 	{
 		static bool prevDown = false;
-		if(!prevDown)
-			prevDown = true, cursorDY = 0;
-		else
-			if( y - uiStatic.cursorY )
-				cursorDY += y - uiStatic.cursorY;
+
+		if( !prevDown )
+		{
+			prevDown = true;
+			cursorDY = 0;
+		}
+		else if( y - uiStatic.cursorY )
+		{
+			cursorDY += y - uiStatic.cursorY;
+		}
 	}
 	else
 		cursorDY = 0;
@@ -937,66 +815,13 @@ void UI_SetActiveMenu( int fActive )
 	if( fActive )
 	{
 		EngFuncs::KEY_SetDest( KEY_MENU );
-		UI_Main_Menu();
+		uiStatic.nextFrameActive = true; // main menu open moved to UI_UpdateMenu
 	}
 	else
 	{
 		UI_CloseMenu();
 	}
 }
-
-#if defined _WIN32
-#include <windows.h>
-#include <winbase.h>
-/*
-================
-Sys_DoubleTime
-================
-*/
-double Sys_DoubleTime( void )
-{
-	static LARGE_INTEGER g_PerformanceFrequency;
-	static LARGE_INTEGER g_ClockStart;
-	LARGE_INTEGER CurrentTime;
-
-	if( !g_PerformanceFrequency.QuadPart )
-	{
-		QueryPerformanceFrequency( &g_PerformanceFrequency );
-		QueryPerformanceCounter( &g_ClockStart );
-	}
-
-	QueryPerformanceCounter( &CurrentTime );
-	return (double)( CurrentTime.QuadPart - g_ClockStart.QuadPart ) / (double)( g_PerformanceFrequency.QuadPart );
-}
-#elif defined __APPLE__
-typedef unsigned long long longtime_t;
-#include <sys/time.h>
-/*
-================
-Sys_DoubleTime
-================
-*/
-double Sys_DoubleTime( void )
-{
-	struct timeval tv;
-	gettimeofday(&tv, NULL);
-	return (double) tv.tv_sec + (double) tv.tv_usec/1000000.0;
-}
-#else
-typedef unsigned long long longtime_t;
-#include <time.h>
-/*
-================
-Sys_DoubleTime
-================
-*/
-double Sys_DoubleTime( void )
-{
-	struct timespec ts;
-	clock_gettime(CLOCK_MONOTONIC, &ts);
-	return (double) ts.tv_sec + (double) ts.tv_nsec/1000000000.0;
-}
-#endif
 
 /*
 =================
@@ -1070,7 +895,7 @@ void UI_ParseColor( char *&pfile, unsigned int *outColor )
 
 	for( int i = 0; i < 3; i++ )
 	{
-		pfile = EngFuncs::COM_ParseFile( pfile, token );
+		pfile = EngFuncs::COM_ParseFile( pfile, token, sizeof( token ));
 		if( !pfile ) break;
 		color[i] = atoi( token );
 	}
@@ -1091,7 +916,7 @@ void UI_ApplyCustomColors( void )
 		return;
 	}
 
-	while(( pfile = EngFuncs::COM_ParseFile( pfile, token )) != NULL )
+	while(( pfile = EngFuncs::COM_ParseFile( pfile, token, sizeof( token ))) != NULL )
 	{
 		if( !stricmp( token, "HELP_COLOR" ))
 		{
@@ -1152,7 +977,7 @@ static void UI_LoadBackgroundMapList( void )
 		return;
 	}
 
-	while(( pfile = EngFuncs::COM_ParseFile( pfile, token )) != NULL )
+	while(( pfile = EngFuncs::COM_ParseFile( pfile, token, sizeof( token ))) != NULL )
 	{
 		// skip the numbers (old format list)
 		if( isdigit( token[0] )) continue;
@@ -1165,49 +990,27 @@ static void UI_LoadBackgroundMapList( void )
 	EngFuncs::COM_FreeFile( afile );
 }
 
-void windowStack_t::InputMethodResized( void )
+static void UI_LoadSounds( void )
 {
-	if( menuActive && menuActive->ItemAtCursor() )
-		menuActive->ItemAtCursor()->_Event( QM_IMRESIZED );
-}
+	memset( uiStatic.sounds, 0, sizeof( uiStatic.sounds ) );
 
-void windowStack_t::VidInit( bool calledOnce )
-{
-	// now recalc all the menus in stack
-	for( int i = 0; i < menuDepth; i++ )
+	if ( uiStatic.lowmemory )
+		return;
+
+	for ( int i = 0; i < SND_COUNT; i++ )
 	{
-		CMenuBaseWindow *item = menuStack[i];
+		if ( !uiSounds[i] || *uiSounds[i] == '\0' )
+			continue;
 
-		if( item )
+		if ( !EngFuncs::FileExists( uiSounds[i] ) )
 		{
-			int cursor, cursorPrev;
-			bool valid = false;
+			size_t len = strlen( uiSoundOldPrefix );
 
-			// HACKHACK: Save cursor values when VidInit is called once
-			// this don't let menu "forget" actual cursor values after, for example, window resizing
-			if( calledOnce
-				&& item->GetCursor() > 0 // ignore 0, because useless
-				&& item->GetCursor() < item->ItemCount()
-				&& item->GetCursorPrev() > 0
-				&& item->GetCursorPrev() < item->ItemCount() )
-			{
-				valid = true;
-				cursor = item->GetCursor();
-				cursorPrev = item->GetCursorPrev();
-			}
-
-			// do vid restart for all pushed elements
-			item->VidInit();
-
-			item->Reload();
-
-			if( valid )
-			{
-				// don't notify menu widget about cursor changes
-				item->SetCursor( cursorPrev, false );
-				item->SetCursor( cursor, false );
-			}
+			if ( !strncmp( uiSounds[i], uiSoundOldPrefix, len ) )
+				snprintf( uiStatic.sounds[i], sizeof( uiStatic.sounds[i] ), "%s%s", uiSoundNewPrefix, uiSounds[i] + len );
 		}
+		else
+			Q_strncpy( uiStatic.sounds[i], uiSounds[i], sizeof( uiStatic.sounds[i] ) );
 	}
 }
 
@@ -1218,20 +1021,20 @@ UI_VidInit
 */
 int UI_VidInit( void )
 {
-	static bool calledOnce = true;
+	static bool calledOnce = false;
 	if( uiStatic.textInput )
 	{
 		uiStatic.menu.InputMethodResized();
 		
 		return 0;
 	}
-	UI_Precache ();
+	if(!calledOnce) UI_Precache();
 	// don't allow screenwidth is slower than 4:3 screens
 	// it's really not intended to use, just for keeping menu working
 	if (ScreenWidth * 3 < ScreenHeight * 4)
 	{
 		uiStatic.scaleX = uiStatic.scaleY = ScreenWidth / 1024.0f;
-		uiStatic.yOffset = ( ScreenHeight / 2.0 ) / uiStatic.scaleX - 768 / 2;
+		uiStatic.yOffset = ( ScreenHeight / 2.0f ) / uiStatic.scaleX - 768.0f / 2.0f;
 	}
 	else
 	{
@@ -1248,11 +1051,9 @@ int UI_VidInit( void )
 	uiStatic.outlineWidth = 4;
 
 	// all menu buttons have the same view sizes
-	uiStatic.buttons_draw_width = UI_BUTTONS_WIDTH;
-	uiStatic.buttons_draw_height = UI_BUTTONS_HEIGHT;
+	uiStatic.buttons_draw_size = Size( UI_BUTTONS_WIDTH, UI_BUTTONS_HEIGHT ).Scale();
 
 	UI_ScaleCoords( NULL, NULL, &uiStatic.outlineWidth, NULL );
-	UI_ScaleCoords( NULL, NULL, &uiStatic.buttons_draw_width, &uiStatic.buttons_draw_height );
 
 	// trying to load chapterbackgrounds.txt
 	UI_LoadBackgroundMapList ();
@@ -1263,7 +1064,10 @@ int UI_VidInit( void )
 	UI_LoadBmpButtons ();
 
 	// VidInit FontManager
-	g_FontMgr.VidInit();
+	g_FontMgr->VidInit();
+
+	// load button sounds
+	UI_LoadSounds();
 
 	uiStatic.menu.VidInit( calledOnce );
 
@@ -1272,56 +1076,57 @@ int UI_VidInit( void )
 	return 1;
 }
 
-#undef ShellExecute //  "thanks", windows.h!
 void UI_OpenUpdatePage( bool engine, bool preferstore )
 {
-	const char *updateUrl;
+	const char *updateUrl = NULL;
 
 	if( engine || !gMenu.m_gameinfo.update_url[0] )
 	{
-#ifndef XASH_DISABLE_FWGS_EXTENSIONS
 		if( preferstore )
-			updateUrl = "PlatformUpdatePage";
+			updateUrl = PLATFORM_UPDATE_PAGE;
 		else
-			updateUrl = "GenericUpdatePage";
-#else
-		// TODO: Replace by macro for mainui_cpp modders?
-		updateUrl = "https://github.com/FWGS/xash3d/releases/latest";
-#endif
+			updateUrl = GENERIC_UPDATE_PAGE;
 	}
 	else
 	{
 		updateUrl = gMenu.m_gameinfo.update_url;
 	}
 
-	EngFuncs::ShellExecute( updateUrl, NULL, TRUE );
+	if( updateUrl )
+		EngFuncs::ShellExecute( updateUrl, NULL, TRUE );
 }
 
-static void UI_UpdateDialog_f( void )
+void UI_UpdateDialog( int preferStore )
 {
 	static CMenuYesNoMessageBox msgBox;
 	static bool ignore = false;
-	static bool preferStore;
+	static bool staticPreferStore;
 
 	if( ignore )
 		return;
 
-	if( !strcmp( EngFuncs::CmdArgv( 1 ), "nostore" ))
-		preferStore = false;
-	else
-		preferStore = true;
+	staticPreferStore = preferStore != 0;
 
 	msgBox.SetMessage( "A new update is available.\nPress Update to open download page." );
 	msgBox.SetPositiveButton( "Update", PC_UPDATE );
 	msgBox.SetNegativeButton( "Later", PC_CANCEL );
 
 	SET_EVENT( msgBox.onPositive, UI_OpenUpdatePage( true, *(bool*)pExtra ) );
-	msgBox.onPositive.pExtra = &preferStore;
+	msgBox.onPositive.pExtra = &staticPreferStore;
 
 	SET_EVENT( msgBox.onNegative, *(bool*)pExtra = true ); // set ignore
 	msgBox.onNegative.pExtra = &ignore;
 
 	msgBox.Show();
+
+}
+
+static void UI_UpdateDialog_f( void )
+{
+	if( !strcmp( EngFuncs::CmdArgv( 1 ), "nostore" ))
+		UI_UpdateDialog( false );
+	else
+		UI_UpdateDialog( true );
 }
 
 ADD_COMMAND( menu_updatedialog, UI_UpdateDialog_f );
@@ -1337,6 +1142,8 @@ void UI_Init( void )
 	ui_showmodels = EngFuncs::CvarRegister( "ui_showmodels", "0", FCVAR_ARCHIVE );
 	ui_show_window_stack = EngFuncs::CvarRegister( "ui_show_window_stack", "0", FCVAR_ARCHIVE );
 	ui_borderclip = EngFuncs::CvarRegister( "ui_borderclip", "0", FCVAR_ARCHIVE );
+	ui_language = EngFuncs::CvarRegister( "ui_language", "english", FCVAR_ARCHIVE );
+
 #ifdef CS16CLIENT
 	// autofill ammo after bought weapon
 	EngFuncs::CvarRegister( "ui_cs_autofill", "0", FCVAR_ARCHIVE );
@@ -1353,30 +1160,18 @@ void UI_Init( void )
 		}
 	}
 
-	// EngFuncs::Cmd_AddCommand( "menu_zoo", UI_Zoo_Menu );
-	EngFuncs::CreateMapsList( TRUE );
+	g_FontMgr = new CFontManager();
 
 	uiStatic.initialized = true;
-
-	// can be hijacked, but please, don't do it
-	const char *version = EngFuncs::GetCvarString( "host_ver" );
-
-	uiStatic.isForkedEngine = version && version[0];
+	uiStatic.lowmemory = (int)EngFuncs::GetCvarFloat( "host_lowmemorymode" );
 
 	// setup game info
 	EngFuncs::GetGameInfo( &gMenu.m_gameinfo );
 
-	// load custom strings
-	UI_LoadCustomStrings();
-
-	// load scr
-	UI_LoadScriptConfig();
+	uiStatic.renderPicbuttonText = gMenu.m_gameinfo.flags & GFL_RENDER_PICBUTTON_TEXT;
 
 	// trying to load colors.lst
 	UI_ApplyCustomColors ();
-
-	//CR
-	CMenuPicButton::ClearButtonStack();
 }
 
 /*
@@ -1395,7 +1190,16 @@ void UI_Shutdown( void )
 		{
 			EngFuncs::Cmd_RemoveCommand( entry->m_szCommand );
 		}
+
+		if( entry->m_pfnShutdown )
+		{
+			entry->m_pfnShutdown();
+		}
 	}
+
+	UI_FreeCustomStrings();
+
+	delete g_FontMgr;
 
 	memset( &uiStatic, 0, sizeof( uiStatic_t ));
 }

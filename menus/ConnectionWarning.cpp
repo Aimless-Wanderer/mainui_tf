@@ -1,12 +1,11 @@
 #include "BaseWindow.h"
 #include "CheckBox.h"
-#include "ConnectionWarning.h"
 #include "PicButton.h"
 #include "Action.h"
 
 enum EPresets { EPRESET_NORMAL = 0, EPRESET_DSL, EPRESET_SLOW, EPRESET_LAST };
 
-static class CMenuConnectionWarning : public CMenuBaseWindow
+class CMenuConnectionWarning : public CMenuBaseWindow
 {
 public:
 	CMenuConnectionWarning() : CMenuBaseWindow( "ConnectionWarning" )
@@ -15,7 +14,7 @@ public:
 	}
 	void _Init() override;
 	void _VidInit() override;
-	const char *Key( int key, int down ) override;
+	bool KeyDown( int key ) override;
 
 	void WriteSettings(const EPresets preset );
 
@@ -24,16 +23,16 @@ private:
 	CMenuPicButton options;
 	CMenuCheckBox normal, dsl, slowest;
 	CMenuAction title, message;
-} uiConnectionWarning;
+};
 
-const char *CMenuConnectionWarning::Key( int key, int down )
+bool CMenuConnectionWarning::KeyDown( int key )
 {
-	if( down && UI::Key::IsEscape( key ) )
+	if( UI::Key::IsEscape( key ) )
 	{
-		return uiSoundNull; // handled
+		return true; // handled
 	}
 
-	return CMenuBaseWindow::Key( key, down );
+	return CMenuBaseWindow::KeyDown( key );
 }
 
 void CMenuConnectionWarning::_Init()
@@ -43,45 +42,46 @@ void CMenuConnectionWarning::_Init()
 	background.bForceColor = true;
 	background.colorBase = uiPromptBgColor;
 
-	normal.szName = "Normal internet connection";
+	normal.szName = L( "Normal internet connection" );
 	normal.SetCoord( 20, 140 );
 	SET_EVENT( normal.onChanged,
 		((CMenuConnectionWarning*)pSelf->Parent())->WriteSettings( EPRESET_NORMAL ) );
 
-	dsl.szName = "DSL or PPTP with limited packet size";
+	dsl.szName = L( "DSL or PPTP with limited packet size" );
 	dsl.SetCoord( 20, 200 );
 	SET_EVENT( dsl.onChanged,
 		((CMenuConnectionWarning*)pSelf->Parent())->WriteSettings( EPRESET_DSL ) );
 
-	slowest.szName = "Slow connection mode (64kbps)";
+	slowest.szName = L( "Slow connection mode (64kbps)" );
 	slowest.SetCoord( 20, 260 );
 	SET_EVENT( slowest.onChanged,
 		((CMenuConnectionWarning*)pSelf->Parent())->WriteSettings( EPRESET_SLOW ) );
 
 	done.SetPicture( PC_DONE );
-	done.szName = "Done";
+	done.szName = L( "Done" );
 	done.SetGrayed( true );
 	done.SetRect( 410, 320, UI_BUTTONS_WIDTH / 2, UI_BUTTONS_HEIGHT );
-	done.onActivated = VoidCb( &CMenuConnectionWarning::Hide );
+	done.onReleased = VoidCb( &CMenuConnectionWarning::Hide );
 	done.bEnableTransitions = false;
 
 	options.SetPicture( PC_ADV_OPT );
-	options.szName = "Adv Options";
-	SET_EVENT_MULTI( options.onActivated,
+	options.szName = L( "Adv. Options" );
+	SET_EVENT_MULTI( options.onReleased,
 	{
+		CMenuConnectionWarning *p = pSelf->GetParent(CMenuConnectionWarning);
 		UI_GameOptions_Menu();
-		uiConnectionWarning.done.SetGrayed( false );
+		p->done.SetGrayed( false );
 	});
 	options.SetRect( 154, 320, UI_BUTTONS_WIDTH, UI_BUTTONS_HEIGHT );
 	options.bEnableTransitions = false;
 
 	title.iFlags = QMF_INACTIVE|QMF_DROPSHADOW;
 	title.eTextAlignment = QM_CENTER;
-	title.szName = "Connection problem";
+	title.szName = L( "Connection problem" );
 	title.SetRect( 0, 16, 640, 20 );
 
 	message.iFlags = QMF_INACTIVE;
-	message.szName = "Too many lost packets while connecting!\nPlease select network settings";
+	message.szName = L( "Too many lost packets while connecting!\nPlease select network settings" );
 	message.SetRect( 20, 60, 600, 32 );
 
 	AddItem( background );
@@ -130,10 +130,10 @@ void CMenuConnectionWarning::WriteSettings( const EPresets preset)
 	done.SetGrayed( false );
 }
 
-void UI_ConnectionWarning_f()
+ADD_MENU3( menu_connectionwarning, CMenuConnectionWarning, UI_ConnectionWarning_f );
+void UI_ConnectionWarning_f( void )
 {
 	if( !UI_IsVisible() )
 		UI_Main_Menu();
-	uiConnectionWarning.Show();
+	menu_connectionwarning->Show();
 }
-ADD_COMMAND( menu_connectionwarning, UI_ConnectionWarning_f );

@@ -13,7 +13,6 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 */
 
-#pragma once
 #ifndef MENU_TABLE_H
 #define MENU_TABLE_H
 
@@ -51,9 +50,11 @@ public:
 	CMenuTable();
 
 
-	const char *Key( int key, int down ) override;
+	bool KeyUp( int key ) override;
+	bool KeyDown( int key ) override;
 	void Draw() override;
 	void VidInit() override;
+	bool MouseMove( int x, int y ) override;
 	bool MoveView( int delta );
 	bool MoveCursor( int delta );
 	int GetCurrentIndex() { return iCurItem; }
@@ -137,6 +138,8 @@ public:
 	CColor iHeaderColor;
 
 private:
+	float Step( void );
+
 	void DrawLine(Point p, const char **psz, size_t size, uint textColor, bool forceCol, uint fillColor = 0);
 	void DrawLine(Point p, int line, uint textColor, bool forceCol, uint fillColor = 0);
 
@@ -149,13 +152,13 @@ private:
 
 	float flFixedSumm, flDynamicSumm;
 
-	const char	*szBackground;
-	const char	*szUpArrow;
-	const char	*szUpArrowFocus;
-	const char  *szUpArrowPressed;
-	const char	*szDownArrow;
-	const char	*szDownArrowFocus;
-	const char  *szDownArrowPressed;
+	CImage szBackground;
+	CImage szUpArrow;
+	CImage szUpArrowFocus;
+	CImage szUpArrowPressed;
+	CImage szDownArrow;
+	CImage szDownArrowFocus;
+	CImage szDownArrowPressed;
 
 	int		iTopItem;
 	int     iNumRows;

@@ -28,6 +28,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "YesNoMessageBox.h"
 #include "PlayerModelView.h"
 #include "StringArrayModel.h"
+#include "StringVectorModel.h"
 
 #define ART_BANNER		"gfx/shell/head_customize"
 
@@ -36,20 +37,19 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 static struct
 {
 	const char *name;
-	unsigned char r;
-	unsigned char g;
-	unsigned char b;
+	int r, g, b;
 } g_LogoColors[] =
 {
-{ "orange", 255, 120, 24  },
-{ "yellow",	225, 180, 24  },
-{ "blue",   0,   60,  255 },
-{ "ltblue", 0,   167, 255 },
-{ "green",  0,   167, 0   },
-{ "red",    255, 43,  0   },
-{ "brown",  123, 73,  0   },
-{ "ltgray", 100, 100, 100 },
-{ "dkgray", 36,  36,  36  },
+{ "FullColor",     -1,  -1,  -1  },
+{ "#Valve_Orange", 255, 120, 24  }, // L( "#Valve_Orange" )
+{ "#Valve_Yellow", 225, 180, 24  }, // L( "#Valve_Yellow" )
+{ "#Valve_Blue",   0,   60,  255 }, // L( "#Valve_Blue" )
+{ "#Valve_Ltblue", 0,   167, 255 }, // L( "#Valve_Ltblue" )
+{ "#Valve_Green",  0,   167, 0   }, // L( "#Valve_Green" )
+{ "#Valve_Red",    255, 43,  0   }, // L( "#Valve_Red" )
+{ "#Valve_Brown",  123, 73,  0   }, // L( "#Valve_Brown" )
+{ "#Valve_Ltgray", 100, 100, 100 }, // L( "#Valve_Ltgray" )
+{ "#Valve_Dkgray", 36,  36,  36  }, // L( "#Valve_Dkgray" )
 };
 
 
@@ -73,10 +73,11 @@ static const char *g_szCrosshairAvailColors[] =
 	"Green", "Red", "Blue", "Yellow", "Ltblue"
 };
 
-static class CMenuPlayerSetup : public CMenuFramework
+class CMenuPlayerSetup : public CMenuFramework
 {
 private:
 	void _Init() override;
+	void Reload() override;
 public:
 	CMenuPlayerSetup() : CMenuFramework( "CMenuPlayerSetup" ), msgBox( true ) { }
 
@@ -87,14 +88,28 @@ public:
 	void WriteNewLogo();
 	void SaveAndPopMenu() override;
 
-	class CLogosListModel : public CStringArrayModel
+	class CLogosListModel : public CStringVectorModel
 	{
 	public:
-		CLogosListModel() : CStringArrayModel( (const char *)logos, CS_SIZE, 0 ) {}
-		void Update();
+		void Update() override;
+
+		int GetFullPath( char *buf, size_t size, int pos )
+		{
+			const char *file, *ext;
+
+			file = Element( pos ).String();
+			ext = IsPng( pos ) ? "png" : "bmp";
+
+			return snprintf( buf, size, "logos/%s.%s", file, ext );
+		}
+
+		bool IsPng( int pos )
+		{
+			return m_isPngs[pos];
+		}
 
 	private:
-		char logos[MAX_PLAYERMODELS][CS_SIZE];
+		CUtlVector<bool> m_isPngs;
 	} logosModel;
 
 	CMenuField	name;
@@ -122,10 +137,10 @@ public:
 	CMenuCheckBox	crosshairTranslucent;
 	CMenuCheckBox	extendedMenus;
 
-
 	CMenuYesNoMessageBox msgBox;
 
-} uiPlayerSetup;
+	bool hideModels, hideLogos;
+};
 
 void CMenuPlayerSetup::CMenuLogoPreview::Draw()
 {
@@ -134,12 +149,15 @@ void CMenuPlayerSetup::CMenuLogoPreview::Draw()
 		// draw the background
 		UI_FillRect( m_scPos, m_scSize, uiPromptBgColor );
 
-		UI_DrawString( font, m_scPos, m_scSize, "No logo", colorBase, m_scChSize, QM_CENTER, ETF_SHADOW );
+		UI_DrawString( font, m_scPos, m_scSize, L( "No logo" ), colorBase, m_scChSize, QM_CENTER, ETF_SHADOW );
 	}
 	else
 	{
-		EngFuncs::PIC_Set( hImage, r, g, b, 255 );
-		EngFuncs::PIC_Draw( m_scPos, m_scSize );
+		if( r != -1 && g != -1 && b != -1 )
+			EngFuncs::PIC_Set( hImage, r, g, b );
+		else
+			EngFuncs::PIC_Set( hImage, 255, 255, 255 );
+		EngFuncs::PIC_DrawTrans( m_scPos, m_scSize );
 	}
 
 	// draw the rectangle
@@ -150,6 +168,8 @@ void CMenuPlayerSetup::CMenuLogoPreview::Draw()
 
 }
 
+ADD_MENU3( menu_playersetup, CMenuPlayerSetup, UI_PlayerSetup_Menu );
+
 void CMenuPlayerSetup::CMenuCrosshairPreview::Draw()
 {
 
@@ -157,7 +177,7 @@ void CMenuPlayerSetup::CMenuCrosshairPreview::Draw()
 
 
 	int l;
-	switch( (int)uiPlayerSetup.crosshairSize.GetCurrentValue() )
+	switch( (int)menu_playersetup->crosshairSize.GetCurrentValue() )
 	{
 	case 1:
 		l = 10;
@@ -187,13 +207,13 @@ void CMenuPlayerSetup::CMenuCrosshairPreview::Draw()
 		// alpha
 		a = 180,
 		// red
-		r = g_iCrosshairAvailColors[(int)uiPlayerSetup.crosshairColor.GetCurrentValue()+1][0],
+		r = g_iCrosshairAvailColors[(int)menu_playersetup->crosshairColor.GetCurrentValue()+1][0],
 		// green
-		g = g_iCrosshairAvailColors[(int)uiPlayerSetup.crosshairColor.GetCurrentValue()+1][1],
+		g = g_iCrosshairAvailColors[(int)menu_playersetup->crosshairColor.GetCurrentValue()+1][1],
 		// blue
-		b = g_iCrosshairAvailColors[(int)uiPlayerSetup.crosshairColor.GetCurrentValue()+1][2];
+		b = g_iCrosshairAvailColors[(int)menu_playersetup->crosshairColor.GetCurrentValue()+1][2];
 
-	if( uiPlayerSetup.crosshairTranslucent.bChecked )
+	if( menu_playersetup->crosshairTranslucent.bChecked )
 	{
 		// verical
 		EngFuncs::PIC_Set(hWhite, r, g, b, a);
@@ -234,35 +254,39 @@ CMenuPlayerSetup::FindLogos
 
 =================
 */
-void CMenuPlayerSetup::CLogosListModel::Update( void )
+void CMenuPlayerSetup::CLogosListModel::Update( )
 {
 	char	**filenames;
 	int numFiles, i;
 
-	m_iCount = 0;
-
 	// Get file list
-	filenames = EngFuncs::GetFilesList( "logos/*.bmp", &numFiles, FALSE );
+	filenames = EngFuncs::GetFilesList( "logos/*.*", &numFiles, FALSE );
 
 	if( !filenames || !numFiles )
 	{
-		m_iCount = 0;
+		m_isPngs.RemoveAll();
+		RemoveAll();
 		return;
 	}
 
 	// build the model list
 	for( i = 0; i < numFiles; i++ )
 	{
-		char logoFileName[CS_SIZE];
+		CUtlString logoFileName = filenames[i];
+		char temp[256];
+		bool png;
 
-		Q_strncpy( logoFileName, filenames[i], sizeof( logos[0] ) );
-		COM_FileBase( logoFileName, logos[m_iCount] );
+		if(( png = logoFileName.BEndsWithCaseless( ".png" )) ||
+			 logoFileName.BEndsWithCaseless( ".bmp" ))
+		{
+			COM_FileBase( logoFileName.String(), temp );
 
-		// ignore remapped.bmp
-		if( !stricmp( logos[m_iCount], "remapped" ) )
-			continue;
+			if( !stricmp( temp, "remapped" ))
+				continue;
 
-		m_iCount++;
+			AddToTail( temp );
+			m_isPngs.AddToTail( png );
+		}
 	}
 }
 
@@ -275,7 +299,7 @@ void CMenuPlayerSetup::SetConfig( void )
 {
 	name.WriteCvar();
 	char curColor[CS_SIZE];
-	int i = uiPlayerSetup.crosshairColor.GetCurrentValue() + 1;
+	int i = menu_playersetup->crosshairColor.GetCurrentValue() + 1;
 	snprintf( curColor, CS_SIZE, "%i %i %i",
 			  g_iCrosshairAvailColors[i][0],
 			  g_iCrosshairAvailColors[i][1],
@@ -301,28 +325,46 @@ void CMenuPlayerSetup::SaveAndPopMenu()
 
 void CMenuPlayerSetup::UpdateLogo()
 {
-	char image[256];
-	const char *mdl = logo.GetCurrentString();
+	char filename[1024];
+	int pos = logo.GetCurrentValue();
 
-	if( !mdl || !mdl[0] )
-	{
+	if( pos < 0 )
 		return;
+
+	logosModel.GetFullPath( filename, sizeof( filename ), pos );
+	logoImage.hImage = EngFuncs::PIC_Load( filename, 0 );
+	if( logosModel.IsPng( pos ))
+	{
+		logoImage.r = logoImage.g = logoImage.b = -1;
+		logoColor.SetGrayed( true );
+	}
+	else
+	{
+		CBMP *bmpFile = CBMP::LoadFile( filename );
+		if( bmpFile->GetBitmapHdr()->bitsPerPixel == 8 )
+		{
+			ApplyColorToLogoPreview();
+			logoColor.SetGrayed( false );
+		}
+		else
+		{
+			logoImage.r = logoImage.g = logoImage.b = -1;
+			logoColor.SetGrayed( true );
+		}
+		delete bmpFile;
 	}
 
-	snprintf( image, 256, "logos/%s.bmp", mdl );
-	logoImage.hImage = EngFuncs::PIC_Load( image, 0 );
-	ApplyColorToLogoPreview();
-
-	EngFuncs::CvarSetString( "cl_logofile", mdl );
+	EngFuncs::CvarSetString( "cl_logofile", logo.GetCurrentString() );
+	logoColor.WriteCvar();
 }
 
 void CMenuPlayerSetup::ApplyColorToLogoPreview()
 {
 	const char *logoColorStr = logoColor.GetCurrentString();
 
-	for( size_t i = 0; i < ARRAYSIZE( g_LogoColors ); i++ )
+	for( size_t i = 0; i < V_ARRAYSIZE( g_LogoColors ) && logoColorStr; i++ )
 	{
-		if( !stricmp( logoColorStr, g_LogoColors[i].name ))
+		if( !stricmp( logoColorStr, L( g_LogoColors[i].name )))
 		{
 			logoImage.r = g_LogoColors[i].r;
 			logoImage.g = g_LogoColors[i].g;
@@ -331,33 +373,58 @@ void CMenuPlayerSetup::ApplyColorToLogoPreview()
 		}
 	}
 
-	logoImage.r = 255;
-	logoImage.g = 255;
-	logoImage.b = 255;
+	logoColor.SetCurrentValue( L( g_LogoColors[0].name ) );
+	logoImage.r = g_LogoColors[0].r;
+	logoImage.g = g_LogoColors[0].g;
+	logoImage.b = g_LogoColors[0].b;
 }
 
 void CMenuPlayerSetup::WriteNewLogo( void )
 {
-#ifdef NEW_ENGINE_INTERFACE
 	char filename[1024];
-	CBMP *bmpFile;
+	int pos = logo.GetCurrentValue();
 
-	snprintf( filename, sizeof( filename ), "logos/%s.bmp", logo.GetCurrentString() );
-	bmpFile = CBMP::LoadFile( filename );
-
-	// not valid logo BMP file
-	if( !bmpFile )
+	if( pos < 0 || hideLogos )
 		return;
 
-	// remap logo if needed
-	bmpFile->RemapLogo( logoImage.r, logoImage.g, logoImage.b );
-
-	EngFuncs::DeleteFile( "custom.hpk" );
+	EngFuncs::DeleteFile( "logos/remapped.png" );
 	EngFuncs::DeleteFile( "logos/remapped.bmp" );
-	EngFuncs::COM_SaveFile( "logos/remapped.bmp", bmpFile->GetBitmap(), bmpFile->GetBitmapHdr()->fileSize );
 
-	delete bmpFile;
-#endif
+	logosModel.GetFullPath( filename, sizeof( filename ), pos );
+
+	// TODO: check file size and throw a messagebox if it's too big?
+	if( logosModel.IsPng( pos ))
+	{
+		int len;
+		void *afile = EngFuncs::COM_LoadFile( filename, &len );
+
+		// just copy file, nothing special
+		EngFuncs::COM_SaveFile( "logos/remapped.png", afile, len );
+
+		EngFuncs::COM_FreeFile( afile );
+
+		EngFuncs::CvarSetString( "cl_logoext", "png" );
+	}
+	else
+	{
+		CBMP *bmpFile = CBMP::LoadFile( filename );
+
+		// not valid logo BMP file
+		if( !bmpFile )
+			return;
+
+		// remap logo if needed
+		if( logoImage.r != -1 && logoImage.g != -1 && logoImage.b != -1 )
+			bmpFile->RemapLogo( logoImage.r, logoImage.g, logoImage.b );
+
+		EngFuncs::COM_SaveFile( "logos/remapped.bmp", bmpFile->GetBitmap(), bmpFile->GetBitmapHdr()->fileSize );
+		EngFuncs::CvarSetString( "cl_logoext", "bmp" );
+
+		delete bmpFile;
+	}
+
+	logo.WriteCvar();
+	logoColor.WriteCvar();
 }
 
 /*
@@ -367,25 +434,20 @@ UI_PlayerSetup_Init
 */
 void CMenuPlayerSetup::_Init( void )
 {
-	bool hideModels = false;
-	bool hideLogos = false;
 	int addFlags = 0;
+
+	hideModels = hideLogos = false;
 
 	// disable playermodel preview for HLRally to prevent crash
 	if( !stricmp( gMenu.m_gameinfo.gamefolder, "hlrally" ))
 		hideModels = true;
-
-	// old engine cannot support logo customization, just don't add them
-#ifndef NEW_ENGINE_INTERFACE
-	hideLogos = true;
-#endif
 
 	if( gMenu.m_gameinfo.flags & GFL_NOMODELS )
 		addFlags |= QMF_INACTIVE;
 
 	banner.SetPicture(ART_BANNER);
 
-	name.SetNameAndStatus( "Name","Enter your multiplayer display name" );
+	name.szStatusText = L( "Enter your multiplayer display name" );
 	name.iMaxLength = 32;
 	name.LinkCvar( "name" );
 	name.SetRect( 320, 260, 256, 36 );
@@ -394,13 +456,13 @@ void CMenuPlayerSetup::_Init( void )
 	crosshairView.SetNameAndStatus( "Crosshair preview", "Choose dynamic crosshair" );
 	crosshairView.hWhite = EngFuncs::PIC_Load("*white");
 
-	static CStringArrayModel modelSizes( g_szCrosshairAvailSizes, ARRAYSIZE( g_szCrosshairAvailSizes ));
+	static CStringArrayModel modelSizes( g_szCrosshairAvailSizes, V_ARRAYSIZE( g_szCrosshairAvailSizes ));
 	crosshairSize.SetRect( 480, 345, 256, 26 );
 	crosshairSize.SetNameAndStatus( "Crosshair size", "Set crosshair size" );
 	crosshairSize.Setup(&modelSizes);
 	crosshairSize.LinkCvar("cl_crosshair_size", CMenuEditable::CVAR_STRING);
 
-	static CStringArrayModel modelColors( g_szCrosshairAvailColors, ARRAYSIZE( g_szCrosshairAvailColors ));
+	static CStringArrayModel modelColors( g_szCrosshairAvailColors, V_ARRAYSIZE( g_szCrosshairAvailColors ));
 	crosshairColor.SetRect( 480, 415, 256, 26 );
 	crosshairColor.SetNameAndStatus( "Crosshair color", "Set crosshair color" );
 	crosshairColor.Setup(&modelColors);
@@ -413,21 +475,21 @@ void CMenuPlayerSetup::_Init( void )
 	extendedMenus.SetNameAndStatus( "Extended touch menu", "Force touch menus for radio" );
 	extendedMenus.LinkCvar( "_extended_menus" );
 
-	msgBox.SetMessage( "Please, choose another player name" );
+	msgBox.SetMessage( L( "Please, choose another player name" ) );
 	msgBox.Link( this );
 
 	AddItem( background );
 	AddItem( banner );
 
-	AddButton( "Done", "Go back to the Multiplayer Menu", PC_DONE, VoidCb( &CMenuPlayerSetup::SaveAndPopMenu ) );
-	CMenuPicButton *gameOpt = AddButton( "Game options", "Configure handness, fov and other advanced options", PC_GAME_OPTIONS );
-	SET_EVENT_MULTI( gameOpt->onActivated,
+	AddButton( L( "Done" ), L( "Go back to the Multiplayer Menu" ), PC_DONE, VoidCb( &CMenuPlayerSetup::SaveAndPopMenu ) );
+	CMenuPicButton *gameOpt = AddButton( L( "Game options" ), L( "Configure handness, fov and other advanced options" ), PC_GAME_OPTIONS );
+	SET_EVENT_MULTI( gameOpt->onReleased,
 	{
 		((CMenuPlayerSetup*)pSelf->Parent())->SetConfig();
 		UI_AdvUserOptions_Menu();
 	});
 
-	AddButton( "Adv options", "", PC_ADV_OPT, UI_GameOptions_Menu );
+	AddButton( L( "Adv. Options" ), "", PC_ADV_OPT, UI_GameOptions_Menu );
 	gameOpt->SetGrayed( !UI_AdvUserOptions_IsAvailable() );
 
 
@@ -441,10 +503,10 @@ void CMenuPlayerSetup::_Init( void )
 		}
 		else
 		{
-			static const char *itemlist[ARRAYSIZE( g_LogoColors )];
-			static CStringArrayModel colors( itemlist, ARRAYSIZE( g_LogoColors ) );
-			for( size_t i = 0; i < ARRAYSIZE( g_LogoColors ); i++ )
-				itemlist[i] = g_LogoColors[i].name;
+			static const char *itemlist[V_ARRAYSIZE( g_LogoColors )];
+			static CStringArrayModel colors( itemlist, V_ARRAYSIZE( g_LogoColors ) );
+			for( size_t i = 0; i < V_ARRAYSIZE( g_LogoColors ); i++ )
+				itemlist[i] = L( g_LogoColors[i].name );
 
 			logoImage.SetRect( 72, 230 + m_iBtnsNum * 50 + 10, 200, 200 );
 
@@ -470,21 +532,16 @@ void CMenuPlayerSetup::_Init( void )
 
 	if( !hideLogos )
 	{
+		UpdateLogo();
 		AddItem( logo );
 		AddItem( logoColor );
 		AddItem( logoImage );
-		UpdateLogo();
 	}
 }
 
-/*
-=================
-UI_PlayerSetup_Precache
-=================
-*/
-void UI_PlayerSetup_Precache( void )
+void CMenuPlayerSetup::Reload()
 {
-	EngFuncs::PIC_Load( ART_BANNER );
+	if( !hideLogos ) UpdateLogo();
 }
 
 /*
@@ -497,8 +554,7 @@ void UI_PlayerSetup_Menu( void )
 	if ( gMenu.m_gameinfo.gamemode == GAME_SINGLEPLAYER_ONLY )
 		return;
 
-
-	uiPlayerSetup.Show();
+	menu_playersetup->Show();
 
 	char curColor[CS_SIZE];
 	int rgb[3];
@@ -522,11 +578,8 @@ void UI_PlayerSetup_Menu( void )
 		g_iCrosshairAvailColors[0][0] = rgb[0];
 		g_iCrosshairAvailColors[0][1] = rgb[1];
 		g_iCrosshairAvailColors[0][2] = rgb[2];
-		uiPlayerSetup.crosshairColor.SetCurrentValue(curColor);
+		menu_playersetup->crosshairColor.SetCurrentValue(curColor);
 	}
 	else
-		uiPlayerSetup.crosshairColor.SetCurrentValue(i-1);
-
-
+		menu_playersetup->crosshairColor.SetCurrentValue(i-1);
 }
-ADD_MENU( menu_playersetup, UI_PlayerSetup_Precache, UI_PlayerSetup_Menu );

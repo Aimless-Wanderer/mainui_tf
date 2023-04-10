@@ -33,6 +33,8 @@ CMenuSlider::CMenuSlider() : BaseClass(), m_flMinValue(), m_flMaxValue(), m_flCu
 
 	SetCharSize( QM_DEFAULTFONT );
 
+	imgSlider = UI_SLIDER_MAIN;
+
 	iFlags |= QMF_DROPSHADOW;
 }
 
@@ -59,34 +61,32 @@ void CMenuSlider::VidInit(  )
 	m_flDrawStep = (float)(m_scSize.w - m_iSliderOutlineWidth - m_scCenterBox.w) / (float)m_iNumSteps;
 }
 
+bool CMenuSlider::KeyUp( int key )
+{
+	if( m_iKeepSlider )
+	{
+		// tell menu about changes
+		SetCvarValue( m_flCurValue );
+		_Event( QM_CHANGED );
+		m_iKeepSlider = false; // button released
+	}
+	return true;
+
+}
+
 /*
 =================
 CMenuSlider::Key
 =================
 */
-const char *CMenuSlider::Key( int key, int down )
+bool CMenuSlider::KeyDown( int key )
 {
-	int sliderX;
-
-	if( !down )
+	if( UI::Key::IsLeftMouse( key ))
 	{
-		if( m_iKeepSlider )
-		{
-			// tell menu about changes
-			SetCvarValue( m_flCurValue );
-			_Event( QM_CHANGED );
-			m_iKeepSlider = false; // button released
-		}
-		return uiSoundNull;
-	}
-
-	switch( key )
-	{
-	case K_MOUSE1:
-		if( !UI_CursorInRect( m_scPos.x, m_scPos.y, m_scSize.w, m_scSize.h ) )
+		if( !UI_CursorInRect( m_scPos, m_scSize ) )
 		{
 			m_iKeepSlider = false;
-			return uiSoundNull;
+			return true;
 		}
 
 		m_iKeepSlider = true;
@@ -102,41 +102,45 @@ const char *CMenuSlider::Key( int key, int down )
 		SetCvarValue( m_flCurValue );
 		_Event( QM_CHANGED );
 
-		return uiSoundNull;
-		break;
-	case K_LEFTARROW:
+		return true;
+	}
+	else if( UI::Key::IsLeftArrow( key ))
+	{
 		m_flCurValue -= m_flRange;
 
 		if( m_flCurValue < m_flMinValue )
 		{
 			m_flCurValue = m_flMinValue;
-			return uiSoundBuzz;
+			PlayLocalSound( uiStatic.sounds[SND_BUZZ] );
+			return true;
 		}
 
 		// tell menu about changes
 		SetCvarValue( m_flCurValue );
 		_Event( QM_CHANGED );
 
-		return uiSoundKey;
-		break;
-	case K_RIGHTARROW:
+		PlayLocalSound( uiStatic.sounds[SND_KEY] );
+		return true;
+	}
+	else if( UI::Key::IsRightArrow( key ))
+	{
 		m_flCurValue += m_flRange;
 
 		if( m_flCurValue > m_flMaxValue )
 		{
 			m_flCurValue = m_flMaxValue;
-			return uiSoundBuzz;
+			PlayLocalSound( uiStatic.sounds[SND_BUZZ] );
+			return true;
 		}
 
 		// tell menu about changes
 		SetCvarValue( m_flCurValue );
 		_Event( QM_CHANGED );
-
-		return uiSoundKey;
-		break;
+		PlayLocalSound( uiStatic.sounds[SND_KEY] );
+		return true;
 	}
 
-	return 0;
+	return false;
 }
 
 /*
@@ -194,9 +198,9 @@ void CMenuSlider::Draw( void )
 
 	UI_DrawRectangleExt( m_scPos.x + m_iSliderOutlineWidth / 2, m_scPos.y + m_iSliderOutlineWidth, m_scSize.w - m_iSliderOutlineWidth, m_scCenterBox.h, uiInputBgColor, m_iSliderOutlineWidth );
 	if( eFocusAnimation == QM_HIGHLIGHTIFFOCUS && this == m_pParent->ItemAtCursor())
-		UI_DrawPic( sliderX, m_scPos.y, m_scCenterBox.w, m_scSize.h, uiColorHelp, UI_SLIDER_MAIN );
+		UI_DrawPic( sliderX, m_scPos.y, m_scCenterBox.w, m_scSize.h, uiColorHelp, imgSlider );
 	else
-		UI_DrawPic( sliderX, m_scPos.y, m_scCenterBox.w, m_scSize.h, uiColorWhite, UI_SLIDER_MAIN );
+		UI_DrawPic( sliderX, m_scPos.y, m_scCenterBox.w, m_scSize.h, uiColorWhite, imgSlider );
 
 
 	textHeight = m_scPos.y - (m_scChSize * 1.5f);

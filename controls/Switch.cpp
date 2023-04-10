@@ -41,11 +41,38 @@ CMenuSwitch::CMenuSwitch( ) : BaseClass( )
 	memset( m_szNames, 0, sizeof( m_szNames ));
 	memset( m_Sizes, 0, sizeof( m_Sizes ));
 	memset( m_Points, 0, sizeof( m_Points ));
+
+	bChangeOnPressed = false;
 }
 
 void CMenuSwitch::AddSwitch(const char *text)
 {
 	m_szNames[m_iSwitches++] = text;
+}
+
+int CMenuSwitch::IsNewStateByMouseClick()
+{
+	int state = m_iState;
+
+	if( bMouseToggle )
+	{
+		state++;
+
+		if( state >= m_iSwitches )
+			state = 0;
+	}
+	else
+	{
+		for( int i = 0; i < m_iSwitches; i++ )
+		{
+			if( ( UI_CursorInRect( m_Points[i], m_Sizes[i] ) && m_iState != i))
+			{
+				state = i;
+			}
+		}
+	}
+
+	return state;
 }
 
 void CMenuSwitch::VidInit()
@@ -59,17 +86,18 @@ void CMenuSwitch::VidInit()
 
 	int sizes[UI_MAX_MENUITEMS];
 	int sum = 0;
+	int i;
 
-	for( int i = 0; i < m_iSwitches; i++ )
+	for( i = 0; i < m_iSwitches; i++ )
 	{
 		if( m_szNames[i] != NULL && !bKeepToggleWidth )
-			sizes[i] = g_FontMgr.GetTextWideScaled( font, m_szNames[i], m_scChSize );
+			sizes[i] = g_FontMgr->GetTextWideScaled( font, m_szNames[i], m_scChSize );
 		else sizes[i] = (float)m_scSize.w / (float)m_iSwitches;
 
 		sum += sizes[i];
 	}
 
-	for( int i = 0; i < m_iSwitches; i++ )
+	for( i = 0; i < m_iSwitches; i++ )
 	{
 		float frac = (float)sizes[i] / (float)sum;
 
@@ -85,85 +113,70 @@ void CMenuSwitch::VidInit()
 	m_scTextPos.x = m_scPos.x + (m_scSize.w * 1.5f );
 	m_scTextPos.y = m_scPos.y;
 
-	m_scTextSize.w = g_FontMgr.GetTextWideScaled( font, szName, m_scChSize );
+	m_scTextSize.w = g_FontMgr->GetTextWideScaled( font, szName, m_scChSize );
 	m_scTextSize.h = m_scChSize;
 }
 
-const char * CMenuSwitch::Key(int key, int down)
+bool CMenuSwitch::KeyUp( int key )
 {
 	const char *sound = NULL;
 	bool haveNewState = false;
-	int state = m_iState;
+	int state = 0;
 
-	switch( key )
+	if( UI::Key::IsLeftMouse( key ) && FBitSet( iFlags, QMF_HASMOUSEFOCUS ))
 	{
-	case K_MOUSE1:
-		if(!( iFlags & QMF_HASMOUSEFOCUS ))
-			break;
-		if( bMouseToggle )
-		{
-			sound = uiSoundGlow;
-			haveNewState = true;
-			state++;
-
-			if( state >= m_iSwitches )
-				state = 0;
-		}
-		else
-		{
-			for( int i = 0; i < m_iSwitches; i++ )
-			{
-				if( ( UI_CursorInRect( m_Points[i], m_Sizes[i] ) && m_iState != i))
-				{
-					sound = uiSoundGlow;
-					haveNewState = true;
-					state = i;
-				}
-			}
-		}
-		break;
-	case K_ENTER:
-	case K_KP_ENTER:
-	case K_SPACE:
-	case K_AUX1:
-		if( iFlags & QMF_MOUSEONLY )
-			break;
-		sound = uiSoundGlow;
-		break;
+		state = IsNewStateByMouseClick();
+		haveNewState = state != m_iState;
+		if( haveNewState )
+			sound = uiStatic.sounds[SND_GLOW];
 	}
+	else if( UI::Key::IsEnter( key ) && !FBitSet( iFlags, QMF_MOUSEONLY ))
+		sound = uiStatic.sounds[SND_GLOW];
 
 	if( sound )
 	{
-		if( iFlags & QMF_ACT_ONRELEASE )
-		{
-			int event;
-
-			if( down )
-			{
-				event = QM_PRESSED;
-				m_bPressed = true;
-				_Event( event );
-			}
-			else if( haveNewState )
-			{
-				event = QM_CHANGED;
-				m_iState = state;
-				SetCvarValue( m_iState );
-				_Event( event );
-			}
-		}
-		else if( down && haveNewState )
+		_Event( QM_RELEASED );
+		if( haveNewState && !bChangeOnPressed )
 		{
 			m_iState = state;
 			SetCvarValue( m_iState );
 			_Event( QM_CHANGED );
+			PlayLocalSound( sound ); // emit sound only on changes
 		}
 	}
 
-	if( iFlags & QMF_SILENT )
-		return 0;
+	return sound != NULL;
+}
 
-	return sound;
+bool CMenuSwitch::KeyDown( int key )
+{
+	const char *sound = NULL;
+	bool haveNewState = false;
+	int state = 0;
+
+	if( UI::Key::IsLeftMouse( key ) && FBitSet( iFlags, QMF_HASMOUSEFOCUS ))
+	{
+		state = IsNewStateByMouseClick();
+		haveNewState = state != m_iState;
+		if( haveNewState )
+			sound = uiStatic.sounds[SND_GLOW];
+	}
+	else if( UI::Key::IsEnter( key ) && !FBitSet( iFlags, QMF_MOUSEONLY ))
+		sound = uiStatic.sounds[SND_GLOW];
+
+	if( sound )
+	{
+		_Event( QM_PRESSED );
+		if( haveNewState && bChangeOnPressed )
+		{
+			m_iState = state;
+			SetCvarValue( m_iState );
+			_Event( QM_CHANGED );
+			PlayLocalSound( sound ); // emit sound only on changes
+		}
+	}
+
+	return sound != NULL;
 }
 
 void CMenuSwitch::Draw( void )

@@ -79,62 +79,49 @@ void CMenuPlayerModelView::VidInit()
 	ent->player = bDrawAsPlayer; // yes, draw me as playermodel
 }
 
-const char *CMenuPlayerModelView::Key(int key, int down)
+bool CMenuPlayerModelView::KeyUp( int key )
 {
 	if( !ent )
-		return uiSoundNull;
+		return true;
 
-	if( key == K_MOUSE1 && UI_CursorInRect( m_scPos, m_scSize ) &&
-		down && !mouseYawControl )
+	if( UI::Key::IsLeftMouse( key ) && mouseYawControl )
+		mouseYawControl = false;
+
+	return false;
+}
+
+bool CMenuPlayerModelView::KeyDown( int key )
+{
+	if( !ent )
+		return true;
+
+	if( UI::Key::IsLeftMouse( key ) && UI_CursorInRect( m_scPos, m_scSize )
+		&& !mouseYawControl )
 	{
 		mouseYawControl = true;
 		prevCursorX =  uiStatic.cursorX;
 		prevCursorY =  uiStatic.cursorY;
 	}
-	else if( key == K_MOUSE1 && !down && mouseYawControl )
-	{
-		mouseYawControl = false;
-	}
 
 	float yaw = ent->angles[1];
 
-	switch( key )
-	{
-	case K_LEFTARROW:
-	case K_KP_RIGHTARROW:
-		if( down )
-		{
-			yaw -= 10.0f;
+	if( UI::Key::IsLeftArrow( key ))
+		yaw -= 10.0f;
+	else if( UI::Key::IsRightArrow( key ))
+		yaw += 10.0f;
+	else if( UI::Key::IsEnter( key ))
+		ent->curstate.sequence++;
+	else return CMenuBaseItem::KeyDown( key );
 
-			if( yaw > 180.0f ) yaw -= 360.0f;
-			else if( yaw < -180.0f ) yaw += 360.0f;
+	if( yaw > 180.0f ) yaw -= 360.0f;
+	else if( yaw < -180.0f ) yaw += 360.0f;
 
-			ent->angles[1] = ent->curstate.angles[1] = yaw;
-		}
-		break;
-	case K_RIGHTARROW:
-	case K_KP_LEFTARROW:
-		if( down )
-		{
-			yaw += 10.0f;
+	ent->angles[1] = ent->curstate.angles[1] = yaw;
 
-			if( yaw > 180.0f ) yaw -= 360.0f;
-			else if( yaw < -180.0f ) yaw += 360.0f;
-
-			ent->angles[1] = ent->curstate.angles[1] = yaw;
-		}
-		break;
-	case K_ENTER:
-	case K_AUX1:
-	case K_MOUSE2:
-		if( down ) ent->curstate.sequence++;
-		break;
-	default:
-		return CMenuBaseItem::Key( key, down );
-	}
-
-	return uiSoundLaunch;
+	PlayLocalSound( uiStatic.sounds[SND_LAUNCH] );
+	return true;
 }
+
 
 void CMenuPlayerModelView::Draw()
 {
@@ -164,11 +151,6 @@ void CMenuPlayerModelView::Draw()
 	{
 		EngFuncs::ClearScene();
 
-		// update renderer timings
-#ifndef NEW_ENGINE_INTERFACE
-		refdef.time = gpGlobals->time;
-		refdef.frametime = gpGlobals->frametime;
-#endif
 		if( uiStatic.enableAlphaFactor )
 		{
 			ent->curstate.rendermode = kRenderTransTexture;

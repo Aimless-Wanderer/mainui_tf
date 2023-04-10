@@ -39,7 +39,7 @@ GNU General Public License for more details.
 #define DEFAULT_WEIGHT   500
 #endif
 
-CFontManager g_FontMgr;
+CFontManager *g_FontMgr;
 
 CFontManager::CFontManager()
 {
@@ -84,17 +84,17 @@ void CFontManager::VidInit( void )
 			.SetHandleNum( QM_BOLDFONT )
 			.Create();
 
-#ifdef MAINUI_RENDER_PICBUTTON_TEXT
-		uiStatic.hLightBlur = CFontBuilder( DEFAULT_MENUFONT, UI_MED_CHAR_HEIGHT * scale, 1000 )
-			.SetHandleNum( QM_LIGHTBLUR )
-			.SetBlurParams( 2, 1.0f )
-			.Create();
+		if( !uiStatic.lowmemory )
+		{
+			uiStatic.hLightBlur = CFontBuilder( DEFAULT_MENUFONT, UI_MED_CHAR_HEIGHT * scale, 1000 )
+				.SetBlurParams( 2, 1.0f )
+				.Create();
 
-		uiStatic.hHeavyBlur = CFontBuilder( DEFAULT_MENUFONT, UI_MED_CHAR_HEIGHT * scale, 1000 )
-			.SetHandleNum( QM_HEAVYBLUR )
-			.SetBlurParams( 8, 1.75f )
-			.Create();
-#endif
+			uiStatic.hHeavyBlur = CFontBuilder( DEFAULT_MENUFONT, UI_MED_CHAR_HEIGHT * scale, 1000 )
+				.SetBlurParams( 8, 1.75f )
+				.Create();
+		}
+
 		uiStatic.hConsoleFont = CFontBuilder( DEFAULT_CONFONT, UI_CONSOLE_CHAR_HEIGHT * scale, 500 )
 			.SetOutlineSize()
 			.Create();
@@ -116,7 +116,7 @@ void CFontManager::DeleteFont(HFont hFont)
 	CBaseFont *font = GetIFontFromHandle(hFont);
 	if( font )
 	{
-		m_Fonts[hFont] = NULL;
+		m_Fonts[hFont-1] = NULL;
 
 		delete font;
 	}
@@ -446,11 +446,12 @@ void CFontManager::UploadTextureForFont(CBaseFont *font)
 
 	charRange_t range[] =
 	{
-	{ 33, 126 },			// ascii printable range
-	{ 0x0400, 0x045F },		// cyrillic range
+	{ 33, 126, NULL, 0 },			// ascii printable range
+	{ 0, 0, table_cp1251, V_ARRAYSIZE( table_cp1251 ) }, // cp1251
+	{ 0x0400, 0x045F, NULL, 0 },		// cyrillic range
 	};
 
-	font->UploadGlyphsForRanges( range, ARRAYSIZE( range ) );
+	font->UploadGlyphsForRanges( range, V_ARRAYSIZE( range ) );
 }
 
 int CFontManager::DrawCharacter(HFont fontHandle, int ch, Point pt, int charH, const unsigned int color, bool forceAdditive )
@@ -478,9 +479,9 @@ HFont CFontBuilder::Create()
 	// check existing font at first
 	if( !m_hForceHandle )
 	{
-		for( int i = 0; i < g_FontMgr.m_Fonts.Count(); i++ )
+		for( int i = 0; i < g_FontMgr->m_Fonts.Count(); i++ )
 		{
-			font = g_FontMgr.m_Fonts[i];
+			font = g_FontMgr->m_Fonts[i];
 
 			if( font->IsEqualTo( m_szName, m_iTall, m_iWeight, m_iBlur, m_iFlags ) )
 				return i + 1;
@@ -497,7 +498,7 @@ HFont CFontBuilder::Create()
 	font = new CBitmapFont();
 #endif
 
-	double starttime = Sys_DoubleTime();
+	double starttime = EngFuncs::DoubleTime();
 
 	if( !font->Create( m_szName, m_iTall, m_iWeight, m_iBlur, m_fBrighten, m_iOutlineSize, m_iScanlineOffset, m_fScanlineScale, m_iFlags ) )
 	{
@@ -514,20 +515,20 @@ HFont CFontBuilder::Create()
 		}
 	}
 
-	g_FontMgr.UploadTextureForFont( font );
+	g_FontMgr->UploadTextureForFont( font );
 
-	double endtime = Sys_DoubleTime();
+	double endtime = EngFuncs::DoubleTime();
 
 	Con_DPrintf( "Rendering %s(%i, %i) took %f seconds\n", font->GetName(), m_iTall, m_iWeight, endtime - starttime );
 
-	if( m_hForceHandle != -1 && g_FontMgr.m_Fonts.Count() != m_hForceHandle )
+	if( m_hForceHandle != -1 && g_FontMgr->m_Fonts.Count() != m_hForceHandle )
 	{
-		if( g_FontMgr.m_Fonts.IsValidIndex( m_hForceHandle ) )
+		if( g_FontMgr->m_Fonts.IsValidIndex( m_hForceHandle ) )
 		{
-			g_FontMgr.m_Fonts.FastRemove( m_hForceHandle );
-			return g_FontMgr.m_Fonts.InsertBefore( m_hForceHandle, font );
+			g_FontMgr->m_Fonts.FastRemove( m_hForceHandle );
+			return g_FontMgr->m_Fonts.InsertBefore( m_hForceHandle, font );
 		}
 	}
 
-	return g_FontMgr.m_Fonts.AddToTail(font) + 1;
+	return g_FontMgr->m_Fonts.AddToTail(font) + 1;
 }

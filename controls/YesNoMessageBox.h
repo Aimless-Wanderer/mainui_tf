@@ -13,7 +13,6 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 */
 
-#pragma once
 #ifndef MENU_GENERICMSGBOX_H
 #define MENU_GENERICMSGBOX_H
 
@@ -31,7 +30,7 @@ public:
 	void _Init() override;
 	void _VidInit() override;
 	void Draw() override;
-	const char *Key( int key, int down ) override;
+	bool KeyDown( int key ) override;
 	void SetMessage( const char *msg );
 	void SetPositiveButton( const char *msg, EDefaultBtns buttonPic, int extrawidth = 0 );
 	void SetNegativeButton( const char *msg, EDefaultBtns buttonPic, int extrawidth = 0 );
@@ -49,15 +48,14 @@ public:
 	CEventCallback onPositive;
 	CEventCallback onNegative;
 
-	static void UI_ShowMessageBox( void );
-
 	bool bAutoHide;
-private:
-	static void OpenCb( CMenuBaseItem *, void *pExtra );
-
 	CMenuAction		dlgMessage1;
 	CMenuPicButton	yes;
 	CMenuPicButton	no;
+
+private:
+	static void OpenCb( CMenuBaseItem *, void *pExtra );
+
 	bool m_bSetYes, m_bSetNo;
 	bool m_bIsAlert;
 };

@@ -15,7 +15,7 @@ void CMenuScrollView::VidInit()
 	m_iMax = 0;
 	m_iPos = 0;
 
-	for( int i = 0; i < m_numItems; i++ )
+	FOR_EACH_VEC( m_pItems, i )
 	{
 		Point pt = m_pItems[i]->pos;
 		Size sz = m_pItems[i]->size;
@@ -27,57 +27,46 @@ void CMenuScrollView::VidInit()
 	m_iMax *= uiStatic.scaleX;
 }
 
-const char *CMenuScrollView::Key( int key, int down )
+bool CMenuScrollView::KeyDown( int key )
 {
 	// act when key is pressed or repeated
-	if( down )
+	if( !m_bDisableScrolling )
 	{
-		if( !m_bDisableScrolling )
+		int newPos = m_iPos;
+		if( UI::Key::IsUpArrow( key ))
+			newPos -= 20;
+		else if( UI::Key::IsDownArrow( key ))
+			newPos += 20;
+		else if( UI::Key::IsPageUp( key ))
+			newPos -= 100;
+		else if( UI::Key::IsPageDown( key ))
+			newPos += 100;
+		else if( UI::Key::IsLeftMouse( key ))
 		{
-			int newPos = m_iPos;
-			switch( key )
+			// m_bHoldingMouse1 = down != 0;
+			// m_HoldingPoint = Point( uiStatic.cursorX, uiStatic.cursorY );
+			// drag & drop
+			// scrollbar
+		}
+
+		// TODO: overscrolling
+		newPos = bound( 0, newPos, m_iMax - m_scSize.h );
+
+		// recalc
+		if( newPos != m_iPos )
+		{
+			m_iPos = newPos;
+			FOR_EACH_VEC( m_pItems, i )
 			{
-			case K_MWHEELUP:
-			case K_UPARROW:
-				newPos -= 20;
-				break;
-			case K_MWHEELDOWN:
-			case K_DOWNARROW:
-				newPos += 20;
-				break;
+				CMenuBaseItem *pItem = m_pItems[i];
 
-			case K_PGUP:
-				newPos -= 100;
-				break;
-			case K_PGDN:
-				newPos += 100;
-				break;
-			case K_MOUSE1:
-				// m_bHoldingMouse1 = down != 0;
-				// m_HoldingPoint = Point( uiStatic.cursorX, uiStatic.cursorY );
-				// drag & drop
-				// scrollbar
-				break;
+				pItem->VidInit();
 			}
-			// TODO: overscrolling
-			newPos = bound( 0, newPos, m_iMax - m_scSize.h );
-
-			// recalc
-			if( newPos != m_iPos )
-			{
-				m_iPos = newPos;
-				for( int i = 0; i < m_numItems; i++ )
-				{
-					CMenuBaseItem *pItem = m_pItems[i];
-
-					pItem->VidInit();
-				}
-				CMenuItemsHolder::MouseMove( uiStatic.cursorX, uiStatic.cursorY );
-			}
+			CMenuItemsHolder::MouseMove( uiStatic.cursorX, uiStatic.cursorY );
 		}
 	}
 
-	return CMenuItemsHolder::Key( key, down );
+	return CMenuItemsHolder::KeyDown( key );
 }
 
 Point CMenuScrollView::GetPositionOffset() const
@@ -129,7 +118,7 @@ void CMenuScrollView::Draw()
 		if( newPos != m_iPos )
 		{
 			m_iPos = newPos;
-			for( int i = 0; i < m_numItems; i++ )
+			FOR_EACH_VEC( m_pItems, i )
 			{
 				CMenuBaseItem *pItem = m_pItems[i];
 
@@ -145,7 +134,7 @@ void CMenuScrollView::Draw()
 	}
 
 	int drawn = 0, skipped = 0;
-	for( int i = 0; i < m_numItems; i++ )
+	FOR_EACH_VEC( m_pItems, i )
 	{
 		if( !IsRectVisible( m_pItems[i]->GetRenderPosition(), m_pItems[i]->GetRenderSize() ) )
 		{

@@ -14,7 +14,6 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 */
 
-#pragma once
 #ifndef MENU_CHECKBOX_H
 #define MENU_CHECKBOX_H
 
@@ -33,7 +32,8 @@ public:
 
 	CMenuCheckBox();
 	void VidInit() override;
-	const char * Key( int key, int down ) override;
+	bool KeyUp( int key ) override;
+	bool KeyDown( int key ) override;
 	void Draw( void ) override;
 	void UpdateEditable() override;
 	void LinkCvar( const char *name ) override
@@ -50,15 +50,17 @@ public:
 		szGrayedPic = grayed;
 	}
 
-	bool		bChecked;
-	const char	*szEmptyPic;
-	const char	*szFocusPic;
-	const char	*szPressPic;
-	const char	*szCheckPic;
-	const char	*szGrayedPic;	// when QMF_GRAYED is set
+	bool bChecked;
+	bool bInvertMask;
+	bool bChangeOnPressed;
+
+	CImage szEmptyPic;
+	CImage szFocusPic;
+	CImage szPressPic;
+	CImage szCheckPic;
+	CImage szGrayedPic;	// when QMF_GRAYED is set
 
 	unsigned int iMask; // used only for BitMaskCb
-	bool bInvertMask;
 	static void BitMaskCb( CMenuBaseItem *pSelf, void *pExtra )
 	{
 		CMenuCheckBox *self = (CMenuCheckBox*)pSelf;
@@ -74,7 +76,6 @@ public:
 	}
 
 	CColor colorText;
-
 private:
 	Point m_scTextPos;
 	Size m_scTextSize;

@@ -16,7 +16,7 @@ GNU General Public License for more details.
 #ifndef FONTMANAGER_H
 #define FONTMANAGER_H
 
-#include "utl/utlvector.h"
+#include "utlvector.h"
 #include "Primitive.h"
 #include "FontRenderer.h"
 
@@ -80,7 +80,7 @@ private:
 
 // lazy to fix code everywhere
 #ifndef CLIENT_DLL
-extern CFontManager g_FontMgr;
+extern CFontManager *g_FontMgr;
 #endif
 
 #endif // FONTMANAGER_H

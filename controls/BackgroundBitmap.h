@@ -14,15 +14,13 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 */
 
-#pragma once
 #ifndef MENU_BACKGROUNDBITMAP_H
 #define MENU_BACKGROUNDBITMAP_H
 
 #include "Bitmap.h"
+#include "utlvector.h"
 
 #define ART_BACKGROUND		"gfx/shell/splash.bmp"
-
-#define MAX_BACKGROUNDS 48 // SC 5.0 have 35 tiled backgrounds!
 
 // Ultimate class that support multiple types of background: fillColor, WON-style, GameUI-style
 class CMenuBackgroundBitmap: public CMenuBitmap
@@ -61,14 +59,12 @@ private:
 	//=============
 	typedef struct
 	{
-		HIMAGE	hImage;
+		HIMAGE hImage;
 		Point coord;
 		Size size;
 	} bimage_t;
 
-	static int s_iBackgroundCount;
-	static bimage_t s_Backgroudns[MAX_BACKGROUNDS];
-
+	static CUtlVector<bimage_t> s_Backgrounds;
 };
 
 #endif // MENU_BACKGROUNDBITMAP_H

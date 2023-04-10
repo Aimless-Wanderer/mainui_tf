@@ -32,12 +32,13 @@ public:
 	CMenuPlayerModelView();
 	void VidInit() override;
 	void Draw() override;
-	const char *Key(int key, int down) override;
+	bool KeyDown( int key ) override;
+	bool KeyUp( int key ) override;
 	void CalcFov();
 
 	HIMAGE hPlayerImage;
 
-	ref_menu_params_t refdef;
+	ref_viewpass_t refdef;
 	cl_entity_t *ent;
 
 	bool bDrawAsPlayer;

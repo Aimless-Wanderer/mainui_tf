@@ -42,16 +42,16 @@ enum engineAxis_t
 
 static const char *axisNames[7] =
 {
-	"Side Movement",
-	"Forward Movement",
-	"Camera Vertical Turn",
-	"Camera Horizontal Turn",
+	"Side",
+	"Forward",
+	"Yaw",
+	"Pitch",
 	"Right Trigger",
 	"Left Trigger",
 	"NOT BOUND"
 };
 
-static class CMenuGamePad : public CMenuFramework
+class CMenuGamePad : public CMenuFramework
 {
 public:
 	CMenuGamePad() : CMenuFramework("CMenuGamePad") { }
@@ -68,8 +68,7 @@ private:
 	CMenuSpinControl axisBind[6];
 
 	CMenuAction axisBind_label;
-} uiGamePad;
-
+};
 
 /*
 =================
@@ -104,31 +103,31 @@ void CMenuGamePad::GetConfig( void )
 		switch( binding[i] )
 		{
 		case 's':
-			axisBind[i].ForceDisplayString( axisNames[JOY_AXIS_SIDE] );
+			axisBind[i].ForceDisplayString( L( axisNames[JOY_AXIS_SIDE] ) );
 			axisBind[i].SetCurrentValue( JOY_AXIS_SIDE );
 			break;
 		case 'f':
-			axisBind[i].ForceDisplayString( axisNames[JOY_AXIS_FWD] );
+			axisBind[i].ForceDisplayString( L( axisNames[JOY_AXIS_FWD] ) );
 			axisBind[i].SetCurrentValue( JOY_AXIS_FWD );
 			break;
 		case 'p':
-			axisBind[i].ForceDisplayString( axisNames[JOY_AXIS_PITCH] );
+			axisBind[i].ForceDisplayString( L( axisNames[JOY_AXIS_PITCH] ) );
 			axisBind[i].SetCurrentValue( JOY_AXIS_PITCH );
 			break;
 		case 'y':
-			axisBind[i].ForceDisplayString( axisNames[JOY_AXIS_YAW] );
+			axisBind[i].ForceDisplayString( L( axisNames[JOY_AXIS_YAW] ) );
 			axisBind[i].SetCurrentValue( JOY_AXIS_YAW );
 			break;
 		case 'r':
-			axisBind[i].ForceDisplayString( axisNames[JOY_AXIS_RT] );
+			axisBind[i].ForceDisplayString( L( axisNames[JOY_AXIS_RT] ) );
 			axisBind[i].SetCurrentValue( JOY_AXIS_RT );
 			break;
 		case 'l':
-			axisBind[i].ForceDisplayString( axisNames[JOY_AXIS_LT] );
+			axisBind[i].ForceDisplayString( L( axisNames[JOY_AXIS_LT] ) );
 			axisBind[i].SetCurrentValue( JOY_AXIS_LT );
 			break;
 		default:
-			axisBind[i].ForceDisplayString( axisNames[JOY_AXIS_NULL] );
+			axisBind[i].ForceDisplayString( L( axisNames[JOY_AXIS_NULL] ) );
 			axisBind[i].SetCurrentValue( JOY_AXIS_NULL );
 		}
 	}
@@ -192,41 +191,41 @@ void CMenuGamePad::_Init( void )
 {
 	int i, y;
 
-	static CStringArrayModel model( axisNames, ARRAYSIZE( axisNames ) );
+	static CStringArrayModel model( axisNames, V_ARRAYSIZE( axisNames ) );
 
 	banner.SetPicture( ART_BANNER );
 
 	axisBind_label.eTextAlignment = QM_CENTER;
 	axisBind_label.iFlags = QMF_INACTIVE|QMF_DROPSHADOW;
 	axisBind_label.colorBase = uiColorHelp;
-	axisBind_label.szName = "Axis binding map";
+	axisBind_label.szName = L( "Axis binding map" );
 
 	for( i = 0, y = 230; i < 6; i++, y += 50 )
 	{
-		axisBind[i].szStatusText = "Set axis binding";
+		axisBind[i].szStatusText = L( "Set axis binding" );
 		axisBind[i].Setup( &model );
 	}
 
 	side.Setup( 0.0f, 1.0f, 0.1f );
-	side.SetNameAndStatus( "Side", "Side movement sensitity" );
-	invSide.SetNameAndStatus( "Invert", "Invert side movement axis" );
+	side.SetNameAndStatus( L( "Side" ), L( "Side movement sensitity" ) );
+	invSide.SetNameAndStatus( L( "Invert" ), L( "Invert side movement axis" ) );
 
 	forward.Setup( 0.0f, 1.0f, 0.1f );
-	forward.SetNameAndStatus( "Forward", "Forward movement sensitivity" );
-	invFwd.SetNameAndStatus( "Invert", "Invert forward movement axis" );
+	forward.SetNameAndStatus( L( "Forward" ), L( "Forward movement sensitivity" ) );
+	invFwd.SetNameAndStatus( L( "Invert" ), L( "Invert forward movement axis" ) );
 
 	pitch.Setup( 0.0f, 200.0f, 0.1f );
-	pitch.SetNameAndStatus( "Pitch", "Pitch rotating sensitivity" );
-	invPitch.SetNameAndStatus( "Invert", "Invert pitch axis" );
+	pitch.SetNameAndStatus( L( "Look X" ), L( "Horizontal look sensitivity" ) );
+	invPitch.SetNameAndStatus( L( "Invert" ), L( "Invert pitch axis" ) );
 
 	yaw.Setup( 0.0f, 200.0f, 0.1f );
-	yaw.SetNameAndStatus( "Yaw", "Yaw rotating sensitivity" );
-	invYaw.SetNameAndStatus( "Invert", "Invert yaw axis" );
+	yaw.SetNameAndStatus( L( "Look Y" ), L( "Yaw rotating sensitivity" ) );
+	invYaw.SetNameAndStatus( L( "Invert" ), L( "Invert yaw axis" ) );
 
 	AddItem( background );
 	AddItem( banner );
-	AddButton( "Controls", "Change keyboard and mouse settings", PC_CONTROLS, UI_Controls_Menu );
-	AddButton( "Done", "Go back to the Configuration Menu", PC_DONE, VoidCb( &CMenuGamePad::SaveAndPopMenu ) );
+	AddButton( L( "Controls" ), L( "Change keyboard and mouse settings" ), PC_CONTROLS, UI_Controls_Menu );
+	AddButton( L( "Done" ), L( "Go back to the Configuration Menu" ), PC_DONE, VoidCb( &CMenuGamePad::SaveAndPopMenu ) );	// Обе строки уже встречались ранее !!
 	for( i = 0; i < 6; i++ )
 	{
 		AddItem( axisBind[i] );
@@ -274,23 +273,4 @@ void CMenuGamePad::_VidInit()
 	GetConfig();
 }
 
-/*
-=================
-CMenuGamePad::Precache
-=================
-*/
-void UI_GamePad_Precache( void )
-{
-	EngFuncs::PIC_Load( ART_BANNER );
-}
-
-/*
-=================
-CMenuGamePad::Menu
-=================
-*/
-void UI_GamePad_Menu( void )
-{
-	uiGamePad.Show();
-}
-ADD_MENU( menu_gamepad, UI_GamePad_Precache, UI_GamePad_Menu );
+ADD_MENU( menu_gamepad, CMenuGamePad, UI_GamePad_Menu );

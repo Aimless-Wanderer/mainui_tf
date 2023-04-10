@@ -19,12 +19,12 @@ GNU General Public License for more details.
 #include "Action.h"
 #include "Utils.h"
 
-
 CMenuAction::CMenuAction() : BaseClass()
 {
-	m_szBackground = NULL;
+	m_szBackground = 0;
 	m_bfillBackground = false;
 	forceCalcW = forceCalcY = false;
+	bIgnoreColorstring = false;
 }
 
 /*
@@ -46,17 +46,16 @@ void CMenuAction::VidInit( )
 	{
 		if( m_szBackground )
 		{
-			HIMAGE handle = EngFuncs::PIC_Load( m_szBackground );
-			size.w = EngFuncs::PIC_Width( handle );
-			size.h = EngFuncs::PIC_Height( handle );
+			size.w = EngFuncs::PIC_Width( m_szBackground );
+			size.h = EngFuncs::PIC_Height( m_szBackground );
 		}
 		else
 		{
 			if( forceCalcW )
-				size.w = g_FontMgr.GetTextWideScaled( font, szName, charSize ) / uiStatic.scaleX;
+				size.w = g_FontMgr->GetTextWideScaled( font, szName, charSize ) / uiStatic.scaleX;
 
 			if( forceCalcY )
-				size.h = g_FontMgr.GetTextHeightExt( font, szName, charSize, size.w ) / uiStatic.scaleX;
+				size.h = g_FontMgr->GetTextHeightExt( font, szName, charSize, size.w ) / uiStatic.scaleX;
 		}
 
 		m_bLimitBySize = false;
@@ -74,52 +73,37 @@ void CMenuAction::VidInit( )
 CMenuAction::Key
 =================
 */
-const char *CMenuAction::Key( int key, int down )
+bool CMenuAction::KeyUp( int key )
 {
-	const char	*sound = 0;
+	const char *sound = 0;
 
-	switch( key )
+	if( UI::Key::IsEnter( key ) && !(iFlags & QMF_MOUSEONLY) )
+		sound = uiStatic.sounds[SND_LAUNCH];
+	else if( UI::Key::IsLeftMouse( key ) && ( iFlags & QMF_HASMOUSEFOCUS ) )
+		sound = uiStatic.sounds[SND_LAUNCH];
+
+	if( sound )
 	{
-	case K_MOUSE1:
-		if(!( iFlags & QMF_HASMOUSEFOCUS ))
-			break;
-		sound = uiSoundLaunch;
-		break;
-	case K_ENTER:
-	case K_KP_ENTER:
-	case K_AUX1:
-		//if( !down ) return sound;
-		if( iFlags & QMF_MOUSEONLY )
-			break;
-		sound = uiSoundLaunch;
-		break;
+		_Event( QM_PRESSED );
+		PlayLocalSound( sound );
 	}
 
-	if( sound && ( iFlags & QMF_SILENT ))
-		sound = uiSoundNull;
+	return sound != NULL;
+}
 
-	if( iFlags & QMF_ACT_ONRELEASE )
-	{
-		if( sound )
-		{
-			int	event;
+bool CMenuAction::KeyDown( int key )
+{
+	bool handled = false;
 
-			if( down )
-			{
-				event = QM_PRESSED;
-				m_bPressed = true;
-			}
-			else event = QM_ACTIVATED;
-			_Event( event );
-		}
-	}
-	else if( down )
-	{
-		if( sound )
-			_Event( QM_ACTIVATED );
-	}
+	if( UI::Key::IsEnter( key ) && !(iFlags & QMF_MOUSEONLY) )
+		handled = true;
+	else if( UI::Key::IsLeftMouse( key ) && ( iFlags & QMF_HASMOUSEFOCUS ) )
+		handled = true;
 
-	return sound;
+	if( handled )
+		_Event( QM_PRESSED );
+
+	return handled;
 }
 
 /*
@@ -129,12 +113,19 @@ CMenuAction::Draw
 */
 void CMenuAction::Draw( )
 {
-	uint textflags = ( iFlags & QMF_DROPSHADOW ? ETF_SHADOW : 0 ) | ( m_bLimitBySize ? 0 : ETF_NOSIZELIMIT ) | ( bIgnoreColorstring ? ETF_FORCECOL : 0 );
+	uint textflags = 0;
+
+	if( FBitSet( iFlags, QMF_DROPSHADOW ))
+		SetBits( textflags, ETF_SHADOW );
+
+	if( !m_bLimitBySize )
+		SetBits( textflags, ETF_NOSIZELIMIT );
+
+	if( bIgnoreColorstring )
+		SetBits( textflags, ETF_FORCECOL );
 
 	if( bDrawStroke )
-	{
 		UI_DrawRectangleExt( m_scPos, m_scSize, colorStroke, iStrokeWidth );
-	}
 
 	if( m_szBackground )
 	{
@@ -186,7 +177,7 @@ void CMenuAction::Draw( )
 	{
 		int	color;
 
-		color = PackAlpha( colorBase, 255 * (0.5 + 0.5 * sin( (float)uiStatic.realTime / UI_PULSE_DIVISOR )));
+		color = PackAlpha( colorBase, 255 * (0.5f + 0.5f * sin( (float)uiStatic.realTime / UI_PULSE_DIVISOR )));
 
 		UI_DrawString( font, m_scPos, m_scSize, szName, color, m_scChSize, eTextAlignment, textflags );
 	}
@@ -202,7 +193,7 @@ void CMenuAction::SetBackground(const char *path, unsigned int color)
 void CMenuAction::SetBackground(unsigned int color, unsigned int focused )
 {
 	m_bfillBackground = true;
-	m_szBackground = NULL;
+	m_szBackground = 0;
 	m_iBackcolor = color;
 	m_iBackColorFocused = focused;
 }

@@ -54,6 +54,10 @@ public:
 	CMenuCustomGame() : CMenuFramework("CMenuCustomGame") { }
 
 private:
+	void ShowDialog( void )
+	{
+		msgBox.ToggleVisibility();
+	}
 	void ChangeGame( void *pExtra );
 	void Go2Site( void *pExtra );
 	void UpdateExtras( );
@@ -68,8 +72,6 @@ private:
 	CMenuTable	modList;
 	CMenuModListModel modListModel;
 };
-
-static CMenuCustomGame	uiCustomGame;
 
 void CMenuCustomGame::ChangeGame( void *pExtra )
 {
@@ -89,10 +91,10 @@ void CMenuCustomGame::UpdateExtras( )
 {
 	int i = modList.GetCurrentIndex();
 
-	load->onActivated.pExtra = modListModel.modsDir[i];
+	load->onReleased.pExtra = modListModel.modsDir[i];
 	load->SetGrayed( !stricmp( modListModel.modsDir[i], gMenu.m_gameinfo.gamefolder ) );
 
-	go2url->onActivated.pExtra = modListModel.modsWebSites[i];
+	go2url->onReleased.pExtra = modListModel.modsWebSites[i];
 	go2url->SetGrayed( modListModel.modsWebSites[i][0] == 0 );
 
 	msgBox.onPositive.pExtra = modListModel.modsDir[i];
@@ -145,28 +147,27 @@ void CMenuCustomGame::_Init( void )
 {
 	banner.SetPicture( ART_BANNER );
 
+	msgBox.SetMessage( L( "GameUI_ForceGameRestart" ) );
+	msgBox.onPositive = MenuCb( &CMenuCustomGame::ChangeGame );
+	msgBox.Link( this );
+
 	AddItem( background );
 	AddItem( banner );
-	load = AddButton( "Activate", "Activate selected custom game", PC_ACTIVATE,
-		MenuCb( &CMenuCustomGame::ChangeGame ) );
-	load->onActivatedClActive = msgBox.MakeOpenEvent();
+	load = AddButton( L( "Activate" ), L( "Activate selected custom game" ), PC_ACTIVATE,
+		VoidCb( &CMenuCustomGame::ShowDialog ) );
 
-	go2url = AddButton( "Visit web site", "Visit the web site of game developers", PC_VISIT_WEB_SITE,
+	go2url = AddButton( L( "Visit web site" ), L( "Visit the web site of game developers" ), PC_VISIT_WEB_SITE,
 		MenuCb( &CMenuCustomGame::Go2Site ) );
-	AddButton( "Done", "Return to main menu", PC_DONE,
+	AddButton( L( "Done" ), L( "Return to main menu" ), PC_DONE,	// Done - уже где-то было, поэтому в отдельный файл повторно не выношу
 		VoidCb( &CMenuCustomGame::Hide ) );
 
 	modList.onChanged = VoidCb( &CMenuCustomGame::UpdateExtras );
-	modList.SetupColumn( 0, "Type", 0.20f );
-	modList.SetupColumn( 1, "Name", 0.50f );
-	modList.SetupColumn( 2, "Ver",  0.15f );
-	modList.SetupColumn( 3, "Size", 0.15f );
+	modList.SetupColumn( 0, L( "GameUI_Type" ), 0.20f );
+	modList.SetupColumn( 1, L( "Name" ), 0.50f );
+	modList.SetupColumn( 2, L( "Ver" ),  0.15f );
+	modList.SetupColumn( 3, L( "Size" ), 0.15f );
 	modList.SetModel( &modListModel );
 	modList.SetRect( 360, 230, -20, 465 );
-
-	msgBox.SetMessage( "Leave current game?" );
-	msgBox.onPositive = MenuCb( &CMenuCustomGame::ChangeGame );
-	msgBox.Link( this );
 
 	AddItem( modList );
 
@@ -182,27 +183,4 @@ void CMenuCustomGame::_Init( void )
 	}
 }
 
-/*
-=================
-UI_CustomGame_Precache
-=================
-*/
-void UI_CustomGame_Precache( void )
-{
-	EngFuncs::PIC_Load( ART_BANNER );
-}
-
-/*
-=================
-UI_CustomGame_Menu
-=================
-*/
-void UI_CustomGame_Menu( void )
-{
-	// current instance is not support game change
-	if( !EngFuncs::GetCvarFloat( "host_allow_changegame" ))
-		return;
-
-	uiCustomGame.Show();
-}
-ADD_MENU( menu_customgame, UI_CustomGame_Precache, UI_CustomGame_Menu );
+ADD_MENU( menu_customgame, CMenuCustomGame, UI_CustomGame_Menu );

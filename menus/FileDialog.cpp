@@ -63,9 +63,6 @@ private:
 	} preview;
 };
 
-static CMenuFileDialog uiFileDialog;
-
-
 void CMenuFileDialog::CPreview::Draw()
 {
 	UI_FillRect( m_scPos.x - 2, m_scPos.y - 2,  m_scSize.w + 4, m_scSize.h + 4, 0xFFC0C0C0 );
@@ -140,8 +137,8 @@ void CMenuFileDialog::_Init( void )
 
 	AddItem( background );
 	// AddItem( banner );
-	AddButton( "Done", "Use selected file", PC_DONE, VoidCb( &CMenuFileDialog::SaveAndPopMenu ) );
-	AddButton( "Cancel", "Cancel file selection", PC_CANCEL, VoidCb( &CMenuFileDialog::RejectChanges ) );
+	AddButton( L( "Done" ), L( "Use selected file" ), PC_DONE, VoidCb( &CMenuFileDialog::SaveAndPopMenu ) );
+	AddButton( L( "GameUI_Cancel" ), L( "Cancel file selection" ), PC_CANCEL, VoidCb( &CMenuFileDialog::RejectChanges ) );
 	AddItem( preview );
 	AddItem( fileList );
 }
@@ -151,13 +148,4 @@ void CMenuFileDialog::_VidInit()
 	preview.SetVisibility( uiFileDialogGlobal.preview );
 }
 
-/*
-=================
-UI_FileDialog_Menu
-=================
-*/
-void UI_FileDialog_Menu( void )
-{
-	uiFileDialog.Show();
-}
-ADD_MENU( menu_filedialog, NULL, UI_FileDialog_Menu );
+ADD_MENU( menu_filedialog, CMenuFileDialog, UI_FileDialog_Menu );

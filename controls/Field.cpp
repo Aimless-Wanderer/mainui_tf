@@ -20,7 +20,7 @@ GNU General Public License for more details.
 #include "Utils.h"
 
 
-CMenuField::CMenuField() : BaseClass(), szBuffer()
+CMenuField::CMenuField() : BaseClass()
 {
 	bAllowColorstrings = true;
 	bHideInput = false;
@@ -35,7 +35,8 @@ CMenuField::CMenuField() : BaseClass(), szBuffer()
 	iCursor = 0;
 	iScroll = 0;
 	iRealWidth = 0;
-	szBackground = NULL;
+	szBackground = 0;
+	szBuffer[0] = 0;
 }
 
 void CMenuField::Init()
@@ -56,7 +57,7 @@ void CMenuField::VidInit( void )
 	BaseClass::VidInit();
 
 	iCursor = strlen( szBuffer );
-	iScroll = g_FontMgr.CutText( font, szBuffer, m_scChSize, iRealWidth, true );
+	iScroll = g_FontMgr->CutText( font, szBuffer, m_scChSize, iRealWidth, true );
 
 	iRealWidth = m_scSize.w - UI_OUTLINE_WIDTH * 2;
 }
@@ -117,7 +118,6 @@ void CMenuField::Paste( void )
 	pasteLen = strlen( str );
 	for( i = 0; i < pasteLen; i++ )
 		Char( str[i] );
-	FREE( str );
 }
 
 /*
@@ -132,152 +132,136 @@ void CMenuField::Clear( void )
 	iScroll = 0;
 }
 
-
 /*
 =================
 CMenuField::Key
 =================
 */
-const char *CMenuField::Key( int key, int down )
+bool CMenuField::KeyDown( int key )
 {
-	int	len;
-	int dummy;
-
-	if( !down ) return 0;
+	bool handled = false;
 
 	// clipboard paste
-	if((( key == K_INS ) || ( key == K_KP_INS )) && EngFuncs::KEY_IsDown( K_SHIFT ))
+	if( UI::Key::IsInsert( key ) && EngFuncs::KEY_IsDown( K_SHIFT ))
 	{
 		Paste();
-		return 0;
+		handled = true;
 	}
-
-	len = strlen( szBuffer );
-
-	if( key == K_INS )
+	else
 	{
-		// toggle overstrike mode
-		EngFuncs::KEY_SetOverstrike( !EngFuncs::KEY_GetOverstrike( ));
-		return uiSoundNull; // handled
-	}
-
-	// previous character
-	if( key == K_LEFTARROW )
-	{
-		if( iCursor > 0 ) iCursor = EngFuncs::UtfMoveLeft( szBuffer, iCursor );
-		if( iCursor < iScroll ) iScroll = EngFuncs::UtfMoveLeft( szBuffer, iScroll );
-		return uiSoundNull;
-	}
-
-	// next character
-	if( key == K_RIGHTARROW )
-	{
-		bool remaining;
-
-		int maxIdx = g_FontMgr.CutText( font, szBuffer + iScroll, m_scChSize, iRealWidth, false, false, NULL, &remaining );
-
-		if( iCursor < len ) iCursor = EngFuncs::UtfMoveRight( szBuffer, iCursor, len );
-		if( remaining && iCursor > maxIdx ) iScroll = EngFuncs::UtfMoveRight( szBuffer, iScroll, len );
-
-		return uiSoundNull;
-	}
-
-	// first character
-	if( key == K_HOME )
-	{
-		iCursor = 0;
-		iScroll = 0;
-		return uiSoundNull;
-	}
-
-	// last character
-	if( key == K_END )
-	{
-		iCursor = len;
-		iScroll = g_FontMgr.CutText( font, szBuffer, m_scChSize, iRealWidth, true );
-		return uiSoundNull;
-	}
-
-	if( key == K_BACKSPACE )
-	{
-		if( iCursor > 0 )
+		int len = strlen( szBuffer );
+		handled = true; // predict state
+		if( UI::Key::IsInsert( key ))
 		{
-			int pos = EngFuncs::UtfMoveLeft( szBuffer, iCursor );
-			memmove( szBuffer + pos, szBuffer + iCursor, len - iCursor + 1 );
-			iCursor = pos;
-			if( iScroll )
-				iScroll = EngFuncs::UtfMoveLeft( szBuffer, iScroll );
+			EngFuncs::KEY_SetOverstrike( !EngFuncs::KEY_GetOverstrike( ));
 		}
-	}
-	if( key == K_DEL )
-	{
-		if( iCursor < len )
+		else if( UI::Key::IsLeftArrow( key ))
 		{
-			int pos = EngFuncs::UtfMoveRight( szBuffer, iCursor, len );
-			memmove( szBuffer + iCursor, szBuffer + pos, len - pos + 1 );
-
-			iScroll = g_FontMgr.CutText( font, szBuffer, m_scChSize, iRealWidth, true );
+			if( iCursor > 0 ) iCursor = EngFuncs::UtfMoveLeft( szBuffer, iCursor );
+			if( iCursor < iScroll ) iScroll = EngFuncs::UtfMoveLeft( szBuffer, iScroll );
 		}
-	}
-
-	if( key == K_MOUSE1 )
-	{
-		float y = m_scPos.y;
-
-		if( y > ScreenHeight - size.h - 40 )
-			y = ScreenHeight - size.h - 15;
-
-		if( UI_CursorInRect( m_scPos.x, y, m_scSize.w, m_scSize.h ) )
+		else if( UI::Key::IsRightArrow( key ))
 		{
-			int x, charpos;
-			int w = 0;
 			bool remaining;
-			int newScroll = iScroll;
 
-			int iWidthInChars = g_FontMgr.CutText( font, szBuffer + iScroll, m_scChSize, iRealWidth, false, false, &w, &remaining );
+			int maxIdx = g_FontMgr->CutText( font, szBuffer + iScroll, m_scChSize, iRealWidth, false, false, NULL, &remaining );
 
-			if( eTextAlignment & QM_LEFT )
-			{
-				x = m_scPos.x;
-			}
-			else if( eTextAlignment & QM_RIGHT )
-			{
-				x = m_scPos.x + (m_scSize.w - w);
-				if( remaining )
-				{
-					// add extra space for left char
-					if( newScroll > 0 )
-						newScroll--;
-					if( iWidthInChars > 0 )
-						iWidthInChars--;
-				}
-			}
-			else
-			{
-				x = m_scPos.x + (m_scSize.w - w) / 2;
-			}
-			charpos = g_FontMgr.CutText(font, szBuffer + newScroll, m_scChSize, uiStatic.cursorX - x, false, false, &w, &remaining );
-
-			iCursor = charpos + iScroll;
+			if( iCursor < len ) iCursor = EngFuncs::UtfMoveRight( szBuffer, iCursor, len );
+			if( remaining && iCursor > maxIdx ) iScroll = EngFuncs::UtfMoveRight( szBuffer, iScroll, len );
+		}
+		else if( UI::Key::IsHome( key ))
+		{
+			iCursor = iScroll = 0;
+		}
+		else if( UI::Key::IsEnd( key ))
+		{
+			iCursor = len;
+			iScroll = g_FontMgr->CutText( font, szBuffer, m_scChSize, iRealWidth, true );
+		}
+		else if( UI::Key::IsBackspace( key ))
+		{
 			if( iCursor > 0 )
 			{
-				iCursor = EngFuncs::UtfMoveLeft( szBuffer, iCursor );
-				iCursor = EngFuncs::UtfMoveRight( szBuffer, iCursor, len );
+				int pos = EngFuncs::UtfMoveLeft( szBuffer, iCursor );
+				memmove( szBuffer + pos, szBuffer + iCursor, len - iCursor + 1 );
+				iCursor = pos;
+				if( iScroll )
+					iScroll = EngFuncs::UtfMoveLeft( szBuffer, iScroll );
 			}
-			if( charpos == 0 && iScroll )
-				iScroll = EngFuncs::UtfMoveLeft( szBuffer, iScroll );
-			if( charpos >= iWidthInChars && remaining )
-				iScroll = EngFuncs::UtfMoveRight( szBuffer, iScroll, len );
-			if( iScroll > len )
-				iScroll = len;
-			if( iCursor > len )
-				iCursor = len;
 		}
+		else if( UI::Key::IsDelete( key, true ))
+		{
+			if( iCursor < len )
+			{
+				int pos = EngFuncs::UtfMoveRight( szBuffer, iCursor, len );
+				memmove( szBuffer + iCursor, szBuffer + pos, len - pos + 1 );
+
+				iScroll = g_FontMgr->CutText( font, szBuffer, m_scChSize, iRealWidth, true );
+			}
+		}
+		else if( UI::Key::IsLeftMouse( key ))
+		{
+			float y = m_scPos.y;
+
+			if( y > ScreenHeight - size.h - 40 )
+				y = ScreenHeight - size.h - 15;
+
+			if( UI_CursorInRect( m_scPos.x, y, m_scSize.w, m_scSize.h ) )
+			{
+				int x, charpos;
+				int w = 0;
+				bool remaining;
+				int newScroll = iScroll;
+
+				int iWidthInChars = g_FontMgr->CutText( font, szBuffer + iScroll, m_scChSize, iRealWidth, false, false, &w, &remaining );
+
+				if( eTextAlignment & QM_LEFT )
+				{
+					x = m_scPos.x;
+				}
+				else if( eTextAlignment & QM_RIGHT )
+				{
+					x = m_scPos.x + (m_scSize.w - w);
+					if( remaining )
+					{
+						// add extra space for left char
+						if( newScroll > 0 )
+							newScroll--;
+						if( iWidthInChars > 0 )
+							iWidthInChars--;
+					}
+				}
+				else
+				{
+					x = m_scPos.x + (m_scSize.w - w) / 2;
+				}
+				charpos = g_FontMgr->CutText(font, szBuffer + newScroll, m_scChSize, uiStatic.cursorX - x, false, false, &w, &remaining );
+
+				iCursor = charpos + iScroll;
+				if( iCursor > 0 )
+				{
+					iCursor = EngFuncs::UtfMoveLeft( szBuffer, iCursor );
+					iCursor = EngFuncs::UtfMoveRight( szBuffer, iCursor, len );
+				}
+				if( charpos == 0 && iScroll )
+					iScroll = EngFuncs::UtfMoveLeft( szBuffer, iScroll );
+				if( charpos >= iWidthInChars && remaining )
+					iScroll = EngFuncs::UtfMoveRight( szBuffer, iScroll, len );
+				if( iScroll > len )
+					iScroll = len;
+				if( iCursor > len )
+					iCursor = len;
+			}
+		}
+		else handled = false;
 	}
 
-	SetCvarString( szBuffer );
-	_Event( QM_CHANGED );
-	return uiSoundNull;
+	if( handled )
+	{
+		SetCvarString( szBuffer );
+		_Event( QM_CHANGED );
+	}
+	return handled; // handled
 }
 
 /*
@@ -288,19 +272,19 @@ CMenuField::Char
 void CMenuField::Char( int key )
 {
 	int	len;
+	bool changed = false;
 
 	if( key == 'v' - 'a' + 1 )
 	{
 		// ctrl-v is paste
 		Paste();
-		return;
+		changed = true;
 	}
-
-	if( key == 'c' - 'a' + 1 )
+	else if( key == 'c' - 'a' + 1 )
 	{
 		// ctrl-c clears the field
 		Clear( );
-		return;
+		changed = true;
 	}
 
 	len = strlen( szBuffer );
@@ -310,35 +294,27 @@ void CMenuField::Char( int key )
 		// ctrl-a is home
 		iCursor = 0;
 		iScroll = 0;
-		return;
 	}
-
-	if( key == 'e' - 'a' + 1 )
+	else if( key == 'e' - 'a' + 1 )
 	{
 		// ctrl-e is end
 		iCursor = len;
-		iScroll = g_FontMgr.CutText( font, szBuffer, m_scChSize, iRealWidth, true );
-		return;
+		iScroll = g_FontMgr->CutText( font, szBuffer, m_scChSize, iRealWidth, true );
 	}
-
-	// ignore any other non printable chars
-	//if( key < 32 ) return;
-
-	if( key == '^' && !( bAllowColorstrings ))
+	else if( key == '^' && !( bAllowColorstrings ))
 	{
 		// ignore color key-symbol
 		return;
 	}
-
-	if( bNumbersOnly )
+	else if( bNumbersOnly )
 	{
 		if( key < '0' || key > '9' )
 			return;
 	}
-
-	// non-printable
-	if( key < 32 )
+	else if( key < 32 )	// non-printable
+	{
 		return;
+	}
 
 	if( eLetterCase == QM_LOWERCASE )
 		key = tolower( key );
@@ -362,6 +338,7 @@ void CMenuField::Char( int key )
 
 		szBuffer[iCursor] = key;
 		iCursor++;
+		changed = true;
 	}
 	else
 	{
@@ -370,12 +347,14 @@ void CMenuField::Char( int key )
 		memmove( szBuffer + iCursor + 1, szBuffer + iCursor, len + 1 - iCursor );
 		szBuffer[iCursor] = key;
 		iCursor++;
+		changed = true;
 	}
 
 	if( iCursor > len )
 	{
 		szBuffer[iCursor] = 0;
-		iScroll = g_FontMgr.CutText( font, szBuffer, m_scChSize, iRealWidth, true );
+		iScroll = g_FontMgr->CutText( font, szBuffer, m_scChSize, iRealWidth, true );
+		changed = true;
 	}
 
 	SetCvarString( szBuffer );
@@ -425,7 +404,7 @@ void CMenuField::Draw( void )
 		cursor_char[0] = 11;
 	else cursor_char[0] = '_';
 
-	drawLen = g_FontMgr.CutText( font, szBuffer + iScroll, m_scChSize, m_scSize.w, false );
+	drawLen = g_FontMgr->CutText( font, szBuffer + iScroll, m_scChSize, m_scSize.w, false );
 	len = strlen( szBuffer ) + 1;
 
 	// guarantee that cursor will be visible
@@ -512,20 +491,20 @@ void CMenuField::Draw( void )
 	}
 	else if( eTextAlignment & QM_RIGHT )
 	{
-		x = newPos.x + (m_scSize.w - g_FontMgr.GetTextWideScaled( font, text, m_scChSize ) );
+		x = newPos.x + (m_scSize.w - g_FontMgr->GetTextWideScaled( font, text, m_scChSize ) );
 	}
 	else
 	{
-		x = newPos.x + (m_scSize.w - g_FontMgr.GetTextWideScaled( font, text, m_scChSize )) / 2;
+		x = newPos.x + (m_scSize.w - g_FontMgr->GetTextWideScaled( font, text, m_scChSize )) / 2;
 	}
 
 	UI_DrawString( font, newPos, m_scSize, text, colorBase, m_scChSize, eTextAlignment, textflags );
 
-	int cursorOffset = cursor? g_FontMgr.GetTextWideScaled( font, text, m_scChSize, cursor ):0;
+	int cursorOffset = cursor? g_FontMgr->GetTextWideScaled( font, text, m_scChSize, cursor ):0;
 
 	// int cursorOffset = 0;
 
-	int cursor_char_width = g_FontMgr.GetTextWideScaled( font, cursor_char, m_scChSize );
+	int cursor_char_width = g_FontMgr->GetTextWideScaled( font, cursor_char, m_scChSize );
 
 	if(( uiStatic.realTime & 499 ) < 250 )
 		UI_DrawString( font, x + cursorOffset, y, cursor_char_width, m_scSize.h, cursor_char, colorBase, m_scChSize, QM_LEFT, textflags | ETF_FORCECOL );
@@ -543,7 +522,7 @@ void CMenuField::Draw( void )
 	{
 		uint	color;
 
-		color = PackAlpha( colorBase, 255 * (0.5 + 0.5 * sin( (float)uiStatic.realTime / UI_PULSE_DIVISOR )));
+		color = PackAlpha( colorBase, 255 * (0.5f + 0.5f * sin( (float)uiStatic.realTime / UI_PULSE_DIVISOR )));
 		UI_DrawString( font, newPos, m_scSize, text, color, m_scChSize, eTextAlignment, textflags );
 
 		if(( uiStatic.realTime & 499 ) < 250 )

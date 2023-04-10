@@ -34,6 +34,7 @@ class CMenuInputDevices : public CMenuFramework
 private:
 	void _Init( void ) override;
 	void _VidInit( void ) override;
+	bool DrawAnimation() override { return true; }
 
 	void GetConfig( void );
 	void SaveAndPopMenu( void ) override;
@@ -44,8 +45,6 @@ public:
 	CMenuPicButton done, evdev;
 	CMenuCheckBox mouse, touch, joystick;
 };
-
-static CMenuInputDevices	uiInputDevices;
 
 /*
 =================
@@ -77,15 +76,14 @@ UI_AdvControls_Init
 void CMenuInputDevices::_Init( void )
 {
 	//banner.SetPicture( ART_BANNER );
-	eTransitionType = ANIM_OUT;
 
-	done.SetNameAndStatus( "Done", "save changed and go back to the Customize Menu" );
+	done.SetNameAndStatus( L( "Done" ), L( "Save changed and go back to the Customize Menu" ) );
 	done.SetPicture( PC_DONE );
-	done.onActivated = VoidCb( &CMenuInputDevices::SaveAndPopMenu );
+	done.onReleased = VoidCb( &CMenuInputDevices::SaveAndPopMenu );
 	done.SetCoord( 72, 680 );
 
-	mouse.szName = "Ignore mouse";
-	mouse.szStatusText = "Need for some servers. Will disable mouse in menu too";
+	mouse.szName = L( "Ignore mouse" );
+	mouse.szStatusText = L( "Need for some servers. Will disable mouse in menu too" );
 	mouse.iFlags |= QMF_NOTIFY;
 #ifndef __ANDROID__
 	SET_EVENT_MULTI( mouse.onChanged,
@@ -93,32 +91,33 @@ void CMenuInputDevices::_Init( void )
 		if( ((CMenuCheckBox*)pSelf)->bChecked )
 		{
 			static CMenuYesNoMessageBox msgbox(false);
-			msgbox.SetMessage("If you do not have touchscreen, or joystick, you will not be able to play without mouse."
-				"Are you sure to disable mouse?");
+			msgbox.SetMessage(L( "If you do not have touchscreen, or joystick, you will not be able to play without mouse."
+				"Are you sure to disable mouse?" ) );
 			SET_EVENT_MULTI( msgbox.onNegative,
 			{
-				uiInputDevices.mouse.bChecked = false;
+				pSelf->GetParent(CMenuInputDevices)->mouse.bChecked = false;
 			});
-
+			msgbox.Link(pSelf->GetParent(CMenuInputDevices));
 			msgbox.Show();
 		}
 	});
 #endif
+
 	mouse.SetCoord( 72, 230 );
 
-	touch.szName = "Enable touch";
-	touch.szStatusText = "On-screen controls for touchscreen";
+	touch.szName = L( "Enable touch" );
+	touch.szStatusText = L( "On-screen controls for touchscreen" );
 	touch.iFlags |= QMF_NOTIFY;
 	touch.SetCoord( 72, 280 );
 
-	joystick.szName = "Enable joystick";
+	joystick.szName = L( "GameUI_JoystickLabel" );
 	joystick.SetCoord( 72, 330 );
 
-	evdev.szName = "Evdev input (root)";
-	evdev.szStatusText = "Press this to enable full mouse and keyboard control on Android";
+	evdev.szName = L( "Evdev input (root)" );
+	evdev.szStatusText = L( "Press this to enable full mouse and keyboard control on Android" );
 	evdev.iFlags |= QMF_NOTIFY;
 	evdev.SetCoord( 72, 380 );
-	evdev.onActivated.SetCommand( FALSE, "evdev_autodetect\n" );
+	evdev.onReleased.SetCommand( FALSE, "evdev_autodetect\n" );
 
 	AddItem( background );
 	//AddItem( banner );
@@ -137,12 +136,4 @@ void CMenuInputDevices::_VidInit()
 	GetConfig();
 }
 
-/*
-=================
-UI_AdvControls_Menu
-=================
-*/
-void UI_InputDevices_Menu( void )
-{
-	uiInputDevices.Show();
-}
+ADD_MENU( menu_inputdevices, CMenuInputDevices, UI_InputDevices_Menu );

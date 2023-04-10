@@ -30,16 +30,14 @@ class CMenuTouchEdit : public CMenuFramework
 public:
 	CMenuTouchEdit() : CMenuFramework( "CMenuTouchEdit" ) { }
 
-	void Show();
-	void Hide();
-	void Draw();
-	bool DrawAnimation(EAnimation anim);
-	const char *Key(int key, int down);
+	void Show() override;
+	void Hide() override;
+	void Draw() override;
+	bool DrawAnimation() override;
+	bool KeyDown( int key ) override;
 private:
 	float saveTouchEnable;
 };
-
-static CMenuTouchEdit uiTouchEdit;
 
 void CMenuTouchEdit::Show()
 {
@@ -61,7 +59,7 @@ void CMenuTouchEdit::Hide()
 	CMenuFramework::Hide();
 }
 
-bool CMenuTouchEdit::DrawAnimation(EAnimation anim)
+bool CMenuTouchEdit::DrawAnimation()
 {
 	return true;
 }
@@ -85,33 +83,15 @@ void CMenuTouchEdit::Draw( void )
 UI_TouchEdit_KeyFunc
 =================
 */
-const char *CMenuTouchEdit::Key( int key, int down )
+bool CMenuTouchEdit::KeyDown( int key )
 {
-	if( down && UI::Key::IsEscape( key ) )
+	if( UI::Key::IsEscape( key ) )
 	{
 		Hide();
-		return uiSoundOut;
+		PlayLocalSound( uiStatic.sounds[SND_OUT] );
+		return true;
 	}
-	return uiSoundNull;
+	return false;
 }
 
-/*
-=================
-UI_TouchEdit_Precache
-=================
-*/
-void UI_TouchEdit_Precache( void )
-{
-
-}
-
-/*
-=================
-UI_TouchEdit_Menu
-=================
-*/
-void UI_TouchEdit_Menu( void )
-{
-	uiTouchEdit.Show();
-}
-ADD_MENU( menu_touchedit, UI_TouchEdit_Precache, UI_TouchEdit_Menu );
+ADD_MENU( menu_touchedit, CMenuTouchEdit, UI_TouchEdit_Menu );

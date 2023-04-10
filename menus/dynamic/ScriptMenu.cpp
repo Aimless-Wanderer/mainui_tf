@@ -96,7 +96,7 @@ CMenuScriptConfigPage::CMenuScriptConfigPage() : CMenuItemsHolder()
 
 CMenuScriptConfigPage::~CMenuScriptConfigPage()
 {
-	for( int i = 0; i < m_numItems; i++ )
+	FOR_EACH_VEC( m_pItems, i )
 	{
 		delete m_pItems[i];
 	}
@@ -117,7 +117,7 @@ void CMenuScriptConfigPage::PrepareItem(CMenuEditable &item)
 
 void CMenuScriptConfigPage::Save()
 {
-	for( int i = 0; i < m_numItems; i++ )
+	FOR_EACH_VEC( m_pItems, i )
 	{
 		((CMenuEditable*)m_pItems[i])->WriteCvar();
 	}
@@ -174,8 +174,8 @@ void CMenuScriptConfig::_Init( void )
 {
 	AddItem( background );
 	AddItem( banner );
-	AddButton( "Done", "Save and Go back to previous menu", PC_DONE, VoidCb( &CMenuScriptConfig::SaveAndPopMenu ) );
-	AddButton( "Cancel", "Go back to previous menu", PC_CANCEL, VoidCb( &CMenuScriptConfig::Hide ) );
+	AddButton( L( "Done" ), L( "Save and Go back to previous menu" ), PC_DONE, VoidCb( &CMenuScriptConfig::SaveAndPopMenu ) );
+	AddButton( L( "GameUI_Cancel" ), L( "Go back to the previous menu" ), PC_CANCEL, VoidCb( &CMenuScriptConfig::Hide ) );
 
 	if( !m_pVars )
 		return;
@@ -191,7 +191,7 @@ void CMenuScriptConfig::_Init( void )
 	page->Show();
 	m_iCurrentPage = 0;
 	m_iPagesCount = 1;
-	m_iPagesIndex = m_numItems;
+	m_iPagesIndex = m_pItems.Count();
 	AddItem( page );
 
 	for( scrvardef_t *var = m_pVars; var; var = var->next )
@@ -302,29 +302,14 @@ void CMenuScriptConfig::SetScriptConfig(const char *path, bool earlyInit)
 		CSCR_FreeList( m_pVars );
 
 	m_pVars = CSCR_LoadDefaultCVars( m_szConfig, &m_iVarsCount );
-
-#if 0
-	if( earlyInit ) // create variables if engine does not support SCR
-	{
-		// Xash3D FWGS have internal SCR parser
-		// Unkle Mike's does not(as of 3598 build)
-		if( !EngFuncs::GetCvarFloat("host_build") && EngFuncs::GetCvarFloat("build"))
-		{
-			for( scrvardef_t *var = m_pVars; var; var = var->next )
-			{
-				EngFuncs::CvarRegister( var->name, var->value, var->flags );
-			}
-		}
-	}
-#endif
 }
 
 void CMenuScriptConfig::FlipMenu( void )
 {
 	int newIndex = (int)pageSelector.GetCurrentValue() - 1;
 
-	CMenuScriptConfigPage *oldPage = *((CMenuScriptConfigPage**)m_pItems + m_iPagesIndex + m_iCurrentPage);
-	CMenuScriptConfigPage *newPage = *((CMenuScriptConfigPage**)m_pItems + m_iPagesIndex + newIndex);
+	CMenuScriptConfigPage *oldPage = (CMenuScriptConfigPage *)m_pItems[m_iPagesIndex + m_iCurrentPage];
+	CMenuScriptConfigPage *newPage = (CMenuScriptConfigPage *)m_pItems[m_iPagesIndex + newIndex];
 
 	oldPage->Hide();
 	newPage->Show();
@@ -332,36 +317,36 @@ void CMenuScriptConfig::FlipMenu( void )
 	m_iCurrentPage = newIndex;
 }
 
-static CMenuScriptConfig staticServerOptions;
-static CMenuScriptConfig staticUserOptions;
+ADD_MENU3( menu_serveroptions, CMenuScriptConfig, UI_AdvServerOptions_Menu );
+ADD_MENU3( menu_useroptions, CMenuScriptConfig, UI_AdvUserOptions_Menu );
 
 void UI_AdvServerOptions_Menu()
 {
-	staticServerOptions.banner.SetPicture( ART_BANNER_SERVER );
-	staticUserOptions.szName = "Server Options";
-	staticServerOptions.Show();
+	menu_serveroptions->banner.SetPicture( ART_BANNER_SERVER );
+	menu_serveroptions->szName = L( "Server Options" );
+	menu_serveroptions->Show();
 }
 
 void UI_AdvUserOptions_Menu()
 {
-	staticUserOptions.banner.SetPicture( ART_BANNER_USER );
-	staticUserOptions.szName = "User Options";
-	staticUserOptions.Show();
+	menu_useroptions->banner.SetPicture( ART_BANNER_USER );
+	menu_useroptions->szName = L( "GameUI_MultiplayerAdvanced" );
+	menu_useroptions->Show();
 }
 
 void UI_LoadScriptConfig()
 {
 	// yes, create cvars if needed
-	staticServerOptions.SetScriptConfig( "settings.scr", true );
-	staticUserOptions.SetScriptConfig( "user.scr", true );
+	menu_serveroptions->SetScriptConfig( "settings.scr", true );
+	menu_useroptions->SetScriptConfig( "user.scr", true );
 }
 
 bool UI_AdvUserOptions_IsAvailable()
 {
-	return staticUserOptions.m_pVars != NULL;
+	return menu_useroptions->m_pVars != NULL;
 }
 
 bool UI_AdvServerOptions_IsAvailable()
 {
-	return staticServerOptions.m_pVars != NULL;
+	return menu_serveroptions->m_pVars != NULL;
 }

@@ -11,7 +11,7 @@ enum EFontFlags
 	FONT_UNDERLINE = 1 << 1,
 	FONT_STRIKEOUT = 1 << 2
 };
-
+#ifndef MAINUI_SMALL_SCREEN
 #define UI_CONSOLE_CHAR_WIDTH	9
 #define UI_CONSOLE_CHAR_HEIGHT  18
 
@@ -27,7 +27,22 @@ enum EFontFlags
 #else
 #define UI_BIG_CHAR_WIDTH		20
 #define UI_BIG_CHAR_HEIGHT		40
+#endif // CS16CLIENT
+#else // MAINUI_SMALL_SCREEN
+
+#define UI_CONSOLE_CHAR_WIDTH	30
+#define UI_CONSOLE_CHAR_HEIGHT  60
+
+#define UI_SMALL_CHAR_WIDTH		30
+#define UI_SMALL_CHAR_HEIGHT	60
+
+#define UI_MED_CHAR_WIDTH		35
+#define UI_MED_CHAR_HEIGHT		70
+
+#define UI_BIG_CHAR_WIDTH		35
+#define UI_BIG_CHAR_HEIGHT		70
 #endif
+
 
 enum EFontSizes
 {
@@ -39,10 +54,6 @@ enum EFontSizes
 	QM_SMALLFONT,       // small
 	QM_BIGFONT,         // big
 	QM_BOLDFONT,
-#ifdef MAINUI_RENDER_PICBUTTON_TEXT
-	QM_LIGHTBLUR,
-	QM_HEAVYBLUR
-#endif
 };
 
 class CFontBuilder
@@ -57,6 +68,9 @@ public:
 		m_iFlags = FONT_NONE;
 		m_iBlur = m_iScanlineOffset = m_iOutlineSize = 0;
 		m_hForceHandle = -1;
+
+		m_fScanlineScale = 0.7f;
+		m_fBrighten = 1.0f;
 	}
 
 	CFontBuilder &SetBlurParams( int blur, float brighten = 1.0f )
@@ -100,7 +114,6 @@ private:
 	float m_fBrighten;
 
 	int m_iOutlineSize;
-	int m_iPreferredType;
 
 	int m_iScanlineOffset;
 	float m_fScanlineScale;

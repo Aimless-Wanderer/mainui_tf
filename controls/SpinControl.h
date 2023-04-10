@@ -14,7 +14,6 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 */
 
-#pragma once
 #ifndef MENU_SPINCONTROL_H
 #define MENU_SPINCONTROL_H
 
@@ -29,7 +28,8 @@ public:
 	CMenuSpinControl();
 
 	void VidInit( void ) override;
-	const char * Key( int key, int down ) override;
+	bool KeyUp( int key ) override;
+	bool KeyDown( int key ) override;
 	void Draw( void ) override;
 	void UpdateEditable() override;
 
@@ -42,7 +42,7 @@ public:
 	void SetCurrentValue( float curValue );
 
 	float GetCurrentValue( ) { return m_flCurValue; }
-	const char *GetCurrentString( ) { return m_pModel->GetText( (int)m_flCurValue ); }
+	const char *GetCurrentString( ) { return m_pModel ? m_pModel->GetText( (int)m_flCurValue ) : NULL; }
 
 	void ForceDisplayString( const char *display );
 
@@ -51,15 +51,15 @@ private:
 	const char *MoveRight();
 	void Display();
 
-	const char	*m_szBackground;
-	const char	*m_szLeftArrow;
-	const char	*m_szRightArrow;
-	const char	*m_szLeftArrowFocus;
-	const char	*m_szRightArrowFocus;
-	float		m_flMinValue;
-	float		m_flMaxValue;
-	float		m_flCurValue;
-	float		m_flRange;
+	CImage m_szBackground;
+	CImage m_szLeftArrow;
+	CImage m_szRightArrow;
+	CImage m_szLeftArrowFocus;
+	CImage m_szRightArrowFocus;
+	float  m_flMinValue;
+	float  m_flMaxValue;
+	float  m_flCurValue;
+	float  m_flRange;
 
 	CMenuBaseArrayModel *m_pModel;
 	short m_iFloatPrecision;

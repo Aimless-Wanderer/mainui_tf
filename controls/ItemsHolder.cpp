@@ -21,45 +21,57 @@ GNU General Public License for more details.
 #include <string.h>
 
 CMenuItemsHolder::CMenuItemsHolder() :
-	BaseClass(), m_iCursor( 0 ), m_iCursorPrev( 0 ), m_pItems( ), m_numItems( 0 ),
-	m_events(), m_numEvents( 0 ), m_bInit( false ),
-	m_bWrapCursor( true ), m_szResFile( 0 )
+	BaseClass(), m_iCursor( 0 ), m_iCursorPrev( 0 ), m_pItems( ),
+	m_events(), m_bInit( false ),
+	m_bWrapCursor( true ), m_szResFile( 0 ), m_pItemAtCursorOnDown( 0 )
 {
 	;
 }
 
-const char *CMenuItemsHolder::Key( int key, int down )
+bool CMenuItemsHolder::Key( const int key, const bool down )
 {
-	const char *sound = uiSoundNull;
+	bool handled = false;
 
-	if( m_numItems )
+	if( !m_pItems.Count() )
+		return false;
+
+	CMenuBaseItem *item = NULL;
+	int cursorPrev;
+
+	if( down )
 	{
-		CMenuBaseItem *item = ItemAtCursor();
-		int cursorPrev;
+		item = ItemAtCursor();
+		m_pItemAtCursorOnDown = item;
+	}
+	else
+	{
+		// don't send released event to item, which don't got pressed before!
+		if( m_pItemAtCursorOnDown && m_pItemAtCursorOnDown->m_pParent == this )
+			item = m_pItemAtCursorOnDown;
+		m_pItemAtCursorOnDown = NULL;
+	}
 
-		if( item && item->IsVisible() && !(item->iFlags & (QMF_GRAYED|QMF_INACTIVE) ) )
+	if( item && item->IsVisible() && !(item->iFlags & (QMF_GRAYED|QMF_INACTIVE) ) )
+	{
+		// mouse keys must be checked for item bounds on press
+		if( !UI::Key::IsMouse( key ) ||
+			 (UI::Key::IsMouse( key ) && ( !down || UI_CursorInRect( item->m_scPos, item->m_scSize ))))
 		{
-			// mouse keys must be checked for item bounds
-			if( key < K_MOUSE1 || key > K_MOUSE5 ||
-				( uiStatic.cursorX >= item->m_scPos.x &&
-				uiStatic.cursorY >= item->m_scPos.y &&
-				uiStatic.cursorX <= item->m_scPos.x + item->m_scSize.w &&
-				uiStatic.cursorY <= item->m_scPos.y + item->m_scSize.h ) )
-			{
-				sound = item->Key( key, down );
-				if( sound ) return sound;
-			}
+			handled = down ? item->KeyDown( key ) : item->KeyUp( key );
+			if( handled )
+				return handled;
 		}
+	}
 
-		for( int i = 0; i < m_numItems; i++ )
+	// only mouse keys can call key events for items that's not in focus
+	if( UI::Key::IsMouse( key ))
+	{
+		FOR_EACH_VEC( m_pItems, i )
 		{
 			item = m_pItems[i];
 
 			if( !item )
 				continue;
-
-			if( !(item->iFlags & QMF_EVENTSIGNOREFOCUS) )
-				continue; // predict state: such items are rare
 
 			if( item == ItemAtCursor() )
 				continue;
@@ -70,134 +82,97 @@ const char *CMenuItemsHolder::Key( int key, int down )
 			if( !item->IsVisible() )
 				continue;
 
-			item->Key( key, down );
-		}
-
-		// system keys are always wait for keys down and never keys up
-		if( !down )
-			return 0;
-
-		// default handling -- items navigation
-		switch( key )
-		{
-		case K_UPARROW:
-		case K_KP_UPARROW:
-		case K_LEFTARROW:
-		case K_KP_LEFTARROW:
-			cursorPrev = m_iCursorPrev = m_iCursor;
-
-			m_iCursor--;
-			if( AdjustCursor( -1 ) )
-			{
-				if( cursorPrev != m_iCursor )
-				{
-					CursorMoved();
-					if( !( m_pItems[m_iCursor]->iFlags & QMF_SILENT ) )
-						sound = uiSoundMove;
-
-					m_pItems[m_iCursorPrev]->iFlags &= ~QMF_HASKEYBOARDFOCUS;
-					m_pItems[m_iCursor]->iFlags |= QMF_HASKEYBOARDFOCUS;
-				}
-			}
-			else
-			{
-				sound = NULL;
-			}
-			break;
-		case K_DOWNARROW:
-		case K_KP_DOWNARROW:
-		case K_RIGHTARROW:
-		case K_KP_RIGHTARROW:
-		case K_TAB:
-			cursorPrev = m_iCursorPrev = m_iCursor;
-			m_iCursor++;
-			if( AdjustCursor( 1 ) )
-			{
-				if( cursorPrev != m_iCursor )
-				{
-					CursorMoved();
-					if( !(m_pItems[m_iCursor]->iFlags & QMF_SILENT ) )
-						sound = uiSoundMove;
-
-					m_pItems[m_iCursorPrev]->iFlags &= ~QMF_HASKEYBOARDFOCUS;
-					m_pItems[m_iCursor]->iFlags |= QMF_HASKEYBOARDFOCUS;
-				}
-			}
-			else
-			{
-				sound = NULL;
-			}
-			break;
+			down ? item->KeyDown( key ) : item->KeyUp( key );
 		}
 	}
 
-	return sound;
+	// system keys are always wait for keys down and never keys up
+	if( !down )
+		return false;
+
+	// default handling -- items navigation
+	if( UI::Key::IsNavigationKey( key ))
+	{
+		int direction;
+		cursorPrev = m_iCursorPrev = m_iCursor;
+
+		if( UI::Key::IsUpArrow( key ) || UI::Key::IsLeftArrow( key ))
+			direction = -1;
+		else // if( UI::Key::IsDownArrow( key ) || UI::Key::IsRightArrow( key ) || key == K_TAB )
+			direction = 1;
+
+		m_iCursor += direction;
+		if( AdjustCursor( direction ) )
+		{
+			if( cursorPrev != m_iCursor )
+			{
+				CursorMoved();
+				m_pItems[m_iCursor]->PlayLocalSound( uiStatic.sounds[SND_MOVE] );
+				handled = true;
+
+				ClearBits( m_pItems[m_iCursorPrev]->iFlags, QMF_HASKEYBOARDFOCUS );
+				SetBits( m_pItems[m_iCursor]->iFlags, QMF_HASKEYBOARDFOCUS );
+			}
+		}
+		else
+		{
+			handled = false;
+		}
+	}
+
+	return handled;
+}
+
+bool CMenuItemsHolder::KeyDown( int key )
+{
+	return CMenuItemsHolder::Key( key, true );
+}
+
+bool CMenuItemsHolder::KeyUp( int key )
+{
+	return CMenuItemsHolder::Key( key, false );
 }
 
 void CMenuItemsHolder::Char( int ch )
 {
-	if( !m_numItems )
+	if( m_pItems.IsEmpty() )
 		return;
 
 	CMenuBaseItem *item = ItemAtCursor();
 
 	if( item && item->IsVisible() && !(item->iFlags & (QMF_GRAYED|QMF_INACTIVE)) )
 		item->Char( ch );
-
-	for( int i = 0; i < m_numItems; i++ )
-	{
-		item = m_pItems[i];
-
-		if( !item )
-			continue;
-
-		if( !(item->iFlags & QMF_EVENTSIGNOREFOCUS) )
-			continue; // predict state: such items are rare
-
-		if( item == ItemAtCursor() )
-			continue;
-
-		if( item->iFlags & (QMF_GRAYED|QMF_INACTIVE) )
-			continue;
-
-		if( !item->IsVisible() )
-			continue;
-
-		item->Char( ch );
-	}
-}
-
-const char *CMenuItemsHolder::Activate()
-{
-	return 0;
 }
 
 bool CMenuItemsHolder::MouseMove( int x, int y )
 {
-	int i;
+	int i = 0;
 	// region test the active menu items
 	// go in reverse direction, so last items will be first
-	for( i = m_numItems - 1; i >= 0; i-- )
+	FOR_EACH_VEC_BACK( m_pItems, i )
 	{
 		CMenuBaseItem *item = m_pItems[i];
 
+		// just in case
+		if( !item )
+			continue;
+
 		// Invisible or inactive items will be skipped
-		if( !item->IsVisible() || item->iFlags & (QMF_INACTIVE) )
+		if( !item->IsVisible() || FBitSet( item->iFlags, QMF_INACTIVE ))
 		{
-			if( item->iFlags & QMF_HASMOUSEFOCUS )
+			if( FBitSet( item->iFlags, QMF_HASMOUSEFOCUS ))
 			{
 				if( !UI_CursorInRect( item->m_scPos, item->m_scSize ) )
-					item->iFlags &= ~QMF_HASMOUSEFOCUS;
+					ClearBits( item->iFlags, QMF_HASMOUSEFOCUS );
 				else item->m_iLastFocusTime = uiStatic.realTime;
 			}
 			continue;
 		}
 
 		// simple region test
-		if( !UI_CursorInRect( item->m_scPos, item->m_scSize ) || !item->MouseMove( x, y ) )
+		if( !UI_CursorInRect( item->m_scPos, item->m_scSize ) || !item->MouseMove( x, y ))
 		{
-			item->m_bPressed = false;
-			item->iFlags &= ~QMF_HASMOUSEFOCUS;
+			ClearBits( item->iFlags, QMF_HASMOUSEFOCUS );
 			continue;
 		}
 
@@ -206,28 +181,25 @@ bool CMenuItemsHolder::MouseMove( int x, int y )
 			SetCursor( i );
 			// reset two focus states, because we are changed cursor
 			if( m_iCursorPrev != -1 )
-				m_pItems[m_iCursorPrev]->iFlags &= ~(QMF_HASMOUSEFOCUS|QMF_HASKEYBOARDFOCUS);
+				ClearBits( m_pItems[m_iCursorPrev]->iFlags, QMF_HASMOUSEFOCUS|QMF_HASKEYBOARDFOCUS );
 
-			if( !( m_pItems[m_iCursor]->iFlags & QMF_SILENT ) )
-				EngFuncs::PlayLocalSound( uiSoundMove );
+			m_pItems[m_iCursor]->PlayLocalSound( uiStatic.sounds[SND_MOVE] );
 		}
 
-		m_pItems[m_iCursor]->iFlags |= QMF_HASMOUSEFOCUS;
+		SetBits( m_pItems[m_iCursor]->iFlags, QMF_HASMOUSEFOCUS );
 		m_pItems[m_iCursor]->m_iLastFocusTime = uiStatic.realTime;
 		// Should we stop at first matched item?
 		return true;
 	}
 
 	// out of any region
-	if( !i )
+	if( !i && m_pItems.Count() > 0 )
 	{
-		m_pItems[m_iCursor]->iFlags &= ~QMF_HASMOUSEFOCUS;
-		m_pItems[m_iCursor]->m_bPressed = false;
+		ClearBits( m_pItems[m_iCursor]->iFlags, QMF_HASMOUSEFOCUS );
 
 		// a mouse only item restores focus to the previous item
-		if( m_pItems[m_iCursor]->iFlags & QMF_MOUSEONLY )
-			if( m_iCursorPrev != -1 )
-				m_iCursor = m_iCursorPrev;
+		if( FBitSet( m_pItems[m_iCursor]->iFlags, QMF_MOUSEONLY ) && m_iCursorPrev != -1 )
+			m_iCursor = m_iCursorPrev;
 	}
 
 	return false;
@@ -258,32 +230,26 @@ void CMenuItemsHolder::VidInit()
 
 void CMenuItemsHolder::Reload()
 {
-	for( CMenuBaseItem **i = m_pItems; i < m_pItems + m_numItems; i++ )
-		(*i)->Reload();
+	FOR_EACH_VEC( m_pItems, i )
+		m_pItems[i]->Reload();
 }
 
 void CMenuItemsHolder::VidInitItems()
 {
-	for( CMenuBaseItem **i = m_pItems; i < m_pItems + m_numItems; i++ )
-	{
-		(*i)->VidInit();
-	}
+	FOR_EACH_VEC( m_pItems, i )
+		m_pItems[i]->VidInit();
 }
 
 void CMenuItemsHolder::ToggleInactive()
 {
-	for( int i = 0; i < m_numItems; i++ )
-	{
+	FOR_EACH_VEC( m_pItems, i )
 		m_pItems[i]->ToggleInactive();
-	}
 }
 
 void CMenuItemsHolder::SetInactive( bool inactive )
 {
-	for( int i = 0; i < m_numItems; i++ )
-	{
+	FOR_EACH_VEC( m_pItems, i )
 		m_pItems[i]->SetInactive( inactive );
-	}
 }
 
 void CMenuItemsHolder::Draw( )
@@ -291,7 +257,7 @@ void CMenuItemsHolder::Draw( )
 	CMenuBaseItem *item;
 
 	// draw contents
-	for( int i = 0; i < m_numItems; i++ )
+	FOR_EACH_VEC( m_pItems, i )
 	{
 		item = m_pItems[i];
 
@@ -305,6 +271,14 @@ void CMenuItemsHolder::Draw( )
 
 		if( ui_borderclip->value )
 			UI_DrawRectangle( item->m_scPos, item->m_scSize, PackRGBA( 255, 0, 0, 255 ) );
+	}
+}
+
+void CMenuItemsHolder::Think( void )
+{
+	FOR_EACH_VEC( m_pItems, i )
+	{
+		m_pItems[i]->Think();
 	}
 }
 
@@ -322,7 +296,7 @@ bool CMenuItemsHolder::AdjustCursor( int dir )
 	bool wrapped = false;
 
 wrap:
-	while( m_iCursor >= 0 && m_iCursor < m_numItems )
+	while( m_iCursor >= 0 && m_iCursor < m_pItems.Count() )
 	{
 		item = m_pItems[m_iCursor];
 		if( !item->IsVisible() || item->iFlags & (QMF_INACTIVE|QMF_MOUSEONLY) )
@@ -334,7 +308,7 @@ wrap:
 
 	if( dir > 0 )
 	{
-		if( m_iCursor >= m_numItems )
+		if( m_iCursor >= m_pItems.Count() )
 		{
 			if( wrapped )
 			{
@@ -355,7 +329,7 @@ wrap:
 				m_iCursor = m_iCursorPrev;
 				return false;
 			}
-			m_iCursor = m_numItems - 1;
+			m_iCursor = m_pItems.Count() - 1;
 			wrapped = true;
 			goto wrap;
 		}
@@ -368,7 +342,7 @@ wrap:
 
 CMenuBaseItem *CMenuItemsHolder::ItemAtCursor()
 {
-	if( m_iCursor < 0 || m_iCursor >= m_numItems )
+	if( m_iCursor < 0 || m_iCursor >= m_pItems.Count() )
 		return 0;
 
 	// inactive items can't be has focus
@@ -380,7 +354,7 @@ CMenuBaseItem *CMenuItemsHolder::ItemAtCursor()
 
 CMenuBaseItem *CMenuItemsHolder::ItemAtCursorPrev()
 {
-	if( m_iCursorPrev < 0 || m_iCursorPrev >= m_numItems )
+	if( m_iCursorPrev < 0 || m_iCursorPrev >= m_pItems.Count() )
 		return 0;
 
 	// inactive items can't be has focus
@@ -398,7 +372,7 @@ CMenuBaseItem *CMenuItemsHolder::FindItemByTag(const char *tag)
 	if( this->szTag && !strcmp( this->szTag, tag ) )
 		return this;
 
-	for( int i = 0; i < m_numItems; i++ )
+	FOR_EACH_VEC( m_pItems, i )
 	{
 		if( !m_pItems[i]->szTag )
 			continue;
@@ -412,7 +386,7 @@ CMenuBaseItem *CMenuItemsHolder::FindItemByTag(const char *tag)
 
 void CMenuItemsHolder::SetCursorToItem(CMenuBaseItem &item, bool notify )
 {
-	for( int i = 0; i < m_numItems; i++ )
+	FOR_EACH_VEC( m_pItems, i )
 	{
 		if( m_pItems[i] == &item )
 		{
@@ -424,23 +398,19 @@ void CMenuItemsHolder::SetCursorToItem(CMenuBaseItem &item, bool notify )
 
 void CMenuItemsHolder::CalcItemsPositions()
 {
-	for( int i = 0; i < m_numItems; i++ )
-	{
+	FOR_EACH_VEC( m_pItems, i )
 		m_pItems[i]->CalcPosition();
-	}
 }
 
 void CMenuItemsHolder::CalcItemsSizes()
 {
-	for( int i = 0; i < m_numItems; i++ )
-	{
+	FOR_EACH_VEC( m_pItems, i )
 		m_pItems[i]->CalcSizes();
-	}
 }
 
 void CMenuItemsHolder::SetCursor( int newCursor, bool notify )
 {
-	if( newCursor < 0 || newCursor >= m_numItems )
+	if( newCursor < 0 || newCursor >= m_pItems.Count() )
 		return;
 
 	if( !m_pItems[newCursor]->IsVisible() || (m_pItems[newCursor]->iFlags & (QMF_INACTIVE)) )
@@ -460,48 +430,41 @@ void CMenuItemsHolder::CursorMoved()
 	if( m_iCursor == m_iCursorPrev )
 		return;
 
-	if( m_iCursorPrev >= 0 && m_iCursorPrev < m_numItems )
+	if( m_iCursorPrev >= 0 && m_iCursorPrev < m_pItems.Count() )
 	{
 		item = m_pItems[m_iCursorPrev];
 
 		item->_Event( QM_LOSTFOCUS );
+
+		// unconditionally remove pressed state, because item without focus can't be pressed anymore
+		item->m_bPressed = false;
 	}
 
-	if( m_iCursor >= 0 && m_iCursor < m_numItems )
+	if( m_iCursor >= 0 && m_iCursor < m_pItems.Count() )
 	{
 		item = m_pItems[m_iCursor];
 
 		item->_Event( QM_GOTFOCUS );
+
+		if( item == m_pItemAtCursorOnDown )
+			item->m_bPressed = true; // restore pressed state
 	}
 }
 
 void CMenuItemsHolder::AddItem(CMenuBaseItem &item)
 {
-	if( m_numItems >= UI_MAX_MENUITEMS )
-		Host_Error( "UI_AddItem: UI_MAX_MENUITEMS limit exceeded\n" );
-
-	m_pItems[m_numItems] = &item;
+	m_pItems.AddToTail( &item );
 	item.m_pParent = this; // U OWNED
 	item.iFlags &= ~(QMF_HASMOUSEFOCUS|QMF_HIDDENBYPARENT);
-
-	m_numItems++;
 
 	item.Init();
 }
 
 void CMenuItemsHolder::RemoveItem(CMenuBaseItem &item)
 {
-	for( int i = m_numItems; i >= 0; i-- )
+	if( m_pItems.FindAndRemove( &item ) )
 	{
-		if( m_pItems[i] == &item )
-		{
-			item.m_pParent = NULL;
-
-			memmove( m_pItems + i, m_pItems + i + 1, ( m_numItems - i + 1 ) * sizeof( *m_pItems ) );
-
-			m_numItems--;
-			break;
-		}
+		item.m_pParent = NULL;
 	}
 }
 
@@ -513,7 +476,7 @@ bool RES_ExpectString( char **data, const char *expect, bool skip = true )
 	if( !data || !*data )
 		return true;
 
-	tmp = EngFuncs::COM_ParseFile( *data, token );
+	tmp = EngFuncs::COM_ParseFile( *data, token, sizeof( token ) );
 
 	if( skip )
 		*data = tmp;
@@ -545,7 +508,7 @@ bool CMenuItemsHolder::LoadRES(const char *filename)
 	if( !pfile )
 		return false;
 
-	afile = EngFuncs::COM_ParseFile( afile, token );
+	afile = EngFuncs::COM_ParseFile( afile, token, sizeof( token ) );
 
 	Con_DPrintf( "Loading res file from %s, name %s\n", filename, token );
 
@@ -562,7 +525,7 @@ bool CMenuItemsHolder::LoadRES(const char *filename)
 	{
 		CMenuBaseItem *item;
 
-		afile = EngFuncs::COM_ParseFile( afile, token );
+		afile = EngFuncs::COM_ParseFile( afile, token, sizeof( token ) );
 
 		if( !afile )
 			return FreeFile( pfile, false );
@@ -582,11 +545,11 @@ bool CMenuItemsHolder::LoadRES(const char *filename)
 				char key[1024];
 				char value[1024];
 
-				afile = EngFuncs::COM_ParseFile( afile, key );
+				afile = EngFuncs::COM_ParseFile( afile, key, sizeof( key ));
 				if( !afile )
 					return FreeFile( pfile, false );
 
-				afile = EngFuncs::COM_ParseFile( afile, value );
+				afile = EngFuncs::COM_ParseFile( afile, value, sizeof( value ));
 				if( !afile )
 					return FreeFile( pfile, false );
 
@@ -614,21 +577,16 @@ bool CMenuItemsHolder::LoadRES(const char *filename)
 
 void CMenuItemsHolder::RegisterNamedEvent(CEventCallback ev, const char *name)
 {
-	if( m_numEvents >= UI_MAX_MENUITEMS )
-		Host_Error( "RegisterNamedEvent: UI_MAX_MENUITEMS limit exceeded\n" );
-
 	ASSERT( name );
 	ASSERT( ev );
 
 	ev.szName = name;
-	m_events[m_numEvents] = ev;
-
-	m_numEvents++;
+	m_events.AddToTail( ev );
 }
 
 CEventCallback CMenuItemsHolder::FindEventByName(const char *name)
 {
-	for( int i = 0; i < m_numEvents; i++ )
+	for( int i = 0; i < m_events.Count(); i++ )
 	{
 		if( !strcmp( m_events[i].szName, name ))
 			return m_events[i];

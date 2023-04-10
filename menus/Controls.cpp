@@ -30,9 +30,13 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define ART_BANNER		"gfx/shell/head_controls"
 #define MAX_KEYS 256
 
+class CMenuControls;
+
 class CMenuKeysModel : public CMenuBaseModel
 {
 public:
+	CMenuKeysModel( CMenuControls *parent ) : parent( parent ) { }
+
 	void Update();
 	void OnActivateEntry( int line );
 	void OnDeleteEntry( int line );
@@ -71,23 +75,27 @@ public:
 	char firstKey[MAX_KEYS][20];
 	char secondKey[MAX_KEYS][20];
 	int m_iNumItems;
+private:
+	CMenuControls *parent;
 };
 
-static class CMenuControls : public CMenuFramework
+class CMenuControls : public CMenuFramework
 {
 public:
-	CMenuControls() : CMenuFramework("CMenuControls") { }
+	CMenuControls() : CMenuFramework("CMenuControls"), keysListModel( this ) { }
 
 	void _Init();
 	void _VidInit();
-	const char *Key( int key, int down );
 	void EnterGrabMode( void );
 	void UnbindEntry( void );
 	static void GetKeyBindings( const char *command, int *twoKeys );
 
+	// state toggle by
+	CMenuTable keysList;
+	CMenuKeysModel keysListModel;
+
 private:
 	void UnbindCommand( const char *command );
-	void PromptDialog( void );
 	void ResetKeysList( void );
 	void Cancel( void )
 	{
@@ -95,26 +103,16 @@ private:
 		Hide();
 	}
 
-
-	CMenuBannerBitmap banner;
-
-	// state toggle by
-	CMenuTable keysList;
-	CMenuKeysModel keysListModel;
-
 	// redefine key wait dialog
-	CMenuMessageBox msgBox1; // small msgbox
+	class CGrabKeyMessageBox : public CMenuMessageBox
+	{
+	public:
+		bool KeyUp( int key ) override;
+		bool KeyDown( int key ) override;
+	} msgBox1; // small msgbox
 
 	CMenuYesNoMessageBox msgBox2; // large msgbox
-
-	int bind_grab;
-} uiControls;
-
-void CMenuControls::PromptDialog( void )
-{
-	// show\hide quit dialog
-	msgBox1.ToggleVisibility();
-}
+};
 
 /*
 =================
@@ -123,14 +121,11 @@ UI_Controls_GetKeyBindings
 */
 void CMenuControls::GetKeyBindings( const char *command, int *twoKeys )
 {
-	int		i, count = 0;
-	const char	*b;
-
 	twoKeys[0] = twoKeys[1] = -1;
 
-	for( i = 0; i < 256; i++ )
+	for( int i = 0, count = 0; i < MAX_KEYS; i++ )
 	{
-		b = EngFuncs::KEY_GetBinding( i );
+		const char *b = EngFuncs::KEY_GetBinding( i );
 		if( !b ) continue;
 
 		if( !stricmp( command, b ))
@@ -158,7 +153,7 @@ void CMenuControls::UnbindCommand( const char *command )
 
 	l = strlen( command );
 
-	for( i = 0; i < 256; i++ )
+	for( i = 0; i < MAX_KEYS; i++ )
 	{
 		b = EngFuncs::KEY_GetBinding( i );
 		if( !b ) continue;
@@ -187,12 +182,12 @@ void CMenuKeysModel::Update( void )
 	memset( firstKey, 0, sizeof( firstKey ));
 	memset( secondKey, 0, sizeof( secondKey ));
 
-	while(( pfile = EngFuncs::COM_ParseFile( pfile, token )) != NULL )
+	while(( pfile = EngFuncs::COM_ParseFile( pfile, token, sizeof( token ))) != NULL )
 	{
 		if( !stricmp( token, "blank" ))
 		{
 			// separator
-			pfile = EngFuncs::COM_ParseFile( pfile, token );
+			pfile = EngFuncs::COM_ParseFile( pfile, token, sizeof( token ));
 			if( !pfile ) break;	// technically an error
 
 			if( token[0] == '#' )
@@ -211,7 +206,7 @@ void CMenuKeysModel::Update( void )
 			CMenuControls::GetKeyBindings( token, keys );
 			Q_strncpy( keysBind[i], token, sizeof( keysBind[i] ));
 
-			pfile = EngFuncs::COM_ParseFile( pfile, token );
+			pfile = EngFuncs::COM_ParseFile( pfile, token, sizeof( token ));
 			if( !pfile ) break; // technically an error
 
 			if( token[0] == '#' )
@@ -219,22 +214,29 @@ void CMenuKeysModel::Update( void )
 			else
 				snprintf( name[i], sizeof( name[i] ), "^6%s^7", token );
 
-			const char *firstKeyStr = NULL, *secondKeyStr = NULL;
+			if( keys[0] != -1 )
+			{
+				const char *str = EngFuncs::KeynumToString( keys[0] );
 
-			if( keys[0] != -1 )	firstKeyStr = EngFuncs::KeynumToString( keys[0] );
-			if( keys[1] != -1 ) secondKeyStr = EngFuncs::KeynumToString( keys[1] );
+				if( str )
+					if( !strnicmp( str, "MOUSE", 5 ) )
+						snprintf( firstKey[i], 20, "^5%s^7", str );
+					else snprintf( firstKey[i], 20, "^3%s^7", str );
+				else firstKey[i][0] = 0;
+			}
 
-			if( firstKeyStr )
-				if( !strnicmp( firstKeyStr, "MOUSE", 5 ) )
-					snprintf( firstKey[i], 20, "^5%s^7", firstKeyStr );
-				else snprintf( firstKey[i], 20, "^3%s^7", firstKeyStr );
-			else firstKey[i][0] = 0;
+			if( keys[1] != -1 )
+			{
+				const char *str = EngFuncs::KeynumToString( keys[1] );
 
-			if( secondKeyStr )
-				if( !strnicmp( secondKeyStr, "MOUSE", 5 ) )
-					snprintf( secondKey[i], 20, "^5%s^7", secondKeyStr );
-				else snprintf( secondKey[i], 20, "^3%s^7", secondKeyStr );
-			else secondKey[i][0] = 0;
+				if( str )
+					if( !strnicmp( str, "MOUSE", 5 ) )
+						snprintf( secondKey[i], 20, "^5%s^7", str );
+					else snprintf( secondKey[i], 20, "^3%s^7", str );
+				else secondKey[i][0] = 0;
+			}
+
+
 
 			i++;
 		}
@@ -247,12 +249,12 @@ void CMenuKeysModel::Update( void )
 
 void CMenuKeysModel::OnActivateEntry(int line)
 {
-	uiControls.EnterGrabMode();
+	parent->EnterGrabMode();
 }
 
 void CMenuKeysModel::OnDeleteEntry(int line)
 {
-	uiControls.UnbindEntry();
+	parent->UnbindEntry();
 }
 
 void CMenuControls::ResetKeysList( void )
@@ -266,25 +268,25 @@ void CMenuControls::ResetKeysList( void )
 		Con_Printf( "UI_Parse_KeysList: kb_act.lst not found\n" );
 		return;
 	}
+	
+	EngFuncs::ClientCmd( TRUE, "unbindall" );
 
-	while(( pfile = EngFuncs::COM_ParseFile( pfile, token )) != NULL )
+	while(( pfile = EngFuncs::COM_ParseFile( pfile, token, sizeof( token ))) != NULL )
 	{
 		char	key[32];
 
 		Q_strncpy( key, token, sizeof( key ));
 
-		pfile = EngFuncs::COM_ParseFile( pfile, token );
+		pfile = EngFuncs::COM_ParseFile( pfile, token, sizeof( token ));
 		if( !pfile ) break;	// technically an error
 
-		char	cmd[128];
+		char	cmd[4096];
 
 		if( key[0] == '\\' && key[1] == '\\' )
 		{
 			key[0] = '\\';
 			key[1] = '\0';
 		}
-
-		UnbindCommand( token );
 
 		snprintf( cmd, sizeof( cmd ), "bind \"%s\" \"%s\"\n", key, token );
 		EngFuncs::ClientCmd( TRUE, cmd );
@@ -294,62 +296,64 @@ void CMenuControls::ResetKeysList( void )
 	keysListModel.Update();
 }
 
-/*
-=================
-UI_Controls_KeyFunc
-=================
-*/
-const char *CMenuControls::Key( int key, int down )
+bool CMenuControls::CGrabKeyMessageBox::KeyUp( int key )
 {
-	char	cmd[128];
+	CMenuControls *parent = ((CMenuControls*)m_pParent);
 
-	if( msgBox1.IsVisible() && bind_grab ) // assume we are in grab-mode
+	// defining a key
+	// escape is special, should allow rebind all keys on gamepad
+	if( UI::Key::IsConsole( key ) || key == K_ESCAPE )
 	{
-		// defining a key
-		if( key == '`' || key == '~' )
-		{
-			return uiSoundBuzz;
-		}
-		else if( key != K_ESCAPE )
-		{
-			const char *bindName = keysListModel.keysBind[keysList.GetCurrentIndex()];
-			sprintf( cmd, "bind \"%s\" \"%s\"\n", EngFuncs::KeynumToString( key ), bindName );
-			EngFuncs::ClientCmd( TRUE, cmd );
-		}
-
-		bind_grab = false;
-		keysListModel.Update();
-
-		PromptDialog();
-
-		return uiSoundLaunch;
+		Hide();
+		PlayLocalSound( uiStatic.sounds[SND_BUZZ] );
+		return true;
 	}
-	
-	return CMenuFramework::Key( key, down );
+	else
+	{
+		char cmd[4096];
+
+		const char *bindName = parent->keysListModel.keysBind[parent->keysList.GetCurrentIndex()];
+		snprintf( cmd, sizeof( cmd ), "bind \"%s\" \"%s\"\n", EngFuncs::KeynumToString( key ), bindName );
+		EngFuncs::ClientCmd( TRUE, cmd );
+	}
+
+	parent->keysListModel.Update();
+
+	Hide();
+
+	PlayLocalSound( uiStatic.sounds[SND_LAUNCH] );
+
+	return true;
+}
+
+bool CMenuControls::CGrabKeyMessageBox::KeyDown( int key )
+{
+	return true;
 }
 
 void CMenuControls::UnbindEntry()
 {
 	if( !keysListModel.IsLineUsable( keysList.GetCurrentIndex() ) )
 	{
-		EngFuncs::PlayLocalSound( uiSoundBuzz );
+		PlayLocalSound( uiStatic.sounds[SND_BUZZ] );
 		return; // not a key
 	}
 
 	const char *bindName = keysListModel.keysBind[keysList.GetCurrentIndex()];
 
 	UnbindCommand( bindName );
-	EngFuncs::PlayLocalSound( uiSoundRemoveKey );
+	PlayLocalSound( uiStatic.sounds[SND_REMOVEKEY] );
 	keysListModel.Update();
 
-	PromptDialog();
+	// disabled: left command just unbinded
+	// msgBox1.Show();
 }
 
 void CMenuControls::EnterGrabMode()
 {
 	if( !keysListModel.IsLineUsable( keysList.GetCurrentIndex() ) )
 	{
-		EngFuncs::PlayLocalSound( uiSoundBuzz );
+		PlayLocalSound( uiStatic.sounds[SND_BUZZ] );
 		return;
 	}
 
@@ -362,11 +366,9 @@ void CMenuControls::EnterGrabMode()
 	if( keys[1] != -1 )
 		UnbindCommand( bindName );
 
-	bind_grab = true;
+	msgBox1.Show();
 
-	PromptDialog();
-
-	EngFuncs::PlayLocalSound( uiSoundKey );
+	PlayLocalSound( uiStatic.sounds[SND_KEY] );
 }
 
 /*
@@ -380,23 +382,24 @@ void CMenuControls::_Init( void )
 
 	keysList.SetRect( 360, 230, -20, 465 );
 	keysList.SetModel( &keysListModel );
-	keysList.SetupColumn( 0, "Action", 0.50f );
-	keysList.SetupColumn( 1, "Key/Button", 0.25f );
-	keysList.SetupColumn( 2, "Alternate", 0.25f );
+	keysList.SetupColumn( 0, L( "GameUI_Action" ), 0.50f );
+	keysList.SetupColumn( 1, L( "GameUI_KeyButton" ), 0.25f );
+	keysList.SetupColumn( 2, L( "GameUI_Alternate" ), 0.25f );
 
-	msgBox1.SetMessage( "Press a key or button" );
+	msgBox1.SetMessage( L( "Press a key or button" ) );
+	msgBox1.Link( this );
 
-	msgBox2.SetMessage( "Reset buttons to default?" );
+	msgBox2.SetMessage( L( "GameUI_KeyboardSettingsText" ) );
 	msgBox2.onPositive = VoidCb( &CMenuControls::ResetKeysList );
 	msgBox2.Link( this );
 
 	AddItem( background );
 	AddItem( banner );
-	AddButton( "Use defaults", "Reset all buttons binding to their default values", PC_USE_DEFAULTS, msgBox2.MakeOpenEvent() );
-	AddButton( "Adv controls", "Change mouse sensitivity, enable autoaim, mouselook and crosshair", PC_ADV_CONTROLS, UI_AdvControls_Menu );
-	AddButton( "Ok", "Save changed and return to configuration menu", PC_DONE,
+	AddButton( L( "GameUI_UseDefaults" ), L( "GameUI_KeyboardSettingsText" ), PC_USE_DEFAULTS, msgBox2.MakeOpenEvent() );
+	AddButton( L( "Adv. Controls" ), L( "Change mouse sensitivity, enable autoaim, mouselook and crosshair" ), PC_ADV_CONTROLS, UI_AdvControls_Menu );
+	AddButton( L( "GameUI_OK" ), L( "Save changed and return to configuration menu" ), PC_DONE,
 		VoidCb( &CMenuControls::SaveAndPopMenu ) );
-	AddButton( "Cancel", "Discard changes and return to configuration menu", PC_CANCEL,
+	AddButton( L( "GameUI_Cancel" ), L( "Discard changes and return to configuration menu" ), PC_CANCEL,
 		VoidCb( &CMenuControls::Cancel ) );
 	AddItem( keysList );
 }
@@ -410,23 +413,4 @@ void CMenuControls::_VidInit()
 	keysListModel.Update();
 }
 
-/*
-=================
-UI_Controls_Precache
-=================
-*/
-void UI_Controls_Precache( void )
-{
-	EngFuncs::PIC_Load( ART_BANNER );
-}
-
-/*
-=================
-UI_Controls_Menu
-=================
-*/
-void UI_Controls_Menu( void )
-{
-	uiControls.Show();
-}
-ADD_MENU( menu_controls, UI_Controls_Precache, UI_Controls_Menu );
+ADD_MENU( menu_controls, CMenuControls, UI_Controls_Menu );

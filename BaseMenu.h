@@ -25,6 +25,8 @@ GNU General Public License for more details.
 #include "Utils.h"
 #include "FontManager.h"
 #include "BtnsBMPTable.h"
+#include "WindowSystem.h"
+#include "Image.h"
 
 #define UI_MAX_MENUDEPTH		64
 #define UI_MAX_MENUITEMS		64
@@ -33,7 +35,12 @@ GNU General Public License for more details.
 
 #define UI_OUTLINE_WIDTH		uiStatic.outlineWidth	// outline thickness
 
+
+#if XASH_LOW_MEMORY
+#define UI_MAXGAMES			32
+#else
 #define UI_MAXGAMES			1024	// slots for savegame/demos
+#endif
 #define UI_MAX_BGMAPS		32
 
 #define MAX_HINT_TEXT		512
@@ -68,40 +75,27 @@ extern cvar_t	*ui_precache;
 extern cvar_t	*ui_showmodels;
 extern cvar_t   *ui_show_window_stack;
 extern cvar_t	*ui_borderclip;
+extern cvar_t	*ui_language;
 
-class CMenuBaseWindow;
-
-class windowStack_t
+enum EUISounds
 {
-public:
-	CMenuBaseWindow *rootActive; // current active fullscreen holder(menu framework)
-	CMenuBaseWindow *menuActive; // current active window
-	CMenuBaseWindow *prevMenu;   // previous active window
-	CMenuBaseWindow *menuStack[UI_MAX_MENUDEPTH];
-	int menuDepth;
-	int rootPosition;
-
-	bool IsActive( void ) { return menuDepth > 0; }
-	void VidInit( bool firstTime );
-	void Update( void );
-	void KeyEvent( int key, int down );
-	void CharEvent( int ch );
-	void MouseEvent( int x, int y );
-
-	void InputMethodResized( void );
-
-	void Close( void )
-	{
-		menuActive = NULL;
-		menuDepth = 0;
-		rootPosition = 0;
-	}
+	SND_IN = 0,
+	SND_OUT,
+	SND_LAUNCH,
+	SND_ROLLOVER,
+	SND_GLOW,
+	SND_BUZZ,
+	SND_KEY,
+	SND_REMOVEKEY,
+	SND_MOVE,
+	SND_NULL,
+	SND_COUNT
 };
 
 typedef struct
 {
-	windowStack_t menu;
-	windowStack_t client; // separate window stack for client windows
+	CWindowStack menu;
+	CWindowStack client; // separate window stack for client windows
 	char	bgmaps[UI_MAX_BGMAPS][80];
 	int		bgmapcount;
 
@@ -112,10 +106,9 @@ typedef struct
 	HFont hBigFont;
 	HFont hConsoleFont;
 	HFont hBoldFont;
-#ifdef MAINUI_RENDER_PICBUTTON_TEXT
 	HFont hLightBlur;
 	HFont hHeavyBlur;
-#endif
+
 	bool	m_fDemosPlayed;
 	bool	m_fNoOldBackground;
 	int 	m_iOldMenuDepth;
@@ -137,19 +130,24 @@ typedef struct
 	// btns_main.bmp stuff
 	HIMAGE	buttonsPics[PC_BUTTONCOUNT];
 
-	int		buttons_width;	// btns_main.bmp global width
-	int		buttons_height;	// per one button with all states (inactive, focus, pressed)
+	int		buttons_width; // btns_main.bmp global width
+	int		buttons_height; // one button height
+	int		buttons_points[3];
 
-	int		buttons_draw_width;	// scaled image what we drawing
-	int		buttons_draw_height;
+	Size		buttons_draw_size; // scaled image what we drawing
 	int		width;
 	bool	textInput;
 	bool	enableAlphaFactor;
 	float	alphaFactor;
 	int xOffset, yOffset;
 
-	bool isForkedEngine;
 	bool needMapListUpdate;
+	bool nextFrameActive;
+	bool renderPicbuttonText;
+
+	int lowmemory;
+
+	char sounds[SND_COUNT][40];
 } uiStatic_t;
 
 extern float	cursorDY;			// use for touch scroll
@@ -157,17 +155,6 @@ extern bool g_bCursorDown;
 extern uiStatic_t		uiStatic;
 
 #define DLG_X ((uiStatic.width - 640) / 2 - 192) // Dialogs are 640px in width
-
-extern const char		*uiSoundIn;
-extern const char		*uiSoundRollOver;
-extern const char		*uiSoundOut;
-extern const char		*uiSoundKey;
-extern const char		*uiSoundRemoveKey;
-extern const char		*uiSoundLaunch;
-extern const char		*uiSoundBuzz;
-extern const char		*uiSoundGlow;
-extern const char		*uiSoundMove;
-extern const char		*uiSoundNull;
 
 extern unsigned int	uiColorHelp;
 extern unsigned int	uiPromptBgColor;
@@ -181,8 +168,6 @@ extern unsigned int	uiColorDkGrey;
 extern unsigned int	uiColorBlack;
 
 // TODO: Move it under namespace?
-
-bool UI_IsXashFWGS( void );
 
 void UI_ScaleCoords( int *x, int *y, int *w, int *h );
 void UI_ScaleCoords( int &x, int &y, int &w, int &h );
@@ -212,10 +197,20 @@ inline int UI_DrawString( HFont font, Point pos, Size size, const char *str, con
 	return UI_DrawString( font, pos.x, pos.y, size.w, size.h, str, col, charH, justify, flags );
 }
 
-void UI_DrawPic(int x, int y, int w, int h, const unsigned int color, const char *pic, const ERenderMode eRenderMode = QM_DRAWNORMAL );
-inline void UI_DrawPic( Point pos, Size size, const unsigned int color, const char *pic, const ERenderMode eRenderMode = QM_DRAWNORMAL )
+void UI_DrawPic( int x, int y, int w, int h, const unsigned int color, CImage &pic, const ERenderMode eRenderMode = QM_DRAWNORMAL );
+inline void UI_DrawPic( Point pos, Size size, const unsigned int color, CImage &pic, const ERenderMode eRenderMode = QM_DRAWNORMAL )
 {
 	UI_DrawPic( pos.x, pos.y, size.w, size.h, color, pic, eRenderMode );
+}
+inline void UI_DrawPic( int x, int y, int w, int h, const unsigned int color, const char *pic, const ERenderMode eRenderMode = QM_DRAWNORMAL )
+{
+	CImage img = pic;
+	UI_DrawPic( x, y, w, h, color, img, eRenderMode );
+}
+inline void UI_DrawPic( Point pos, Size size, const unsigned int color, const char *pic, const ERenderMode eRenderMode = QM_DRAWNORMAL )
+{
+	CImage img = pic;
+	UI_DrawPic( pos, size, color, img, eRenderMode );
 }
 void UI_FillRect( int x, int y, int w, int h, const unsigned int color );
 inline void UI_FillRect( Point pos, Size size, const unsigned int color )
@@ -238,7 +233,7 @@ inline void UI_DrawRectangleExt( Point pos, Size size, const unsigned int color,
 }
 
 void UI_StartSound( const char *sound );
-void UI_LoadBmpButtons( void );
+void UI_LoadBmpButtons();
 
 int UI_CreditsActive( void );
 void UI_DrawFinalCredits( void );
@@ -251,15 +246,37 @@ void UI_LoadScriptConfig( void );
 class CMenuEntry
 {
 public:
-	CMenuEntry( const char *cmd, void (*pfnPrecache)( void ), void (*pfnShow)( void ));
+	CMenuEntry( const char *cmd, void (*pfnPrecache)( void ), void (*pfnShow)( void ), void (*pfnShutdown)( void ) = NULL);
 	const char *m_szCommand;
 	void (*m_pfnPrecache)( void );
 	void (*m_pfnShow)( void );
+	void (*m_pfnShutdown)( void );
 	CMenuEntry *m_pNext;
 };
 
-#define ADD_MENU( cmd, precachefunc, showfunc ) \
-	static CMenuEntry cmd( #cmd, precachefunc, showfunc )
+#define ADD_MENU4( cmd, precachefunc, showfunc, shutdownfunc ) \
+	void showfunc( void ); \
+	static CMenuEntry entry_##cmd( #cmd, precachefunc, showfunc, shutdownfunc )
+
+#define ADD_MENU3( cmd, type, showfunc ) \
+	static type * cmd = NULL; \
+	static void cmd##_Precache( void ) \
+	{ \
+		cmd = new type(); \
+	} \
+	static void cmd##_Shutdown( void ) \
+	{ \
+		delete cmd; \
+	} \
+	ADD_MENU4( cmd, cmd##_Precache, showfunc, cmd##_Shutdown )
+
+#define ADD_MENU( cmd, type, showfunc ) \
+	void showfunc( void ); \
+	ADD_MENU3( cmd, type, showfunc ); \
+	void showfunc( void ) \
+	{ \
+		cmd->Show(); \
+	}
 
 #define ADD_COMMAND( cmd, showfunc ) \
 	static CMenuEntry cmd( #cmd, NULL, showfunc )
@@ -285,13 +302,11 @@ void UI_Video_Menu( void );
 void UI_VidOptions_Menu( void );
 void UI_VidModes_Menu( void );
 void UI_CustomGame_Menu( void );
-void UI_Credits_Menu( void );
 void UI_Touch_Menu( void );
 void UI_TouchOptions_Menu( void );
 void UI_TouchButtons_Menu( void );
 void UI_TouchEdit_Menu( void );
 void UI_FileDialog_Menu( void );
-void UI_TouchButtons_AddButtonToList( const char *name, const char *texture, const char *command, unsigned char *color, int flags );
 void UI_TouchButtons_GetButtonList();
 void UI_GamePad_Menu( void );
 void UI_Zoo_Menu( void );
@@ -303,9 +318,6 @@ void UI_AdvServerOptions_Menu( void );
 void UI_InputDevices_Menu( void );
 
 void UI_OpenUpdatePage(bool engine , bool preferstore);
-
-// time
-double Sys_DoubleTime( void );
 
 //
 //-----------------------------------------------------

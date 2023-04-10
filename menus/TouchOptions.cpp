@@ -31,7 +31,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #define ART_BANNER	  	"gfx/shell/head_touch_options"
 
-static class CMenuTouchOptions : public CMenuFramework
+class CMenuTouchOptions : public CMenuFramework
 {
 private:
 	void _Init();
@@ -57,7 +57,6 @@ public:
 	public:
 		CProfiliesListModel() : CStringArrayModel( (const char*)profileDesc, 95, 0 ) {}
 		void Update();
-		const char *GetText( int line ) { return profileDesc[line]; }
 		char profileDesc[UI_MAXGAMES][95];
 		int	 iHighlight;
 		int	 firstProfile;
@@ -87,7 +86,7 @@ public:
 	// prompt dialog
 	CMenuYesNoMessageBox msgBox;
 	void UpdateProfilies();
-} uiTouchOptions;
+};
 
 void CMenuTouchOptions::CProfiliesListModel::Update( void )
 {
@@ -95,7 +94,7 @@ void CMenuTouchOptions::CProfiliesListModel::Update( void )
 	int	i = 0, numFiles, j = 0;
 	const char *curprofile;
 
-	Q_strncpy( profileDesc[i], "Presets:", CS_SIZE );
+	Q_strncpy( profileDesc[i], L( "Presets:" ), CS_SIZE );
 	i++;
 
 	filenames = EngFuncs::GetFilesList( "touch_presets/*.cfg", &numFiles, TRUE );
@@ -115,7 +114,7 @@ void CMenuTouchOptions::CProfiliesListModel::Update( void )
 	j = 0;
 	curprofile = EngFuncs::GetCvarString("touch_config_file");
 
-	Q_strncpy( profileDesc[i], "Profiles:", CS_SIZE );
+	Q_strncpy( profileDesc[i], L( "Profiles:" ), CS_SIZE );
 	i++;
 
 	Q_strncpy( profileDesc[i], "default", CS_SIZE );
@@ -176,14 +175,14 @@ void CMenuTouchOptions::GetConfig( void )
 
 void CMenuTouchOptions::ResetMsgBox()
 {
-	msgBox.SetMessage( "Reset sensitivity options?");
+	msgBox.SetMessage( L( "Reset sensitivity options?" ) );
 	msgBox.onPositive = VoidCb( &CMenuTouchOptions::ResetButtonsCb );
 	msgBox.Show();
 }
 
 void CMenuTouchOptions::DeleteMsgBox()
 {
-	msgBox.SetMessage( "Delete selected profile?");
+	msgBox.SetMessage( L( "Delete selected profile?" ) );
 	msgBox.onPositive = VoidCb( &CMenuTouchOptions::DeleteProfileCb );
 	msgBox.Show();
 }
@@ -198,7 +197,7 @@ void CMenuTouchOptions::Apply()
 		char command[256];
 		const char *curconfig = EngFuncs::GetCvarString( "touch_config_file" );
 		snprintf( command, 256, "exec \"touch_presets/%s\"\n", model.profileDesc[ i ] );
-		EngFuncs::ClientCmd( 1,  command );
+		EngFuncs::ClientCmd( 1, command );
 
 		while( EngFuncs::FileExists( curconfig, TRUE ) )
 		{
@@ -238,14 +237,16 @@ void CMenuTouchOptions::Apply()
 
 void CMenuTouchOptions::Save()
 {
-	char name[512];
-
 	if( profilename.GetBuffer()[0] )
 	{
-		snprintf(name, sizeof( name ), "touch_profiles/%s.cfg", profilename.GetBuffer() );
-		EngFuncs::CvarSetString("touch_config_file", name );
+		char name[512];
+
+		EngFuncs::CvarSetStringF( "touch_config_file", "touch_profiles/%s.cfg", profilename.GetBuffer() );
+
+		Com_EscapeCommand( name, profilename.GetBuffer(), sizeof( name ));
+		EngFuncs::ClientCmdF( 1, "touch_exportconfig \"touch_profiles/%s.cfg\"\n", name );
 	}
-	EngFuncs::ClientCmd( 1, "touch_writeconfig\n" );
+
 	model.Update();
 	profilename.Clear();
 }
@@ -309,51 +310,51 @@ void CMenuTouchOptions::_Init( void )
 {
 	banner.SetPicture(ART_BANNER);
 
-	done.SetNameAndStatus( "Done", "Go back to the Touch Menu" );
+	done.SetNameAndStatus( L( "Done" ), L( "Go back to the Touch Menu" ) );
 	done.SetPicture( PC_DONE );
-	done.onActivated = VoidCb( &CMenuTouchOptions::SaveAndPopMenu );
+	done.onReleased = VoidCb( &CMenuTouchOptions::SaveAndPopMenu );
 
-	lookX.SetNameAndStatus( "Look X", "Horizontal look sensitivity" );
+	lookX.SetNameAndStatus( L( "Look X" ), L( "Horizontal look sensitivity" ) );
 	lookX.Setup( 50, 500, 5 );
 	lookX.LinkCvar( "touch_yaw" );
 
-	lookY.SetNameAndStatus( "Look Y", "Vertical look sensitivity" );
+	lookY.SetNameAndStatus( L( "Look Y" ), L( "Vertical look sensitivity" ) );
 	lookY.Setup( 50, 500, 5 );
 	lookY.LinkCvar( "touch_pitch" );
 
-	moveX.SetNameAndStatus( "Side", "Side move sensitivity" );
+	moveX.SetNameAndStatus( L( "Side" ), L( "Side movement sensitity" ) );
 	moveX.Setup( 0.02, 1.0, 0.05 );
 	moveX.LinkCvar( "touch_sidezone" );
 
-	moveY.SetNameAndStatus( "Forward", "Forward move sensitivity" );
+	moveY.SetNameAndStatus( L( "Forward" ), L( "Forward movement sensitivity" ) );
 	moveY.Setup( 0.02, 1.0, 0.05 );
 	moveY.LinkCvar( "touch_forwardzone" );
 
-	gridsize.szStatusText = "Set grid size";
+	gridsize.szStatusText = L( "Set grid size" );
 	gridsize.Setup( 25, 100, 5 );
 	gridsize.LinkCvar( "touch_grid_count", CMenuEditable::CVAR_VALUE );
 
-	grid.SetNameAndStatus( "Grid", "Enable/disable grid" );
+	grid.SetNameAndStatus( L( "Grid" ), L( "Enable or disable grid" ) );
 	grid.LinkCvar( "touch_grid_enable" );
 
-	enable.SetNameAndStatus( "Enable touch", "enable/disable touch controls" );
+	enable.SetNameAndStatus( L( "Enable touch" ), L( "Enable or disable touch controls" ) );
 	enable.LinkCvar( "touch_enable" );
 
-	nomouse.SetNameAndStatus( "Ignore Mouse", "Ignore mouse input" );
+	nomouse.SetNameAndStatus( L( "Ignore mouse" ), L( "Ignore mouse input" ) );
 	nomouse.LinkCvar( "m_ignore" );
 
-	acceleration.SetNameAndStatus( "Enable acceleration", "Nonlinear looking (touch_nonlinear_look)");
+	acceleration.SetNameAndStatus( L( "Enable acceleration" ), L( "Nonlinear looking (touch_nonlinear_look)" ) );
 	acceleration.LinkCvar( "touch_nonlinear_look" );
 
-	power.SetNameAndStatus( "Power factor", "Power acceleration factor (touch_pow_factor)" );
+	power.SetNameAndStatus( L( "Power factor" ), L( "Power acceleration factor (touch_pow_factor)" ) );
 	power.Setup( 1, 1.7, 0.05 );
 	power.LinkCvar( "touch_pow_factor" );
 
-	multiplier.SetNameAndStatus( "Power multiplier", "Pre-multiplier for pow (touch_pow_mult)" );
+	multiplier.SetNameAndStatus( L( "Power multiplier" ), L( "Pre-multiplier for pow (touch_pow_mult)" ) );
 	multiplier.Setup( 100, 1000, 1 );
 	multiplier.LinkCvar( "touch_pow_mult" );
 
-	exponent.SetNameAndStatus( "Exponent", "Exponent factor, more agressive (touch_exp_mult)" );
+	exponent.SetNameAndStatus( L( "Exponent" ), L( "Exponent factor, more agressive (touch_exp_mult)" ) );
 	exponent.Setup( 0, 100, 1 );
 	exponent.LinkCvar( "touch_exp_mult" );
 
@@ -361,26 +362,26 @@ void CMenuTouchOptions::_Init( void )
 	UpdateProfilies();
 	profiles.onChanged = VoidCb( &CMenuTouchOptions::UpdateProfilies );
 
-	profilename.szName = "New Profile:";
+	profilename.szName = L( "New Profile:" );
 	profilename.iMaxLength = 16;
 
-	reset.SetNameAndStatus( "Reset", "Reset sensitivity settings" );
+	reset.SetNameAndStatus( L( "Reset" ), L( "Reset sensitivity settings" ) );
 	reset.SetPicture("gfx/shell/btn_touch_reset");
-	reset.onActivated = VoidCb( &CMenuTouchOptions::ResetMsgBox );
+	reset.onReleased = VoidCb( &CMenuTouchOptions::ResetMsgBox );
 
-	remove.SetNameAndStatus( "Delete", "Delete saved game" );
+	remove.SetNameAndStatus( L( "Delete" ), L( "Delete saved game" ) );
 	remove.SetPicture( PC_DELETE );
-	remove.onActivated = VoidCb( &CMenuTouchOptions::DeleteMsgBox );
+	remove.onReleased = VoidCb( &CMenuTouchOptions::DeleteMsgBox );
 
-	apply.SetNameAndStatus( "Activate", "Apply selected profile" );
+	apply.SetNameAndStatus( L( "Activate" ), L( "Apply selected profile" ) );
 	apply.SetPicture( PC_ACTIVATE );
-	apply.onActivated = VoidCb( &CMenuTouchOptions::Apply );
+	apply.onReleased = VoidCb( &CMenuTouchOptions::Apply );
 
-	save.SetNameAndStatus( "Save", "Save new profile" );
+	save.SetNameAndStatus( L( "GameUI_Save" ), L( "Save new profile" ) );
 	save.SetPicture("gfx/shell/btn_touch_save");
-	save.onActivated = VoidCb( &CMenuTouchOptions::Save );
+	save.onReleased = VoidCb( &CMenuTouchOptions::Save );
 
-	msgBox.SetPositiveButton( "Ok", PC_OK );
+	msgBox.SetPositiveButton( L( "GameUI_OK" ), PC_OK );
 	msgBox.Link( this );
 	
 	AddItem( background );
@@ -440,23 +441,4 @@ void CMenuTouchOptions::_VidInit( void )
 
 }
 
-/*
-=================
-UI_TouchOptions_Precache
-=================
-*/
-void UI_TouchOptions_Precache( void )
-{
-	EngFuncs::PIC_Load( ART_BANNER );
-}
-
-/*
-=================
-UI_TouchOptions_Menu
-=================
-*/
-void UI_TouchOptions_Menu( void )
-{
-	uiTouchOptions.Show();
-}
-ADD_MENU( menu_touchoptions, UI_TouchOptions_Precache, UI_TouchOptions_Menu );
+ADD_MENU( menu_touchoptions, CMenuTouchOptions, UI_TouchOptions_Menu );

@@ -26,7 +26,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "Field.h"
 #include "PlayerIntroduceDialog.h"
 
-static class CMenuPlayerIntroduceDialog : public CMenuYesNoMessageBox
+class CMenuPlayerIntroduceDialog : public CMenuYesNoMessageBox
 {
 public:
 	CMenuPlayerIntroduceDialog() : CMenuYesNoMessageBox( false ), msgBox( true )
@@ -35,14 +35,14 @@ public:
 
 	void WriteOrDiscard();
 	void _Init() override;
-	const char *Key( int key, int down ) override;
+	bool KeyDown( int key ) override;
 
 	CMenuBaseWindow *pCaller;
 
 private:
 	CMenuField name;
 	CMenuYesNoMessageBox msgBox;
-} uiIntroduceDialog;
+};
 
 void CMenuPlayerIntroduceDialog::WriteOrDiscard()
 {
@@ -57,19 +57,19 @@ void CMenuPlayerIntroduceDialog::WriteOrDiscard()
 	}
 }
 
-const char *CMenuPlayerIntroduceDialog::Key( int key, int down )
+bool CMenuPlayerIntroduceDialog::KeyDown( int key )
 {
-	if( down && UI::Key::IsEscape( key ) )
+	if( UI::Key::IsEscape( key ) )
 	{
-		return uiSoundNull; // handled
+		return true; // handled
 	}
 
-	if( down && UI::Key::IsEnter( key ) && ItemAtCursor() == &name )
+	if( UI::Key::IsEnter( key ) && ItemAtCursor() == &name )
 	{
 		WriteOrDiscard();
 	}
 
-	return CMenuYesNoMessageBox::Key( key, down );
+	return CMenuYesNoMessageBox::KeyDown( key );
 }
 
 void CMenuPlayerIntroduceDialog::_Init()
@@ -82,14 +82,14 @@ void CMenuPlayerIntroduceDialog::_Init()
 		self->pCaller->Hide(); // hide our parent
 	});
 
-	SetMessage( "Enter your name:");
+	SetMessage( L( "GameUI_PlayerName" ) );
 
 	name.bAllowColorstrings = true;
 	name.SetRect( 188, 140, 270, 32 );
 	name.LinkCvar( "name" );
 	name.iMaxLength = MAX_SCOREBOARDNAME;
 
-	msgBox.SetMessage( "Please, choose another player name" );
+	msgBox.SetMessage( L( "Please, choose another player name" ) );
 	msgBox.Link( this );
 
 	// don't close automatically
@@ -101,8 +101,12 @@ void CMenuPlayerIntroduceDialog::_Init()
 	AddItem( name );
 }
 
+ADD_MENU3( menu_playerintroducedialog, CMenuPlayerIntroduceDialog, UI_PlayerIntroduceDialog_Show );
+
+void UI_PlayerIntroduceDialog_Show() { }
+
 void UI_PlayerIntroduceDialog_Show( CMenuBaseWindow *pCaller )
 {
-	uiIntroduceDialog.pCaller = pCaller;
-	uiIntroduceDialog.Show();
+	menu_playerintroducedialog->pCaller = pCaller;
+	menu_playerintroducedialog->Show();
 }
