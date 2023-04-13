@@ -201,6 +201,8 @@ UI_Main_Init
 */
 void CMenuMain::VidInit( bool connected )
 {
+	minimizeBtn.Hide();
+	
 	if( connected )
 	{
 		console.SetCoord( 72, 280 );
