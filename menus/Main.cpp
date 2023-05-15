@@ -216,7 +216,9 @@ void CMenuMain::VidInit( bool connected )
 	{
 		resumeGame.Hide();
 		disconnect.Hide();
+		
 		console.SetCoord( 72, 380 );
+		console.CalcPosition();
 	}
 
 	createGame.SetCoord( 72, 430 );
