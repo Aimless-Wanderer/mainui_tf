@@ -59,10 +59,6 @@ list(APPEND MAINUI_SOURCES ${MAINUI_MENUS_SOURCES})
 list(APPEND MAINUI_SOURCES ${MAINUI_FONT_RENDER_SOURCES})
 add_library(${MAINUI_LIBRARY} MODULE ${MAINUI_SOURCES})
 
-if(CMAKE_SIZEOF_VOID_P EQUAL 8 AND WIN32)
-	set_target_properties(${MAINUI_LIBRARY} PROPERTIES OUTPUT_NAME "menu_amd64")
-endif()
-
 if(NOT WIN32 AND NOT MINGW)
 	add_compile_options(-Wall -Wextra -Wno-unused-parameter -Wno-unused-variable)
 else()
