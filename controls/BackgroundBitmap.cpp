@@ -81,7 +81,9 @@ void CMenuBackgroundBitmap::DrawBackgroundLayout( Point p, float xScale, float y
 	else
 	{
 		start = 0;
-		end = s_Backgrounds.Count() - 1;
+		if (s_bLoadedSplash)
+			end = s_Backgrounds.Count() - 1;
+		else end = s_Backgrounds.Count();
 	}
 
 	// iterate and draw all the background pieces
