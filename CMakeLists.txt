@@ -59,6 +59,10 @@ list(APPEND MAINUI_SOURCES ${MAINUI_MENUS_SOURCES})
 list(APPEND MAINUI_SOURCES ${MAINUI_FONT_RENDER_SOURCES})
 add_library(${MAINUI_LIBRARY} MODULE ${MAINUI_SOURCES})
 
+if(NOT ANDROID)
+	set_target_properties(${MAINUI_LIBRARY} PROPERTIES PREFIX "")
+endif()
+
 if(NOT WIN32 AND NOT MINGW)
 	add_compile_options(-Wall -Wextra -Wno-unused-parameter -Wno-unused-variable)
 else()
