@@ -23,6 +23,7 @@ GNU General Public License for more details.
 bool CMenuBackgroundBitmap::s_bEnableLogoMovie = false;
 Size CMenuBackgroundBitmap::s_BackgroundImageSize;
 CUtlVector<CMenuBackgroundBitmap::bimage_t> CMenuBackgroundBitmap::s_Backgrounds;
+bool CMenuBackgroundBitmap::s_bLoadedSplash = false;
 
 CMenuBackgroundBitmap::CMenuBackgroundBitmap() : CMenuBitmap()
 {
@@ -70,8 +71,21 @@ void CMenuBackgroundBitmap::DrawColor()
 
 void CMenuBackgroundBitmap::DrawBackgroundLayout( Point p, float xScale, float yScale )
 {
+	int start, end;
+
+	if ( !ui_steam_background->value && s_bLoadedSplash )
+	{
+		end = s_Backgrounds.Count();
+		start = end - 1;
+	}
+	else
+	{
+		start = 0;
+		end = s_Backgrounds.Count() - 1;
+	}
+
 	// iterate and draw all the background pieces
-	for (int i = 0; i < s_Backgrounds.Count(); i++)
+	for (int i = start; i < end; i++)
 	{
 		bimage_t &bimage = s_Backgrounds[i];
 
@@ -312,16 +326,15 @@ void CMenuBackgroundBitmap::LoadBackground()
 		return;
 
 	// try to load backgrounds from mod
-	if( ui_steam_background->value && LoadBackgroundImage( true ) )
-		return; // at first check new gameui backgrounds
+	LoadBackgroundImage( true ); // at first check new gameui backgrounds
 
-	if( CheckBackgroundSplash( true ) )
-		return; // then check won-style
-
+	s_bLoadedSplash = CheckBackgroundSplash( true ); // then check won-style
+/*
 	// try from base directory
 	if( LoadBackgroundImage( false ) )
 		return; // gameui bgs are allowed to be inherited
 
 	if( CheckBackgroundSplash( false ) )
 		return;
+*/
 }
