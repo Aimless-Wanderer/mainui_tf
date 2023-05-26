@@ -397,6 +397,8 @@ void CMenuControls::_Init( void )
 	AddItem( banner );
 	AddButton( L( "GameUI_UseDefaults" ), L( "GameUI_KeyboardSettingsText" ), PC_USE_DEFAULTS, msgBox2.MakeOpenEvent() );
 	AddButton( L( "Adv. Controls" ), L( "Change mouse sensitivity, enable autoaim, mouselook and crosshair" ), PC_ADV_CONTROLS, UI_AdvControls_Menu );
+	AddButton( L( "Touch" ), L( "Change touch settings and buttons" ), PC_TOUCH, UI_Touch_Menu );
+	AddButton( L( "GameUI_Joystick" ), L( "Change gamepad axis and button settings" ), PC_GAMEPAD, UI_GamePad_Menu );
 	AddButton( L( "GameUI_OK" ), L( "Save changed and return to configuration menu" ), PC_DONE,
 		VoidCb( &CMenuControls::SaveAndPopMenu ) );
 	AddButton( L( "GameUI_Cancel" ), L( "Discard changes and return to configuration menu" ), PC_CANCEL,

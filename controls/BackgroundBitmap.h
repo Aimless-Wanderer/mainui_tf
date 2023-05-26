@@ -22,6 +22,8 @@ GNU General Public License for more details.
 
 #define ART_BACKGROUND		"gfx/shell/splash.bmp"
 
+extern cvar_t *ui_steam_background;
+
 // Ultimate class that support multiple types of background: fillColor, WON-style, GameUI-style
 class CMenuBackgroundBitmap: public CMenuBitmap
 {

@@ -312,7 +312,7 @@ void CMenuBackgroundBitmap::LoadBackground()
 		return;
 
 	// try to load backgrounds from mod
-	if( LoadBackgroundImage( true ) )
+	if( ui_steam_background->value && LoadBackgroundImage( true ) )
 		return; // at first check new gameui backgrounds
 
 	if( CheckBackgroundSplash( true ) )
