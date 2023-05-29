@@ -24,6 +24,7 @@ bool CMenuBackgroundBitmap::s_bEnableLogoMovie = false;
 Size CMenuBackgroundBitmap::s_BackgroundImageSize;
 CUtlVector<CMenuBackgroundBitmap::bimage_t> CMenuBackgroundBitmap::s_Backgrounds;
 bool CMenuBackgroundBitmap::s_bLoadedSplash = false;
+Size CMenuBackgroundBitmap::s_SteamBackgroundSize;
 
 CMenuBackgroundBitmap::CMenuBackgroundBitmap() : CMenuBitmap()
 {
@@ -77,13 +78,15 @@ void CMenuBackgroundBitmap::DrawBackgroundLayout( Point p, float xScale, float y
 	{
 		end = s_Backgrounds.Count();
 		start = end - 1;
+		s_bEnableLogoMovie = true;
+		s_BackgroundImageSize = s_Backgrounds.Tail().size;
 	}
 	else
 	{
 		start = 0;
-		if (s_bLoadedSplash)
-			end = s_Backgrounds.Count() - 1;
-		else end = s_Backgrounds.Count();
+		end = s_bLoadedSplash ? s_Backgrounds.Count() - 1 : s_Backgrounds.Count();
+		s_bEnableLogoMovie = false;
+		s_BackgroundImageSize = s_SteamBackgroundSize;
 	}
 
 	// iterate and draw all the background pieces
@@ -246,12 +249,12 @@ bool CMenuBackgroundBitmap::LoadBackgroundImage( bool gamedirOnly )
 	pfile = EngFuncs::COM_ParseFile( pfile, token, sizeof( token ) );
 	if( !pfile ) goto freefile;
 
-	s_BackgroundImageSize.w = atoi( token );
+	s_SteamBackgroundSize.w = atoi( token );
 
 	pfile = EngFuncs::COM_ParseFile( pfile, token, sizeof( token ) );
 	if( !pfile ) goto freefile;
 
-	s_BackgroundImageSize.h = atoi( token );
+	s_SteamBackgroundSize.h = atoi( token );
 
 	// Now read all tiled background list
 	while(( pfile = EngFuncs::COM_ParseFile( pfile, token, sizeof( token ) )))
