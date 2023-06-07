@@ -63,15 +63,13 @@ private:
 
 	CMenuPicButton	resumeGame;
 	CMenuPicButton	disconnect;
-	/*
 	CMenuPicButton	newGame;
 	CMenuPicButton	hazardCourse;
-	CMenuPicButton	saveRestore;
-	CMenuPicButton	previews;
-	*/
 	CMenuPicButton	configuration;
+	CMenuPicButton	saveRestore;
 	CMenuPicButton	multiPlayer;
 	CMenuPicButton	customGame;
+	CMenuPicButton	previews;
 	CMenuPicButton	quit;
 
 	// buttons on top right. Maybe should be drawn if fullscreen == 1?
@@ -81,7 +79,7 @@ private:
 	// quit dialog
 	CMenuYesNoMessageBox dialog;
 
-//	bool bTrainMap;
+	bool bTrainMap;
 	bool bCustomGame;
 };
 
@@ -185,17 +183,19 @@ void CMenuMain::HazardCourseCb()
 
 void CMenuMain::_Init( void )
 {
-/*
 	if( gMenu.m_gameinfo.trainmap[0] && stricmp( gMenu.m_gameinfo.trainmap, gMenu.m_gameinfo.startmap ) != 0 )
 		bTrainMap = true;
 	else bTrainMap = false;
-*/
+
 	if( EngFuncs::GetCvarFloat( "host_allow_changegame" ))
 		bCustomGame = true;
 	else bCustomGame = false;
 
 	// console
-	console.SetNameAndStatus( L( "GameUI_Console" ), NULL );
+	if( ui_menu_style->value )
+		console.SetNameAndStatus( L( "GameUI_Console" ), NULL );
+	else
+		console.SetNameAndStatus( L( "GameUI_Console" ), L( "Show console" ) );
 	console.iFlags |= QMF_NOTIFY;
 	console.SetPicture( PC_CONSOLE );
 	SET_EVENT_MULTI( console.onReleased,
@@ -213,7 +213,7 @@ void CMenuMain::_Init( void )
 	disconnect.SetPicture( PC_DISCONNECT );
 	disconnect.iFlags |= QMF_NOTIFY;
 	disconnect.onReleased = VoidCb( &CMenuMain::DisconnectDialogCb );
-/*
+
 	newGame.SetNameAndStatus( L( "GameUI_NewGame" ), L( "StringsList_189" ) );
 	newGame.SetPicture( PC_NEW_GAME );
 	newGame.iFlags |= QMF_NOTIFY;
@@ -224,7 +224,7 @@ void CMenuMain::_Init( void )
 	hazardCourse.iFlags |= QMF_NOTIFY;
 	hazardCourse.onReleasedClActive = VoidCb( &CMenuMain::HazardCourseDialogCb );
 	hazardCourse.onReleased = VoidCb( &CMenuMain::HazardCourseCb );
-*/
+	
 	multiPlayer.SetNameAndStatus( L( "GameUI_Multiplayer" ), L( "StringsList_198" ) );
 	multiPlayer.SetPicture( PC_MULTIPLAYER );
 	multiPlayer.iFlags |= QMF_NOTIFY;
@@ -234,19 +234,19 @@ void CMenuMain::_Init( void )
 	configuration.SetPicture( PC_CONFIG );
 	configuration.iFlags |= QMF_NOTIFY;
 	configuration.onReleased = UI_Options_Menu;
-/*
+
 	saveRestore.iFlags |= QMF_NOTIFY;
-*/
+
 	customGame.SetNameAndStatus( L( "GameUI_ChangeGame" ), L( "StringsList_530" ) );
 	customGame.SetPicture( PC_CUSTOM_GAME );
 	customGame.iFlags |= QMF_NOTIFY;
 	customGame.onReleased = UI_CustomGame_Menu;
-/*
+
 	previews.SetNameAndStatus( L( "Previews" ), L( "StringsList_400" ) );
 	previews.SetPicture( PC_PREVIEWS );
 	previews.iFlags |= QMF_NOTIFY;
 	SET_EVENT( previews.onReleased, EngFuncs::ShellExecute( MenuStrings[ IDS_MEDIA_PREVIEWURL ], NULL, false ) );
-*/
+
 	quit.SetNameAndStatus( L( "GameUI_GameMenu_Quit" ), L( "GameUI_QuitConfirmationText" ) );
 	quit.SetPicture( PC_QUIT );
 	quit.iFlags |= QMF_NOTIFY;
@@ -261,7 +261,7 @@ void CMenuMain::_Init( void )
 	minimizeBtn.iFlags = QMF_MOUSEONLY;
 	minimizeBtn.eFocusAnimation = QM_HIGHLIGHTIFFOCUS;
 	minimizeBtn.onReleased.SetCommand( FALSE, "minimize\n" );
-/*
+
 	if ( gMenu.m_gameinfo.gamemode == GAME_MULTIPLAYER_ONLY || gMenu.m_gameinfo.startmap[0] == 0 )
 		newGame.SetGrayed( true );
 
@@ -287,7 +287,7 @@ void CMenuMain::_Init( void )
 		hazardCourse.SetGrayed( true );
 		newGame.SetGrayed( true );
 	}
-*/
+
 	dialog.Link( this );
 
 	AddItem( background );
@@ -298,21 +298,19 @@ void CMenuMain::_Init( void )
 
 	AddItem( disconnect );
 	AddItem( resumeGame );
-/*
 	AddItem( newGame );
 
 	if ( bTrainMap )
 		AddItem( hazardCourse );
 
 	AddItem( saveRestore );
-*/
 	AddItem( configuration );
 	AddItem( multiPlayer );
 
 	if ( bCustomGame )
 		AddItem( customGame );
 
-//	AddItem( previews );
+	AddItem( previews );
 	AddItem( quit );
 	AddItem( minimizeBtn );
 	AddItem( quitButton );
@@ -325,16 +323,31 @@ UI_Main_Init
 */
 void CMenuMain::VidInit( bool connected )
 {
+	if( ui_menu_style->value )
+	{
+		newGame.Hide();
+		hazardCourse.Hide();
+		saveRestore.Hide();
+		previews.Hide();
+	}
+	else
+	{
+		newGame.Show();
+		if ( bTrainMap ) hazardCourse.Show();
+		saveRestore.Show();
+		previews.Show();
+	}
+
 	// statically positioned items
 	minimizeBtn.SetRect( uiStatic.width - 72, 13, 32, 32 );
 	quitButton.SetRect( uiStatic.width - 36, 13, 32, 32 );
-	disconnect.SetCoord( 72, 280 );
-	resumeGame.SetCoord( 72, 330 );
+	disconnect.SetCoord( 72, ui_menu_style->value ? 280 : 180 );
+	resumeGame.SetCoord( 72, ui_menu_style->value ? 330 : 230 );
 
-//	bool isSingle = gpGlobals->maxClients < 2;
-/*
 	newGame.SetCoord( 72, 280 );
 	hazardCourse.SetCoord( 72, 330 );
+
+	bool isSingle = gpGlobals->maxClients < 2;
 
 	if( CL_IsActive() && isSingle )
 	{
@@ -348,19 +361,19 @@ void CMenuMain::VidInit( bool connected )
 		saveRestore.SetPicture( PC_LOAD_GAME );
 		saveRestore.onReleased = UI_LoadGame_Menu;
 	}
-*/
+
 	if( connected )
 	{
 		resumeGame.Show();
-		if( CL_IsActive() /* && !isSingle */ )
+		if( CL_IsActive() && !isSingle )
 		{
 			disconnect.Show();
-			console.pos.y = 230;
+			console.pos.y = ui_menu_style->value ? 230 : 130;
 		}
 		else
 		{
 			disconnect.Hide();
-			console.pos.y = 230;
+			console.pos.y = ui_menu_style->value ? 230 : 180;
 		}
 	}
 	else
@@ -372,12 +385,20 @@ void CMenuMain::VidInit( bool connected )
 
 	console.pos.x = 72;
 	console.CalcPosition();
-//	saveRestore.SetCoord( 72, bTrainMap ? 380 : 330 );
-	configuration.SetCoord( 72, 430 );
-	multiPlayer.SetCoord( 72, 530 );
-	customGame.SetCoord( 72, 580 );
-//	previews.SetCoord( 72, (bCustomGame) ? (bTrainMap ? 580 : 530) : (bTrainMap ? 530 : 480) );
-	quit.SetCoord( 72, 630 );
+	saveRestore.SetCoord( 72, bTrainMap ? 380 : 330 );
+	configuration.SetCoord( 72, bTrainMap ? 430 : 380 );
+	multiPlayer.SetCoord( 72, bTrainMap ? 480 : 430 );
+	customGame.SetCoord( 72, bTrainMap ? 530 : 480 );
+	previews.SetCoord( 72, (bCustomGame) ? (bTrainMap ? 580 : 530) : (bTrainMap ? 530 : 480));
+	quit.SetCoord( 72, (bCustomGame) ? (bTrainMap ? 630 : 580) : (bTrainMap ? 580 : 530));
+
+	if( ui_menu_style->value )
+	{
+		configuration.SetCoord( 72, 430 );
+		multiPlayer.SetCoord( 72, 530 );
+		customGame.SetCoord( 72, 580 );
+		quit.SetCoord( 72, 630 );
+	}
 }
 
 void CMenuMain::_VidInit()

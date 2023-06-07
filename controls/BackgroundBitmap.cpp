@@ -74,7 +74,7 @@ void CMenuBackgroundBitmap::DrawBackgroundLayout( Point p, float xScale, float y
 {
 	int start, end;
 
-	if ( !ui_steam_background->value && s_bLoadedSplash )
+	if ( ui_menu_style->value && s_bLoadedSplash )
 	{
 		end = s_Backgrounds.Count();
 		start = end - 1;
