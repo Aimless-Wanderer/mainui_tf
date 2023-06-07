@@ -224,7 +224,7 @@ void CMenuMain::_Init( void )
 	hazardCourse.iFlags |= QMF_NOTIFY;
 	hazardCourse.onReleasedClActive = VoidCb( &CMenuMain::HazardCourseDialogCb );
 	hazardCourse.onReleased = VoidCb( &CMenuMain::HazardCourseCb );
-	
+
 	multiPlayer.SetNameAndStatus( L( "GameUI_Multiplayer" ), L( "StringsList_198" ) );
 	multiPlayer.SetPicture( PC_MULTIPLAYER );
 	multiPlayer.iFlags |= QMF_NOTIFY;
@@ -343,7 +343,6 @@ void CMenuMain::VidInit( bool connected )
 	quitButton.SetRect( uiStatic.width - 36, 13, 32, 32 );
 	disconnect.SetCoord( 72, ui_menu_style->value ? 280 : 180 );
 	resumeGame.SetCoord( 72, ui_menu_style->value ? 330 : 230 );
-
 	newGame.SetCoord( 72, 280 );
 	hazardCourse.SetCoord( 72, 330 );
 
