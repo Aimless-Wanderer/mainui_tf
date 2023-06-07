@@ -52,6 +52,19 @@ static struct
 { "#Valve_Dkgray", 36,  36,  36  }, // L( "#Valve_Dkgray" )
 };
 
+static struct
+{
+	const char *name;
+	int r, g, b;
+} g_CrosshairColors[] =
+{
+{ "#Valve_Green",	50,		250,	50 	},
+{ "#Valve_Red",		250,	50,		50 	},
+{ "#Valve_Blue",	50,		50,		250 },
+{ "#Valve_Yellow",	250,	250,	50 	},
+{ "#Valve_Ltblue",	50,		250,	250	},
+};
+
 class CMenuPlayerSetup : public CMenuFramework
 {
 private:
@@ -125,6 +138,18 @@ public:
 
 	CMenuYesNoMessageBox msgBox;
 
+	class CMenuCrosshairPreview : public CMenuBaseItem
+	{
+	public:
+		virtual void Draw();
+		int r, g, b;
+		HIMAGE hImage;
+	} crosshairPreview;
+
+	CMenuSpinControl crosshairSize;
+	CMenuSpinControl crosshairColor;
+	CMenuCheckBox crosshairTranslucent;
+
 	bool hideModels, hideLogos;
 };
 
@@ -143,6 +168,26 @@ void CMenuPlayerSetup::CMenuLogoPreview::Draw()
 			EngFuncs::PIC_Set( hImage, r, g, b );
 		else
 			EngFuncs::PIC_Set( hImage, 255, 255, 255 );
+		EngFuncs::PIC_DrawTrans( m_scPos, m_scSize );
+	}
+
+	// draw the rectangle
+	if( eFocusAnimation == QM_HIGHLIGHTIFFOCUS && IsCurrentSelected() )
+		UI_DrawRectangle( m_scPos, m_scSize, uiInputTextColor );
+	else
+		UI_DrawRectangle( m_scPos, m_scSize, uiInputFgColor );
+
+}
+
+void CMenuPlayerSetup::CMenuCrosshairPreview::Draw()
+{
+	if( !hImage )
+	{
+		UI_FillRect( m_scPos, m_scSize, uiPromptBgColor );
+	}
+	else
+	{
+		EngFuncs::PIC_Set( hImage, 255, 255, 255 );
 		EngFuncs::PIC_DrawTrans( m_scPos, m_scSize );
 	}
 
@@ -248,6 +293,9 @@ void CMenuPlayerSetup::SetConfig( void )
 	bottomColor.WriteCvar();
 	hiModels.WriteCvar();
 	showModels.WriteCvar();
+	crosshairSize.WriteCvar();
+	crosshairColor.WriteCvar();
+	crosshairTranslucent.WriteCvar();
 	WriteNewLogo();
 }
 
@@ -526,6 +574,35 @@ void CMenuPlayerSetup::_Init( void )
 		AddItem( logoColor );
 		AddItem( logoImage );
 	}
+
+	static const char *itemlist[V_ARRAYSIZE( g_CrosshairColors )];
+	static CStringArrayModel colors( itemlist, V_ARRAYSIZE( g_CrosshairColors ) );
+	for( size_t i = 0; i < V_ARRAYSIZE( g_CrosshairColors ); i++ )
+		itemlist[i] = L( g_CrosshairColors[i].name );
+
+	static const char *sizelist[] = { "Auto-size", "Small", "Medium", "Large" };
+	static CStringArrayModel sizes( sizelist, V_ARRAYSIZE( sizelist ));
+
+	crosshairPreview.SetNameAndStatus( "Crosshair appearance", NULL );
+	crosshairPreview.SetRect( 302, 230 + m_iBtnsNum * 50 + 10, 200, 200 );
+	crosshairPreview.hImage = EngFuncs::PIC_Load( "gfx/vgui/crosshair.tga", 0 );
+
+	crosshairSize.Setup( &sizes );
+	crosshairSize.LinkCvar( "cl_crosshair_size", CMenuEditable::CVAR_VALUE );
+	crosshairSize.SetRect( 302, crosshairPreview.pos.y + crosshairPreview.size.h + UI_OUTLINE_WIDTH, 200, 32 );
+
+	crosshairColor.Setup( &colors );
+	// crosshairColor.LinkCvar( "cl_crosshair_color", CMenuEditable::CVAR_STRING );
+	crosshairColor.SetRect( 302, crosshairSize.pos.y + crosshairSize.size.h + UI_OUTLINE_WIDTH, 200, 32 );
+
+	crosshairTranslucent.SetNameAndStatus( "Translucent", NULL );
+	crosshairTranslucent.LinkCvar( "cl_crosshair_translucent" );
+	crosshairTranslucent.SetCoord( 302, crosshairColor.pos.y + crosshairColor.size.h + UI_OUTLINE_WIDTH );
+
+	AddItem( crosshairPreview );
+	AddItem( crosshairSize );
+	AddItem( crosshairColor );
+	AddItem( crosshairTranslucent );
 
 	if( !(gMenu.m_gameinfo.flags & GFL_NOMODELS) )
 	{
