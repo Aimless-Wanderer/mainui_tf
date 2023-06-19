@@ -588,7 +588,7 @@ void CMenuPlayerSetup::_Init( void )
 	crosshairPreview.hImage = EngFuncs::PIC_Load( "gfx/vgui/crosshair.tga", 0 );
 
 	crosshairSize.Setup( &sizes );
-	crosshairSize.LinkCvar( "cl_crosshair_size", CMenuEditable::CVAR_VALUE );
+	// crosshairSize.LinkCvar( "cl_crosshair_size", CMenuEditable::CVAR_VALUE );
 	crosshairSize.SetRect( 302, crosshairPreview.pos.y + crosshairPreview.size.h + UI_OUTLINE_WIDTH, 200, 32 );
 
 	crosshairColor.Setup( &colors );
