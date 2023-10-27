@@ -62,9 +62,8 @@ def configure(conf):
 		conf.check_cxx(lib='rt', mandatory=False)
 
 def build(bld):
-	libs = [ 'sdk_includes' ]
+	libs = []
 
-	# basic build: dedicated only, no dependencies
 	if bld.env.DEST_OS != 'win32':
 		if not bld.env.USE_STBTT:
 			libs += ['FT2', 'FC']
@@ -92,6 +91,10 @@ def build(bld):
 		'controls/',
 		'menus/',
 		'model/',
+		'sdk_includes/common',
+		'sdk_includes/engine',
+		'sdk_includes/public',
+		'sdk_includes/pm_shared'
 	]
 
 	bld.shlib(
@@ -101,5 +104,6 @@ def build(bld):
 		includes = includes,
 		use      = libs,
 		install_path = bld.env.LIBDIR,
-		subsystem = bld.env.MSVC_SUBSYSTEM
+		subsystem = bld.env.MSVC_SUBSYSTEM,
+		cmake_skip = True
 	)
