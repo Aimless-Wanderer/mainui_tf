@@ -147,6 +147,7 @@ public:
 		virtual void Draw();
 		int r, g, b;
 		HIMAGE hImage;
+		HIMAGE hWhite;
 	} crosshairPreview;
 
 	CMenuSpinControl crosshairSize;
@@ -155,6 +156,8 @@ public:
 
 	bool hideModels, hideLogos;
 };
+
+ADD_MENU( menu_playersetup, CMenuPlayerSetup, UI_PlayerSetup_Menu );
 
 void CMenuPlayerSetup::CMenuLogoPreview::Draw()
 {
@@ -184,6 +187,13 @@ void CMenuPlayerSetup::CMenuLogoPreview::Draw()
 
 void CMenuPlayerSetup::CMenuCrosshairPreview::Draw()
 {
+	int length;
+	int x = m_scPos.x, y = m_scPos.y;
+	int w = m_scSize.w, h = m_scSize.h;
+	int delta;
+	int i = menu_playersetup->crosshairColor.GetCurrentValue();
+	int r = g_CrosshairColors[i].r, g = g_CrosshairColors[i].g, b = g_CrosshairColors[i].b, a = 180;
+
 	if( !hImage )
 	{
 		UI_FillRect( m_scPos, m_scSize, uiPromptBgColor );
@@ -192,6 +202,57 @@ void CMenuPlayerSetup::CMenuCrosshairPreview::Draw()
 	{
 		EngFuncs::PIC_Set( hImage, 255, 255, 255 );
 		EngFuncs::PIC_DrawTrans( m_scPos, m_scSize );
+	}
+
+	switch( (int)menu_playersetup->crosshairSize.GetCurrentValue() )
+	{
+	case 1:
+		length = 10;
+		break;
+	case 2:
+		length = 20;
+		break;
+	case 3:
+		length = 30;
+		break;
+	case 0:
+		if( ScreenWidth < 640 )
+			length = 30;
+		else if( ScreenWidth < 1024 )
+			length = 20;
+		else length = 10;
+	}
+
+	length *= ScreenHeight / 768.0f;
+	delta = ( w / 2 - length ) * 0.5f;
+
+	if( menu_playersetup->crosshairTranslucent.bChecked )
+	{
+		EngFuncs::PIC_Set( hWhite, r, g, b, a );
+		EngFuncs::PIC_DrawTrans(x + w / 2, y + delta, 1, length );
+
+		EngFuncs::PIC_Set( hWhite, r, g, b, a );
+		EngFuncs::PIC_DrawTrans(x + w / 2, y + h / 2 + delta, 1, length );
+
+		EngFuncs::PIC_Set( hWhite, r, g, b, a );
+		EngFuncs::PIC_DrawTrans(x + delta, y + h / 2, length, 1 );
+
+		EngFuncs::PIC_Set( hWhite, r, g, b, a );
+		EngFuncs::PIC_DrawTrans(x + w / 2 + delta, y + h / 2, length, 1 );
+	}
+	else
+	{
+		EngFuncs::PIC_Set( hWhite, r, g, b, a );
+		EngFuncs::PIC_DrawAdditive(x + w / 2, y + delta, 1, length );
+
+		EngFuncs::PIC_Set( hWhite, r, g, b, a );
+		EngFuncs::PIC_DrawAdditive(x + w / 2, y + h / 2 + delta, 1, length );
+
+		EngFuncs::PIC_Set( hWhite, r, g, b, a );
+		EngFuncs::PIC_DrawAdditive(x + delta, y + h / 2, length, 1 );
+
+		EngFuncs::PIC_Set( hWhite, r, g, b, a );
+		EngFuncs::PIC_DrawAdditive(x + w / 2 + delta, y + h / 2, length, 1 );
 	}
 
 	// draw the rectangle
@@ -598,6 +659,7 @@ void CMenuPlayerSetup::_Init( void )
 	crosshairPreview.SetNameAndStatus( "Crosshair appearance", NULL );
 	crosshairPreview.SetRect( 302, 230 + m_iBtnsNum * 50 + 10, 200, 200 );
 	crosshairPreview.hImage = EngFuncs::PIC_Load( "gfx/vgui/crosshair.tga", 0 );
+	crosshairPreview.hWhite = EngFuncs::PIC_Load("*white");
 
 	crosshairSize.Setup( &sizes );
 	// crosshairSize.LinkCvar( "cl_crosshair_size", CMenuEditable::CVAR_VALUE );
@@ -679,5 +741,3 @@ void CMenuPlayerSetup::Reload()
 	if( !hideLogos ) UpdateLogo();
 	if( !hideModels ) UpdateModel();
 }
-
-ADD_MENU( menu_playersetup, CMenuPlayerSetup, UI_PlayerSetup_Menu );
