@@ -65,10 +65,13 @@ static struct
 { "#Valve_Ltblue",	50,		250,	250	},
 };
 
+static const char* g_CrosshairSizes[] = { "auto", "small", "medium", "large" };
+
 class CMenuPlayerSetup : public CMenuFramework
 {
 private:
 	void _Init() override;
+	void _VidInit() override;
 	void Reload() override;
 public:
 	CMenuPlayerSetup() : CMenuFramework( "CMenuPlayerSetup" ), msgBox( true ) { }
@@ -287,14 +290,23 @@ UI_PlayerSetup_SetConfig
 */
 void CMenuPlayerSetup::SetConfig( void )
 {
+	int i;
+	char color[32];
+
 	name.WriteCvar();
 	model.WriteCvar();
 	topColor.WriteCvar();
 	bottomColor.WriteCvar();
 	hiModels.WriteCvar();
 	showModels.WriteCvar();
-	crosshairSize.WriteCvar();
-	crosshairColor.WriteCvar();
+
+	i = crosshairSize.GetCurrentValue();
+	EngFuncs::CvarSetString( "cl_crosshair_size", g_CrosshairSizes[i] );
+
+	i = crosshairColor.GetCurrentValue();
+	snprintf( color, sizeof( color ), "%i %i %i", g_CrosshairColors[i].r, g_CrosshairColors[i].g, g_CrosshairColors[i].b );
+	EngFuncs::CvarSetString( "cl_crosshair_color", color );
+
 	crosshairTranslucent.WriteCvar();
 	WriteNewLogo();
 }
@@ -615,6 +627,49 @@ void CMenuPlayerSetup::_Init( void )
 		if( !hideModels )
 		{
 			AddItem( view );
+		}
+	}
+}
+
+void CMenuPlayerSetup::_VidInit()
+{
+	char color[32];
+	int rgb[3];
+	char size[32];
+	int i, j;
+	
+	strncpy( color, EngFuncs::GetCvarString( "cl_crosshair_color" ), sizeof( color ));
+	sscanf( color, "%d %d %d", &rgb[0], &rgb[1], &rgb[2] );
+	j = V_ARRAYSIZE( g_CrosshairColors );
+	for( i = 0; i <= j; i++ )
+	{
+		if( i == j )
+		{
+			crosshairColor.SetCurrentValue( color );
+			break;
+		}
+
+		if( g_CrosshairColors[i].r == rgb[0] && g_CrosshairColors[i].g == rgb[1] && g_CrosshairColors[i].b == rgb[2] )
+		{
+			crosshairColor.SetCurrentValue( i );
+			break;
+		}
+	}
+
+	strncpy( size, EngFuncs::GetCvarString( "cl_crosshair_size" ), sizeof( size ));
+	j = V_ARRAYSIZE( g_CrosshairSizes );
+	for( i = 0; i <= j; i++ )
+	{
+		if( i == j )
+		{
+			crosshairSize.SetCurrentValue( EngFuncs::GetCvarFloat( "cl_crosshair_size" ));
+			break;
+		}
+
+		if( !stricmp( size, g_CrosshairSizes[i] ))
+		{
+			crosshairSize.SetCurrentValue( i );
+			break;
 		}
 	}
 }
