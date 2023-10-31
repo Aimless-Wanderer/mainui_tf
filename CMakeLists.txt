@@ -29,6 +29,7 @@ project(MAINUI)
 set(CMAKE_CXX_STANDARD 11)
 
 set(MAINUI_LIBRARY menu)
+
 option(MAINUI_USE_CUSTOM_FONT_RENDER "Use custom font rendering" ON)
 option(MAINUI_USE_STB "Use stb_truetype.h for rendering(*nix-only)" OFF)
 option(MAINUI_FONT_SCALE "Scale fonts by height" OFF)
@@ -62,6 +63,10 @@ list(APPEND MAINUI_SOURCES ${MAINUI_MENUS_SOURCES})
 list(APPEND MAINUI_SOURCES ${MAINUI_FONT_RENDER_SOURCES})
 list(APPEND MAINUI_SOURCES ${XASH_SDK}/public/interface.cpp)
 add_library(${MAINUI_LIBRARY} MODULE ${MAINUI_SOURCES})
+
+if(NOT ANDROID)
+	set_target_properties(${MAINUI_LIBRARY} PROPERTIES PREFIX "")
+endif()
 
 if(NOT WIN32 AND NOT MINGW)
 	add_compile_options(-Wall -Wextra -Wno-unused-parameter -Wno-unused-variable)
