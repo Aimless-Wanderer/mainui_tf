@@ -31,6 +31,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #ifdef CS16CLIENT
 #include "Scoreboard.h"
 #endif
+#include "cursor_type.h"
 
 cvar_t		*ui_showmodels;
 cvar_t		*ui_show_window_stack;
@@ -155,7 +156,7 @@ bool UI_CursorInRect( int x, int y, int w, int h )
 UI_EnableAlphaFactor
 =================
 */
-void UI_EnableAlphaFactor(float a)
+void UI_EnableAlphaFactor( float a )
 {
 	uiStatic.enableAlphaFactor = true;
 	uiStatic.alphaFactor = bound( 0.0f, a, 1.0f );
@@ -287,7 +288,7 @@ int UI_DrawString( HFont font, int x, int y, int w, int h,
 		int charH, uint justify, uint flags )
 {
 	uint	modulate, shadowModulate = 0;
-	int	xx = 0, yy, ofsX = 0, ofsY = 0, ch;
+	int	xx = 0, yy, shadowOffset = 0, ch;
 	int maxX = x;
 
 	if( !string || !string[0] )
@@ -296,8 +297,7 @@ int UI_DrawString( HFont font, int x, int y, int w, int h,
 	if( flags & ETF_SHADOW )
 	{
 		shadowModulate = PackAlpha( uiColorBlack, UnpackAlpha( color ));
-
-		ofsX = ofsY = charH / 8;
+		shadowOffset = Q_max( 1, uiStatic.scaleX * 3 );
 	}
 
 	modulate = color;
@@ -480,7 +480,7 @@ int UI_DrawString( HFont font, int x, int y, int w, int h,
 				continue;
 
 			if( flags & ETF_SHADOW )
-				g_FontMgr->DrawCharacter( font, ch, Point( xx + ofsX, yy + ofsY ), charH, shadowModulate, flags & ETF_ADDITIVE );
+				g_FontMgr->DrawCharacter( font, ch, Point( xx + shadowOffset, yy + shadowOffset ), charH, shadowModulate, flags & ETF_ADDITIVE );
 
 #ifdef DEBUG_WHITESPACE
 			if( ch == ' ' )
@@ -512,22 +512,27 @@ UI_DrawMouseCursor
 */
 void UI_DrawMouseCursor( void )
 {
-#if 0 // a1ba: disable until we will manage to provide an API for crossplatform cursor replacing
 	CMenuBaseItem	*item;
-	HICON		hCursor = NULL;
-	int		i;
+	void *hCursor = (void *)dc_arrow;
 
-	if( uiStatic.hideCursor || UI_IsXashFWGS() ) return;
+#if 0
+	if( !UI_IsXashFWGS( ))
+	{
+#ifdef _WIN32
+		EngFuncs::SetCursor((HICON)LoadCursor( NULL, (LPCTSTR)OCR_NORMAL ));
+#endif // _WIN32
+		return;
+	}
+#endif // 0
 
 	int cursor = uiStatic.menu.Current()->GetCursor();
-	item = uiStatic.menu.Current()->GetItemByIndex(cursor);
+	item = uiStatic.menu.Current()->GetItemByIndex( cursor );
 
-	if( item->iFlags & QMF_HASMOUSEFOCUS ) 	// fast approach
+	if( item && FBitSet( item->iFlags, QMF_HASMOUSEFOCUS )) 	// fast approach
 	{
-		if ( item->iFlags & QMF_GRAYED )
-		{
-			hCursor = (HICON)LoadCursor( NULL, (LPCTSTR)OCR_NO );
-		}
+		if( FBitSet( item->iFlags, QMF_GRAYED ))
+			hCursor = (void *)dc_no;
+		else hCursor = (void *)item->CursorAction();
 	}
 	else
 	{
@@ -535,25 +540,21 @@ void UI_DrawMouseCursor( void )
 		{
 			item = (CMenuBaseItem *)uiStatic.menu.Current()->GetItemByIndex(cursor);
 
-			if ( !item->IsVisible() )
+			if( !item->IsVisible( ))
 				continue;
 
-			if( !(item->iFlags & QMF_HASMOUSEFOCUS) )
+			if( !FBitSet( item->iFlags, QMF_HASMOUSEFOCUS ))
 				continue;
 
-			if ( item->iFlags & QMF_GRAYED )
-			{
-				hCursor = (HICON)LoadCursor( NULL, (LPCTSTR)OCR_NO );
-			}
+			if( FBitSet( item->iFlags, QMF_GRAYED ))
+				hCursor = (void *)dc_no;
+			else hCursor = (void *)item->CursorAction();
+
 			break;
 		}
 	}
 
-	if( !hCursor )
-		hCursor = (HICON)LoadCursor( NULL, (LPCTSTR)OCR_NORMAL );
-
 	EngFuncs::SetCursor( hCursor );
-#endif
 }
 
 // =====================================================================
@@ -578,10 +579,10 @@ bool UI_StartBackGroundMap( void )
 	int bgmapid = EngFuncs::RandomLong( 0, uiStatic.bgmapcount - 1 );
 
 	char cmd[128];
-	sprintf( cmd, "maps/%s.bsp", uiStatic.bgmaps[bgmapid] );
+	snprintf( cmd, sizeof( cmd ), "maps/%s.bsp", uiStatic.bgmaps[bgmapid] );
 	if( !EngFuncs::FileExists( cmd, TRUE )) return FALSE;
 
-	sprintf( cmd, "map_background %s\n", uiStatic.bgmaps[bgmapid] );
+	snprintf( cmd, sizeof( cmd ), "map_background %s\n", uiStatic.bgmaps[bgmapid] );
 	EngFuncs::ClientCmd( FALSE, cmd );
 
 	return TRUE;
@@ -618,6 +619,8 @@ void UI_UpdateMenu( float flTime )
 
 	static bool loadStuff = true;
 
+	// can't do this in Init, since these are dependent on cvar values
+	// set from user configs
 	if( loadStuff )
 	{
 		// load localized strings
@@ -626,11 +629,17 @@ void UI_UpdateMenu( float flTime )
 		// load scr
 		UI_LoadScriptConfig();
 
+		// load background track
+		if( !CL_IsActive( ))
+			EngFuncs::PlayBackgroundTrack( "media/gamestartup", "media/gamestartup" );
+
 		loadStuff = false;
 	}
 
 	UI_DrawFinalCredits ();
 
+	// also moved opening main menu here from SetActiveMenu, so
+	// translation strings could will be loaded at this moment
 	if( uiStatic.nextFrameActive )
 	{
 		if( !uiStatic.menu.IsActive() )
@@ -639,57 +648,36 @@ void UI_UpdateMenu( float flTime )
 		uiStatic.nextFrameActive = false;
 	}
 
-	// let's use engine credits "feature" for drawing client windows
-	if( uiStatic.client.IsActive() )
-	{
-		uiStatic.client.Update();
-		uiStatic.realTime = flTime * 1000;
-		uiStatic.framecount++;
-	}
-
-	if( !uiStatic.menu.IsActive() )
-	{
-		if( uiStatic.framecount )
-			uiStatic.framecount = 0;
-		return;
-	}
-
-	if( !uiStatic.menu.IsActive() )
-		return;
-
+	// advance global time
 	uiStatic.realTime = flTime * 1000;
-	uiStatic.framecount++;
 
-	if( !EngFuncs::ClientInGame() && EngFuncs::GetCvarFloat( "cl_background" ))
+	// let's use engine credits "feature" for drawing client windows
+	if( uiStatic.client.IsActive( ))
+		uiStatic.client.Update();
+
+	if( !uiStatic.menu.IsActive( ))
+		return;
+
+	if( !EngFuncs::ClientInGame() && EngFuncs::GetCvarFloat( "cl_background" ) != 0.0f )
 		return;	// don't draw menu while level is loading
 
 	if( uiStatic.firstDraw )
 	{
 		// we loading background so skip SCR_Update
-		if( UI_StartBackGroundMap( )) return;
+		if( UI_StartBackGroundMap( ))
+			return;
 
 		uiStatic.firstDraw = false;
-		static int first = TRUE;
-
-		if( first )
-		{
-			// if game was launched with commandline e.g. +map or +load ignore the music
-			if( !CL_IsActive( ))
-				EngFuncs::PlayBackgroundTrack( "media/gamestartup", "media/gamestartup" );
-			first = FALSE;
-		}
 	}
 
 	// draw cursor
 	UI_DrawMouseCursor();
 
-	// delay playing the enter sound until after the menu has been
-	// drawn, to avoid delay while caching images
-	if( uiStatic.enterSound > 0.0f && uiStatic.enterSound <= gpGlobals->time )
-	{
-		EngFuncs::PlayLocalSound( uiStatic.sounds[SND_IN] );
-		uiStatic.enterSound = -1;
-	}
+	// background doesn't need to be drawn with transparency
+	bool enableAlphaFactor = uiStatic.enableAlphaFactor;
+	uiStatic.enableAlphaFactor = false;
+	uiStatic.background->Draw();
+	uiStatic.enableAlphaFactor = enableAlphaFactor;
 
 	uiStatic.menu.Update();
 }
@@ -816,8 +804,6 @@ void UI_SetActiveMenu( int fActive )
 
 	// don't continue firing if we leave game
 	EngFuncs::KEY_ClearStates();
-
-	uiStatic.framecount = 0;
 
 	if( fActive )
 	{
@@ -1077,6 +1063,11 @@ int UI_VidInit( void )
 	// load button sounds
 	UI_LoadSounds();
 
+	// init global background, root windows don't have background anymore
+	if( !uiStatic.background )
+		uiStatic.background = new CMenuBackgroundBitmap();
+	uiStatic.background->VidInit();
+
 	uiStatic.menu.VidInit( calledOnce );
 
 	if( !calledOnce ) calledOnce = true;
@@ -1158,7 +1149,7 @@ void UI_Init( void )
 #endif // CS16CLIENT
 
 	// show cl_predict dialog
-	EngFuncs::CvarRegister( "menu_mp_firsttime", "1", FCVAR_ARCHIVE );
+	EngFuncs::CvarRegister( "menu_mp_firsttime2", "1", FCVAR_ARCHIVE );
 
 	// menu style
 	ui_menu_style = EngFuncs::CvarRegister( "ui_menu_style", "1", FCVAR_ARCHIVE );
@@ -1210,6 +1201,7 @@ void UI_Shutdown( void )
 
 	UI_FreeCustomStrings();
 
+	delete uiStatic.background;
 	delete g_FontMgr;
 
 	memset( &uiStatic, 0, sizeof( uiStatic_t ));

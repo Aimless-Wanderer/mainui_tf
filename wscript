@@ -25,13 +25,14 @@ int main() { return (int)FcInit(); }
 def options(opt):
 	grp = opt.add_option_group('MainUI C++ options')
 	grp.add_option('--enable-stbtt', action = 'store_true', dest = 'USE_STBTT', default = False,
-		help = 'prefer stb_truetype.h over freetype [default: %default]')
+		help = 'prefer stb_truetype.h over freetype [default: %(default)s]')
 
 	return
 
 def configure(conf):
 	# conf.env.CXX11_MANDATORY = False
 	conf.load('fwgslib cxx11')
+	conf.env.append_unique('DEFINES', 'STDINT_H=<cstdint>')
 
 	if not conf.env.HAVE_CXX11:
 		conf.define('MY_COMPILER_SUCKS', 1)
@@ -62,7 +63,7 @@ def configure(conf):
 		conf.check_cxx(lib='rt', mandatory=False)
 
 def build(bld):
-	libs = []
+	libs = ['werror']
 
 	if bld.env.DEST_OS != 'win32':
 		if not bld.env.USE_STBTT:

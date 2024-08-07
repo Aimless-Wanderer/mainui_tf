@@ -28,11 +28,7 @@ typedef byte		rgb_t[3];		// unsigned byte colorpack
 typedef vec_t		matrix3x4[3][4];
 typedef vec_t		matrix4x4[4][4];
 
-#if XASH_64BIT
 typedef uint32_t        poolhandle_t;
-#else
-typedef void*           poolhandle_t;
-#endif
 
 #undef true
 #undef false
@@ -57,9 +53,7 @@ typedef uint64_t longtime_t;
 #define MAX_USERMSG_LENGTH	2048	// don't modify it's relies on a client-side definitions
 
 #define BIT( n )		( 1U << ( n ))
-#define GAMMA		( 2.2f )		// Valve Software gamma
-#define INVGAMMA		( 1.0f / 2.2f )	// back to 1.0
-#define TEXGAMMA		( 0.9f )		// compensate dim textures
+#define BIT64( n )		( 1ULL << ( n ))
 #define SetBits( iBitVector, bits )	((iBitVector) = (iBitVector) | (bits))
 #define ClearBits( iBitVector, bits )	((iBitVector) = (iBitVector) & ~(bits))
 #define FBitSet( iBitVector, bit )	((iBitVector) & (bit))
@@ -76,48 +70,72 @@ typedef uint64_t longtime_t;
 #define IsColorString( p )	( p && *( p ) == '^' && *(( p ) + 1) && *(( p ) + 1) >= '0' && *(( p ) + 1 ) <= '9' )
 #define ColorIndex( c )	((( c ) - '0' ) & 7 )
 
-#if defined(__GNUC__)
-	#ifdef __i386__
-		#define EXPORT __attribute__ ((visibility ("default"),force_align_arg_pointer))
-		#define GAME_EXPORT __attribute((force_align_arg_pointer))
+#if defined( __GNUC__ )
+	#if defined( __i386__ )
+		#define EXPORT         __attribute__(( visibility( "default" ), force_align_arg_pointer ))
+		#define GAME_EXPORT    __attribute(( force_align_arg_pointer ))
 	#else
-		#define EXPORT __attribute__ ((visibility ("default")))
+		#define EXPORT         __attribute__(( visibility ( "default" )))
 		#define GAME_EXPORT
 	#endif
-	#define _format(x) __attribute__((format(printf, x, x+1)))
-	#define NORETURN __attribute__((noreturn))
-#elif defined(_MSC_VER)
-	#define EXPORT          __declspec( dllexport )
-	#define GAME_EXPORT
-	#define _format(x)
-	#define NORETURN
-#else
-	#define EXPORT
-	#define GAME_EXPORT
-	#define _format(x)
-	#define NORETURN
-#endif
 
-#if ( __GNUC__ >= 3 )
-	#define unlikely(x) __builtin_expect(x, 0)
-	#define likely(x)   __builtin_expect(x, 1)
-#elif defined( __has_builtin )
-	#if __has_builtin( __builtin_expect )
-		#define unlikely(x) __builtin_expect(x, 0)
-		#define likely(x)   __builtin_expect(x, 1)
+	#define NORETURN           __attribute__(( noreturn ))
+	#define NONNULL            __attribute__(( nonnull ))
+	#define _format( x )       __attribute__(( format( printf, x, x + 1 )))
+	#define ALLOC_CHECK( x )   __attribute__(( alloc_size( x )))
+	#define NO_ASAN            __attribute__(( no_sanitize( "address" )))
+	#define RENAME_SYMBOL( x ) asm( x )
+#else
+	#if defined( _MSC_VER )
+		#define EXPORT         __declspec( dllexport )
+		#define NO_ASAN        __declspec( no_sanitize_address )
 	#else
-		#define unlikely(x) (x)
-		#define likely(x)   (x)
+		#define EXPORT
+		#define NO_ASAN
 	#endif
-#else
-	#define unlikely(x) (x)
-	#define likely(x)   (x)
+	#define GAME_EXPORT
+	#define NORETURN
+	#define NONNULL
+	#define _format( x )
+	#define ALLOC_CHECK( x )
+	#define RENAME_SYMBOL( x )
 #endif
 
-#if defined( static_assert ) // C11 static_assert
-#define STATIC_ASSERT static_assert
+#if __GNUC__ >= 3
+	#define unlikely( x )     __builtin_expect( x, 0 )
+	#define likely( x )       __builtin_expect( x, 1 )
+#elif defined( __has_builtin )
+	#if __has_builtin( __builtin_expect ) // this must be after defined() check
+		#define unlikely( x )     __builtin_expect( x, 0 )
+		#define likely( x )       __builtin_expect( x, 1 )
+	#endif
+#endif
+
+#if !defined( unlikely ) || !defined( likely )
+	#define unlikely( x ) ( x )
+	#define likely( x )   ( x )
+#endif
+
+#if __STDC_VERSION__ >= 202311L || __cplusplus >= 201103L // C23 or C++ static_assert is a keyword
+	#define STATIC_ASSERT_( ignore, x, y ) static_assert( x, y )
+	#define STATIC_ASSERT  static_assert
+#elif __STDC_VERSION__ >= 201112L // in C11 it's _Static_assert
+	#define STATIC_ASSERT_( ignore, x, y ) _Static_assert( x, y )
+	#define STATIC_ASSERT  _Static_assert
 #else
-#define STATIC_ASSERT( x, y ) extern int _static_assert_##__LINE__[( x ) ? 1 : -1]
+	#define STATIC_ASSERT_( id, x, y ) extern int id[( x ) ? 1 : -1]
+	// need these to correctly expand the line macro
+	#define STATIC_ASSERT_3( line, x, y ) STATIC_ASSERT_( static_assert_ ## line, x, y )
+	#define STATIC_ASSERT_2( line, x, y ) STATIC_ASSERT_3( line, x, y )
+	#define STATIC_ASSERT( x, y ) STATIC_ASSERT_2( __LINE__, x, y )
+#endif
+
+#if !defined( __cplusplus ) && __STDC_VERSION__ >= 199101L // not C++ and C99 or newer
+	#define XASH_RESTRICT restrict
+#elif _MSC_VER || __GNUC__ || __clang__ // compiler-specific extensions
+	#define XASH_RESTRICT __restrict
+#else
+	#define XASH_RESTRICT // nothing
 #endif
 
 #ifdef XASH_BIG_ENDIAN
@@ -150,8 +168,9 @@ _inline float LittleFloat( float f )
 #endif
 
 
-typedef unsigned int	dword;
-typedef unsigned int	uint;
+typedef unsigned int  dword;
+typedef unsigned int  uint;
+typedef unsigned long ulong;
 typedef char		string[MAX_STRING];
 typedef struct file_s	file_t;		// normal file
 typedef struct stream_s	stream_t;		// sound stream for background music playing
@@ -177,6 +196,7 @@ typedef struct dll_info_s
 } dll_info_t;
 
 typedef void (*setpair_t)( const char *key, const void *value, const void *buffer, void *numpairs );
+typedef void *(*pfnCreateInterface_t)( const char *, int * );
 
 // config strings are a general means of communication from
 // the server to all connected clients.

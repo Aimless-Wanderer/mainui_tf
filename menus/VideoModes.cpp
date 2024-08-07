@@ -336,7 +336,7 @@ void CMenuVidModes::_Init( void )
 	renderers.onCvarWrite = VoidCb( &CMenuVidModes::WriteRendererConfig );
 	renderers.bUpdateImmediately = true;
 
-	windowMode.SetNameAndStatus( "Window mode", "Select desired window mode" );
+	windowMode.SetNameAndStatus( L( "Window mode" ), L( "Select desired window mode" ) );
 	windowMode.Setup( &windowModeModel );
 	windowMode.SetRect( 80, 550, 250, 32 );
 	windowMode.SetCharSize( QM_SMALLFONT );
@@ -348,7 +348,6 @@ void CMenuVidModes::_Init( void )
 		parent->vidList.SetInactive( parent->windowMode.GetCurrentValue( ) == 2 );
 	});
 
-	AddItem( background );
 	AddItem( banner );
 	AddButton( L( "GameUI_Apply" ), L( "Apply changes" ), PC_OK, VoidCb( &CMenuVidModes::SetConfig ) );
 	AddButton( L( "GameUI_Cancel" ), L( "Return back to previous menu" ), PC_CANCEL, VoidCb( &CMenuVidModes::Hide ) );

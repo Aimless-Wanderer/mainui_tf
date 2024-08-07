@@ -30,15 +30,15 @@ CMenuBackgroundBitmap::CMenuBackgroundBitmap() : CMenuBitmap()
 {
 	szPic = 0;
 	iFlags = QMF_INACTIVE|QMF_DISABLESCAILING;
-	bForceWON = false;
 	bForceColor = false;
 }
 
 void CMenuBackgroundBitmap::VidInit()
 {
+	pos.x = pos.y = 0;
+
 	if( m_pParent )
 	{
-		pos.x = pos.y = 0;
 		// fill parent
 		if( m_pParent->iFlags & QMF_DISABLESCAILING )
 		{
@@ -48,6 +48,10 @@ void CMenuBackgroundBitmap::VidInit()
 		{
 			size = m_pParent->size.Scale();
 		}
+	}
+	else
+	{
+		size = Size( ScreenWidth, ScreenHeight );
 	}
 
 	colorBase.SetDefault( 0xFF505050 );
@@ -70,7 +74,7 @@ void CMenuBackgroundBitmap::DrawColor()
 	UI_FillRect( m_scPos, m_scSize, colorBase );
 }
 
-void CMenuBackgroundBitmap::DrawBackgroundLayout( Point p, float xScale, float yScale )
+void CMenuBackgroundBitmap::DrawBackgroundLayout( Point p, int xOffset, int yOffset, float xScale, float yScale )
 {
 	int start, end;
 
@@ -100,38 +104,9 @@ void CMenuBackgroundBitmap::DrawBackgroundLayout( Point p, float xScale, float y
 		int dt = (int)ceil(bimage.size.h * yScale);
 
 		EngFuncs::PIC_Set( bimage.hImage, 255, 255, 255, 255 );
-		EngFuncs::PIC_Draw( p.x + dx, p.y + dy, dw, dt );
+		EngFuncs::PIC_Draw( p.x + dx + xOffset, p.y + dy + yOffset, dw, dt );
 	}
 }
-
-class OverrideAlphaFactor
-{
-public:
-	OverrideAlphaFactor()
-	{
-		bOverride = false;
-		flAlphaFactor = 1.0f;
-	}
-
-	~OverrideAlphaFactor()
-	{
-		if( bOverride )
-			UI_EnableAlphaFactor( flAlphaFactor );
-	}
-
-	void Override()
-	{
-		if( uiStatic.enableAlphaFactor )
-		{
-			bOverride = true;
-			flAlphaFactor = uiStatic.alphaFactor;
-			UI_DisableAlphaFactor();
-		}
-	}
-
-	bool bOverride;
-	float flAlphaFactor;
-};
 
 /*
 =================
@@ -140,21 +115,6 @@ CMenuBackgroundBitmap::Draw
 */
 void CMenuBackgroundBitmap::Draw()
 {
-	// HACKHACK: Don't draw background for root windows, which goes out and in transition
-	// for window which is goes in and in transition, alpha factor should be ignored
-	OverrideAlphaFactor alphaFactor;
-	if( m_pParent && m_pParent->IsWindow() )
-	{
-		CMenuBaseWindow *window = (CMenuBaseWindow*)m_pParent;
-		if( window->IsRoot() && window->eTransitionType )
-		{
-			alphaFactor.Override();
-
-			if( window->eTransitionType == CMenuBaseWindow::ANIM_CLOSING )
-				return;
-		}
-	}
-
 	if( bForceColor )
 	{
 		DrawColor();
@@ -224,7 +184,15 @@ void CMenuBackgroundBitmap::Draw()
 	}
 #endif
 
-	DrawBackgroundLayout( p, xScale, yScale );
+	// center wide background (for example if background is wider than our window)
+	int xOffset = 0, yOffset = 0;
+	if( s_BackgroundImageSize.w * xScale > ScreenWidth )
+		xOffset = ( ScreenWidth - s_BackgroundImageSize.w * xScale ) / 2;
+	else if( s_BackgroundImageSize.h * yScale > ScreenHeight )
+		yOffset = ( ScreenHeight - s_BackgroundImageSize.h * yScale ) / 2;
+
+
+	DrawBackgroundLayout( p, xOffset, yOffset, xScale, yScale );
 }
 
 bool CMenuBackgroundBitmap::LoadBackgroundImage( bool gamedirOnly )
@@ -236,9 +204,15 @@ bool CMenuBackgroundBitmap::LoadBackgroundImage( bool gamedirOnly )
 
 	s_bEnableLogoMovie = false; // no logos for Steam background
 
-	afile = (char*)EngFuncs::COM_LoadFile( "resource/BackgroundLayout.txt" );
+	// try 25'th anniversary update background first
+	if( FBitSet( gMenu.m_gameinfo.flags, GFL_HD_BACKGROUND ))
+		afile = (char *)EngFuncs::COM_LoadFile( "resource/HD_BackgroundLayout.txt" );
 
-	if( !afile ) return false;
+	if( !afile )
+		afile = (char *)EngFuncs::COM_LoadFile( "resource/BackgroundLayout.txt" );
+
+	if( !afile )
+		return false;
 
 	pfile = afile;
 

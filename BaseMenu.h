@@ -93,8 +93,11 @@ enum EUISounds
 	SND_COUNT
 };
 
+class CMenuBackgroundBitmap;
+
 typedef struct
 {
+	CMenuBackgroundBitmap *background;
 	CWindowStack menu;
 	CWindowStack client; // separate window stack for client windows
 	char	bgmaps[UI_MAX_BGMAPS][80];
@@ -122,10 +125,8 @@ typedef struct
 	int		cursorY;
 	int		realTime;
 	int		firstDraw;
-	float	enterSound;
 	int		mouseInRect;
 	int		hideCursor;
-	int		framecount;	// how many frames menu visible
 	int		initialized;
 
 	// btns_main.bmp stuff
@@ -313,6 +314,7 @@ void UI_FileDialog_Menu( void );
 void UI_TouchButtons_GetButtonList();
 void UI_GamePad_Menu( void );
 void UI_Zoo_Menu( void );
+void UI_ServerInfo_Menu( netadr_t adr, const char *hostname, bool legacy );
 
 bool UI_AdvUserOptions_IsAvailable( void );
 void UI_AdvUserOptions_Menu( void );
