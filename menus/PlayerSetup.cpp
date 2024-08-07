@@ -741,10 +741,10 @@ void CMenuPlayerSetup::_Init( void )
 	for( size_t i = 0; i < V_ARRAYSIZE( g_CrosshairColors ); i++ )
 		itemlist[i] = L( g_CrosshairColors[i].name );
 
-	static const char *sizelist[] = { "Auto-size", "Small", "Medium", "Large" };
+	static const char *sizelist[] = { L( "GameUI_Auto" ), L( "GameUI_Small" ), L( "GameUI_Medium" ), L( "GameUI_Large" ) };
 	static CStringArrayModel sizes( sizelist, V_ARRAYSIZE( sizelist ));
 
-	crosshairPreview.SetNameAndStatus( "Crosshair appearance", NULL );
+	crosshairPreview.SetNameAndStatus( L( "GameUI_CrosshairDescription" ), NULL );
 	crosshairPreview.SetRect( 302, 230 + m_iBtnsNum * 50 + 10, 200, 200 );
 	crosshairPreview.hImage = EngFuncs::PIC_Load( "gfx/vgui/crosshair.tga", 0 );
 	crosshairPreview.hWhite = EngFuncs::PIC_Load("*white");
@@ -757,7 +757,7 @@ void CMenuPlayerSetup::_Init( void )
 	// crosshairColor.LinkCvar( "cl_crosshair_color", CMenuEditable::CVAR_STRING );
 	crosshairColor.SetRect( 302, crosshairSize.pos.y + crosshairSize.size.h + UI_OUTLINE_WIDTH, 200, 32 );
 
-	crosshairTranslucent.SetNameAndStatus( "Translucent", NULL );
+	crosshairTranslucent.SetNameAndStatus( L( "GameUI_Translucent" ), NULL );
 	crosshairTranslucent.LinkCvar( "cl_crosshair_translucent" );
 	crosshairTranslucent.SetCoord( 302, crosshairColor.pos.y + crosshairColor.size.h + UI_OUTLINE_WIDTH );
 
