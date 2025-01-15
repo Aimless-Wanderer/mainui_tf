@@ -83,7 +83,7 @@ if(MAINUI_FONT_SCALE)
 	add_definitions(-DMAINUI_FONT_SCALE)
 endif()
 
-add_definitions(-DSTDINT_H="stdint.h")
+add_definitions(-DSTDINT_H=<cstdint>)
 
 # Force stb_truetype for Apple devices, as there is no Apple native font renderer
 # And freetype&fontconfig isn't used on this platform by default
@@ -107,9 +107,9 @@ if(MAINUI_USE_CUSTOM_FONT_RENDER)
 		else()
 			# Use freetype2
 			find_package(PkgConfig)
-			pkg_check_modules(FC REQUIRED fontconfig)
-			include_directories(${FC_INCLUDE_DIRS})
-			target_link_libraries(${MAINUI_LIBRARY} ${FC_LIBRARIES})
+			pkg_check_modules(FT2 REQUIRED freetype2)
+			include_directories(${FT2_INCLUDE_DIRS})
+			target_link_libraries(${MAINUI_LIBRARY} ${FT2_LIBRARIES})
 			add_definitions(-DMAINUI_USE_FREETYPE)
 		endif()
 	endif()

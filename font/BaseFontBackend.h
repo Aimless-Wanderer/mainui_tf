@@ -63,6 +63,7 @@ public:
 	virtual void GetCharRGBA( int ch, Point pt, Size sz, byte *rgba, Size &drawSize ) = 0;
 	virtual void GetCharABCWidthsNoCache( int ch, int &a, int &b, int &c ) = 0;
 	virtual bool HasChar( int ch ) const = 0;
+	virtual const char *GetBackendName() const = 0;
 	virtual void GetCharABCWidths( int ch, int &a, int &b, int &c );
 	virtual void UploadGlyphsForRanges( charRange_t *range, int rangeSize );
 	virtual int  DrawCharacter(int ch, Point pt, int charH, const unsigned int color, bool forceAdditive = false);
@@ -111,7 +112,7 @@ private:
 	bool ReadFromCache( const char *filename, charRange_t *range, size_t rangeSize );
 	void SaveToCache( const char *filename, charRange_t *range, size_t rangeSize, CBMP *bmp );
 
-	void GetBlurValueForPixel(float *distribution, byte *src, Point srcPt, Size srcSz, byte *dest);
+	void GetBlurValueForPixel( double *distribution, const byte *src, Point srcPt, Size srcSz, byte *dest );
 
 	struct glyph_t
 	{
@@ -140,6 +141,8 @@ private:
 
 	CUtlRBTree<glyph_t, int> m_glyphs;
 	CUtlRBTree<abc_t, int>   m_ABCCache;
+
+	char m_szTextureName[256];
 	friend class CFontManager;
 };
 

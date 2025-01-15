@@ -58,6 +58,9 @@ public:
 	CMenuSlider	glareReduction;
 	CMenuCheckBox   vbo;
 	CMenuCheckBox	swwater;
+	CMenuCheckBox	overbright;
+	CMenuCheckBox	filtering;
+	CMenuCheckBox	detailtex;
 
 	HIMAGE		hTestImage;
 };
@@ -94,7 +97,11 @@ void CMenuVidOptions::SaveAndPopMenu( void )
 #if LEGACY_VIEWSIZE
 	screenSize.WriteCvar();
 #endif
+	detailtex.WriteCvar();
 	vbo.WriteCvar();
+	swwater.WriteCvar();
+	overbright.WriteCvar();
+	filtering.WriteCvar();
 	// gamma and brightness is already written
 
 	CMenuFramework::SaveAndPopMenu();
@@ -158,15 +165,10 @@ void CMenuVidOptions::_Init( void )
 	testImage.SetRect( 390, 225, 480, 450 );
 	testImage.SetPicture( ART_GAMMA );
 
-	done.SetNameAndStatus( L( "GameUI_OK" ), L( "Go back to the Video Menu" ) );
-	done.SetCoord( 72, 435 );
-	done.SetPicture( PC_DONE );
-	done.onReleased = VoidCb( &CMenuVidOptions::SaveAndPopMenu );
-
 	int height = 280;
 
 #if LEGACY_VIEWSIZE
-	screenSize.SetNameAndStatus( L( "Screen size" ), L( "Set the screen size" ) );
+	screenSize.szName = L( "Screen size" );
 	screenSize.SetCoord( 72, height );
 	screenSize.Setup( 30, 120, 10 );
 	screenSize.onChanged = CMenuEditable::WriteCvarCb;
@@ -174,7 +176,7 @@ void CMenuVidOptions::_Init( void )
 	height += 60;
 #endif
 
-	gammaIntensity.SetNameAndStatus( L( "GameUI_Gamma" ), L( "Set gamma value" ) );
+	gammaIntensity.szName = L( "GameUI_Gamma" );
 	gammaIntensity.SetCoord( 72, height );
 	gammaIntensity.Setup( 0.0, 1.0, 0.025 );
 	gammaIntensity.onChanged = VoidCb( &CMenuVidOptions::UpdateConfig );
@@ -182,19 +184,38 @@ void CMenuVidOptions::_Init( void )
 	height += 60;
 
 	glareReduction.SetCoord( 72, height );
-	glareReduction.SetNameAndStatus( L( "GameUI_Brightness" ), L( "Set brightness level" ) );
+	glareReduction.szName = L( "GameUI_Brightness" );
 	glareReduction.Setup( 0, 1.0, 0.025 );
 	glareReduction.onChanged = VoidCb( &CMenuVidOptions::UpdateConfig );
 	glareReduction.onCvarGet = VoidCb( &CMenuVidOptions::GetConfig );
 	height += 60;
 
-	vbo.SetNameAndStatus( L( "Use VBO" ), L( "Use new world renderer. Faster, but rarely glitchy" ) );
-	vbo.SetCoord( 72, 565 );
+	done.szName = L( "GameUI_OK" );
+	done.SetCoord( 72, height );
+	done.SetPicture( PC_DONE );
+	done.onReleased = VoidCb( &CMenuVidOptions::SaveAndPopMenu );
+	height += 60;
 
-	swwater.SetNameAndStatus( L( "Water ripples"), L( "Enable water ripple effect, like in software-mode GoldSrc" ));
-	swwater.SetCoord( 72, 615 );
+	detailtex.szName = L( "Detail textures" );
+	detailtex.SetCoord( 72, height );
+	height += 50;
 
-	AddItem( background );
+	vbo.szName = L( "Use VBO" );
+	vbo.SetCoord( 72, height );
+	height += 50;
+
+	swwater.szName = L( "Water ripples" );
+	swwater.SetCoord( 72, height );
+	height += 50;
+
+	overbright.szName = L( "Overbrights" );
+	overbright.SetCoord( 72, height );
+	height += 50;
+
+	filtering.szName = L( "Texture filtering" );
+	filtering.SetCoord( 72, height );
+	height += 50;
+
 	AddItem( banner );
 	AddItem( done );
 #if LEGACY_VIEWSIZE
@@ -202,8 +223,11 @@ void CMenuVidOptions::_Init( void )
 #endif
 	AddItem( gammaIntensity );
 	AddItem( glareReduction );
-	// AddItem( vbo );
+	AddItem( detailtex );
+	AddItem( vbo );
 	AddItem( swwater );
+	AddItem( overbright );
+	AddItem( filtering );
 	AddItem( testImage );
 
 #if LEGACY_VIEWSIZE
@@ -212,8 +236,12 @@ void CMenuVidOptions::_Init( void )
 
 	gammaIntensity.LinkCvar( "gamma" );
 	glareReduction.LinkCvar( "brightness" );
+
+	detailtex.LinkCvar( "r_detailtextures" );
 	swwater.LinkCvar( "r_ripple" );
 	vbo.LinkCvar( "gl_vbo" );
+	overbright.LinkCvar( "gl_overbright" );
+	// skip filtering.LinkCvar, different names in ref_gl and ref_soft
 }
 
 void CMenuVidOptions::_VidInit()
@@ -226,9 +254,76 @@ void CMenuVidOptions::Reload()
 {
 	CMenuFramework::Reload();
 	bool gl_active = !strnicmp( EngFuncs::GetCvarString( "r_refdll_loaded" ), "gl", 2 );
+	bool soft_active = !stricmp( EngFuncs::GetCvarString( "r_refdll_loaded" ), "soft" );
+
+	detailtex.SetGrayed( !gl_active );
+	detailtex.SetInactive( !gl_active );
+
+	vbo.SetGrayed( !gl_active );
+	vbo.SetInactive( !gl_active );
+
+	if( gl_active )
+	{
+		if( EngFuncs::textfuncs.pfnIsCvarReadOnly( "gl_vbo" ) > 0 )
+		{
+			SET_EVENT_MULTI( vbo.onCvarChange,
+			{
+				CMenuCheckBox *cb = (CMenuCheckBox *)pSelf;
+				cb->bChecked = false;
+				UI_ShowMessageBox( L( "Not supported on your GPU" ));
+			});
+
+			vbo.onCvarWrite = CEventCallback::NoopCb;
+		}
+		else
+		{
+			vbo.onCvarWrite.Reset();
+			vbo.onCvarChange.Reset();
+		}
+	}
 
 	swwater.SetGrayed( !gl_active );
 	swwater.SetInactive( !gl_active );
+
+	overbright.SetGrayed( !gl_active );
+	overbright.SetInactive( !gl_active );
+
+	if( soft_active || gl_active )
+	{
+		filtering.SetGrayed( false );
+		filtering.SetInactive( false );
+
+		if( soft_active )
+		{
+			// no need to invert, 0 disables filtering
+			filtering.LinkCvar( "sw_texfilt" );
+		}
+		else
+		{
+			SET_EVENT_MULTI( filtering.onCvarGet,
+			{
+				CMenuCheckBox *cb = (CMenuCheckBox *)pSelf;
+
+				if( EngFuncs::GetCvarFloat( cb->CvarName( )))
+					cb->bChecked = false;
+				else cb->bChecked = true;
+			});
+			SET_EVENT_MULTI( filtering.onCvarWrite,
+			{
+				CMenuCheckBox *cb = (CMenuCheckBox *)pSelf;
+				if( cb->bChecked )
+					EngFuncs::CvarSetValue( cb->CvarName(), 0.0f );
+				else EngFuncs::CvarSetValue( cb->CvarName(), 1.0f );
+			});
+
+			filtering.LinkCvar( "gl_texture_nearest" );
+		}
+	}
+	else
+	{
+		filtering.SetGrayed( true );
+		filtering.SetInactive( true );
+	}
 }
 
 ADD_MENU( menu_vidoptions, CMenuVidOptions, UI_VidOptions_Menu );

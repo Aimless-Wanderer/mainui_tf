@@ -8,7 +8,7 @@ of the License, or (at your option) any later version.
 
 This program is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
 See the GNU General Public License for more details.
 
@@ -32,24 +32,97 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #define ART_BANNER		"gfx/shell/head_customize"
 
-#define MAX_PLAYERMODELS	100
+static const byte Orange[] = { 255, 120,  24 };
+static const byte Yellow[] = { 225, 180,  24 };
+static const byte Blue[]   = {   0,  60, 255 };
+static const byte Ltblue[] = {   0, 167, 255 };
+static const byte Green[]  = {   0, 167,   0 };
+static const byte Red[]    = { 255,  43,   0 };
+static const byte Brown[]  = { 123,  73,   0 };
+static const byte Ltgray[] = { 100, 100, 100 };
+static const byte Dkgray[] = {  36,  36,  36 };
+static const byte Rainbow[] = {
+	0xE4, 0x03, 0x03,
+	0xFF, 0x8C, 0x00,
+	0xFF, 0xED, 0x00,
+	0x00, 0x80, 0x26,
+	0x24, 0x40, 0x8E,
+	0x73, 0x29, 0x82,
+};
+static const byte Lesbian[] = {
+	0xD5, 0x2D, 0x00,
+	0xEF, 0x76, 0x27,
+	0xFF, 0x9A, 0x56,
+	0xFF, 0xFF, 0xFF,
+	0xD1, 0x62, 0xA4,
+	0xB5, 0x56, 0x90,
+	0xA3, 0x02, 0x62,
+};
+static const byte Gay[] = {
+	0x07, 0x8D, 0x70,
+	0x26, 0xCE, 0xAA,
+	0x98, 0xE8, 0xC1,
+	0xFF, 0xFF, 0xFF,
+	0x7B, 0xAD, 0xE2,
+	0x50, 0x49, 0xCC,
+	0x3D, 0x1A, 0x78,
+};
+static const byte Bi[] = {
+	0xD6, 0x02, 0x70,
+	0xD6, 0x02, 0x70,
+	0x9B, 0x4F, 0x96,
+	0x00, 0x38, 0xA8,
+	0x00, 0x38, 0xA8,
+};
+static const byte Trans[] = {
+	0x5B, 0xCE, 0xFA,
+	0xF5, 0xA9, 0xB8,
+	0xFF, 0xFF, 0xFF,
+	0xF5, 0xA9, 0xB8,
+	0x5B, 0xCE, 0xFA,
+};
+static const byte Pan[] = {
+	0xFF, 0x21, 0x8C,
+	0xFF, 0xD8, 0x00,
+	0x21, 0xB1, 0xFF,
+};
+static const byte Enby[] = {
+	0xFC, 0xF4, 0x34,
+	0xFF, 0xFF, 0xFF,
+	0x9C, 0x59, 0xD1,
+	0x2C, 0x2C, 0x2C,
+};
 
-static struct
+#define FLAG_L( str, x ) str, x, sizeof( x ) / 3
+#define FLAG( x ) FLAG_L( #x, x )
+
+// TODO: Get rid of this hardcoded mess
+// allow user to set whatever they want
+// through UI or some config lst file
+static const struct logo_color_t
 {
 	const char *name;
-	int r, g, b;
+	const byte *rgb;
+	int stripes;
 } g_LogoColors[] =
 {
-{ "FullColor",     -1,  -1,  -1  },
-{ "#Valve_Orange", 255, 120, 24  }, // L( "Valve_Orange" )
-{ "#Valve_Yellow", 225, 180, 24  }, // L( "Valve_Yellow" )
-{ "#Valve_Blue",   0,   60,  255 }, // L( "Valve_Blue" )
-{ "#Valve_Ltblue", 0,   167, 255 }, // L( "Valve_Ltblue" )
-{ "#Valve_Green",  0,   167, 0   }, // L( "Valve_Green" )
-{ "#Valve_Red",    255, 43,  0   }, // L( "Valve_Red" )
-{ "#Valve_Brown",  123, 73,  0   }, // L( "Valve_Brown" )
-{ "#Valve_Ltgray", 100, 100, 100 }, // L( "Valve_Ltgray" )
-{ "#Valve_Dkgray", 36,  36,  36  }, // L( "Valve_Dkgray" )
+{ "FullColor", 0, 0 },
+{ FLAG_L( "#Valve_Orange", Orange ) }, // L( "Valve_Orange" )
+{ FLAG_L( "#Valve_Yellow", Yellow ) }, // L( "Valve_Yellow" )
+{ FLAG_L( "#Valve_Blue",   Blue )   }, // L( "Valve_Blue" )
+{ FLAG_L( "#Valve_Ltblue", Ltblue ) }, // L( "Valve_Ltblue" )
+{ FLAG_L( "#Valve_Green",  Green )  }, // L( "Valve_Green" )
+{ FLAG_L( "#Valve_Red",    Red )    }, // L( "Valve_Red" )
+{ FLAG_L( "#Valve_Brown",  Brown )  }, // L( "Valve_Brown" )
+{ FLAG_L( "#Valve_Ltgray", Ltgray ) }, // L( "Valve_Ltgray" )
+{ FLAG_L( "#Valve_Dkgray", Dkgray ) }, // L( "Valve_Dkgray" )
+{ FLAG( Rainbow ) },
+{ FLAG( Lesbian ) },
+{ FLAG( Gay )     },
+{ FLAG( Bi )      },
+{ FLAG( Trans )   },
+{ FLAG( Pan )     },
+{ FLAG( Enby )    },
 };
 
 class CMenuPlayerSetup : public CMenuFramework
@@ -68,14 +141,10 @@ public:
 	void WriteNewLogo();
 	void SaveAndPopMenu() override;
 
-	class CModelListModel : public CStringArrayModel
+	class CModelListModel : public CStringVectorModel
 	{
 	public:
-		CModelListModel() : CStringArrayModel( (const char *)models, CS_SIZE, 0 ) {}
 		void Update();
-
-	private:
-		char models[MAX_PLAYERMODELS][CS_SIZE];
 	} modelsModel;
 
 	class CLogosListModel : public CStringVectorModel
@@ -104,8 +173,14 @@ public:
 
 	CMenuPlayerModelView	view;
 
-	CMenuCheckBox	showModels;
-	CMenuCheckBox	hiModels;
+	CMenuCheckBox showModels;
+	CMenuCheckBox hiModels;
+
+	CMenuCheckBox voiceEnable;
+	CMenuSlider transmitVolume;
+	CMenuSlider receiveVolume;
+	CMenuAction noProprietaryCodecNotice;
+
 	CMenuSlider	topColor;
 	CMenuSlider	bottomColor;
 
@@ -116,7 +191,7 @@ public:
 	{
 	public:
 		virtual void Draw();
-		int r, g, b;
+		const logo_color_t *color;
 		HIMAGE hImage;
 	} logoImage;
 
@@ -137,14 +212,44 @@ void CMenuPlayerSetup::CMenuLogoPreview::Draw()
 
 		UI_DrawString( font, m_scPos, m_scSize, L( "No logo" ), colorBase, m_scChSize, QM_CENTER, ETF_SHADOW );
 	}
-	else
+	else if( color->stripes == 0 )
 	{
-		if( r != -1 && g != -1 && b != -1 )
-			EngFuncs::PIC_Set( hImage, r, g, b );
-		else
-			EngFuncs::PIC_Set( hImage, 255, 255, 255 );
+		EngFuncs::PIC_Set( hImage, 255, 255, 255 );
 		EngFuncs::PIC_DrawTrans( m_scPos, m_scSize );
 	}
+	else
+	{
+		const Size img_sz = EngFuncs::PIC_Size( hImage );
+		Size  ui_sz = m_scSize;
+		wrect_t rc = { 0 };
+
+		rc.right = img_sz.w;
+		rc.bottom = img_sz.h;
+
+		double texture_pixels_per_stripe = img_sz.h / (double)color->stripes;
+		double screen_pixels_per_stripe  = ui_sz.h  / (double)color->stripes;
+
+		ui_sz.h = round( screen_pixels_per_stripe );
+
+		for( int i = 0; i < color->stripes; i++ )
+		{
+			wrect_t rc2 = rc;
+			Point ui_pt;
+
+			rc2.top    = round( i * texture_pixels_per_stripe );
+			rc2.bottom = round(( i + 1 ) * texture_pixels_per_stripe );
+
+			ui_pt.x = m_scPos.x;
+			ui_pt.y = m_scPos.y + round( i * screen_pixels_per_stripe );
+
+			EngFuncs::PIC_Set( hImage, color->rgb[i * 3 + 0], color->rgb[i * 3 + 1], color->rgb[i * 3 + 2] );
+			EngFuncs::PIC_DrawTrans( ui_pt, ui_sz, &rc2 );
+		}
+	}
+
+	int textHeight = m_scPos.y - (m_scChSize * 1.5f);
+	uint textflags = ( iFlags & QMF_DROPSHADOW ) ? ETF_SHADOW : 0;
+	UI_DrawString( font, m_scPos.x, textHeight, m_scSize.w, m_scChSize, szName, uiColorHelp, m_scChSize, QM_LEFT, textflags | ETF_FORCECOL );
 
 	// draw the rectangle
 	if( eFocusAnimation == QM_HIGHLIGHTIFFOCUS && IsCurrentSelected() )
@@ -161,35 +266,27 @@ UI_PlayerSetup_FindModels
 */
 void CMenuPlayerSetup::CModelListModel::Update( void )
 {
-	char	name[256];
 	char	**filenames;
 	int numFiles, i;
-	
-	m_iCount = 0;
+
+	RemoveAll();
 
 	// Get file list
 	// search in basedir too, because that's how GoldSrc does this
 	filenames = EngFuncs::GetFilesList(  "models/player/*", &numFiles, FALSE );
 
-#if 0
-	// add default singleplayer model
-	strcpy( models[num_models], "player" );
-	modelsPtr[num_models] = models[num_models];
-	num_models++;
-#endif
-
 	// build the model list
 	for( i = 0; i < numFiles; i++ )
 	{
-		COM_FileBase( filenames[i], name );
-		Q_strncpy( models[m_iCount], name, sizeof( models[0] ) );
-		
+		char name[128], path[512];
+		COM_FileBase( filenames[i], name, sizeof( name ));
+
 		// check if the path is a valid model
-		snprintf( name, sizeof( name ), "models/player/%s/%s.mdl", models[m_iCount], models[m_iCount] );
-		if( !EngFuncs::FileExists( name ) )
+		snprintf( path, sizeof( path ), "models/player/%s/%s.mdl", name, name );
+		if( !EngFuncs::FileExists( path ))
 			continue;
-		
-		m_iCount++;
+
+		AddToTail( name );
 	}
 }
 
@@ -204,27 +301,22 @@ void CMenuPlayerSetup::CLogosListModel::Update( )
 	char	**filenames;
 	int numFiles, i;
 
+	m_isPngs.RemoveAll();
+	RemoveAll();
+
 	// Get file list
 	filenames = EngFuncs::GetFilesList( "logos/*.*", &numFiles, FALSE );
-
-	if( !filenames || !numFiles )
-	{
-		m_isPngs.RemoveAll();
-		RemoveAll();
-		return;
-	}
 
 	// build the model list
 	for( i = 0; i < numFiles; i++ )
 	{
 		CUtlString logoFileName = filenames[i];
 		char temp[256];
-		bool png;
+		bool png = logoFileName.BEndsWithCaseless( ".png" );
 
-		if(( png = logoFileName.BEndsWithCaseless( ".png" )) ||
-			 logoFileName.BEndsWithCaseless( ".bmp" ))
+		if( png || logoFileName.BEndsWithCaseless( ".bmp" ))
 		{
-			COM_FileBase( logoFileName.String(), temp );
+			COM_FileBase( logoFileName.String(), temp, sizeof( temp ));
 
 			if( !stricmp( temp, "remapped" ))
 				continue;
@@ -276,7 +368,7 @@ void CMenuPlayerSetup::UpdateModel()
 		return;
 	}
 
-	snprintf( image, 256, "models/player/%s/%s.bmp", mdl, mdl );
+	snprintf( image, sizeof( image ), "models/player/%s/%s.bmp", mdl, mdl );
 	view.hPlayerImage = EngFuncs::PIC_Load( image, PIC_KEEP_SOURCE );
 
 	ApplyColorToImagePreview();
@@ -301,7 +393,7 @@ void CMenuPlayerSetup::UpdateLogo()
 	logoImage.hImage = EngFuncs::PIC_Load( filename, 0 );
 	if( logosModel.IsPng( pos ))
 	{
-		logoImage.r = logoImage.g = logoImage.b = -1;
+		logoImage.color = &g_LogoColors[0];
 		logoColor.SetGrayed( true );
 	}
 	else
@@ -314,7 +406,7 @@ void CMenuPlayerSetup::UpdateLogo()
 		}
 		else
 		{
-			logoImage.r = logoImage.g = logoImage.b = -1;
+			logoImage.color = &g_LogoColors[0];
 			logoColor.SetGrayed( true );
 		}
 		delete bmpFile;
@@ -338,17 +430,13 @@ void CMenuPlayerSetup::ApplyColorToLogoPreview()
 	{
 		if( !stricmp( logoColorStr, L( g_LogoColors[i].name )))
 		{
-			logoImage.r = g_LogoColors[i].r;
-			logoImage.g = g_LogoColors[i].g;
-			logoImage.b = g_LogoColors[i].b;
+			logoImage.color = &g_LogoColors[i];
 			return;
 		}
 	}
 
 	logoColor.SetCurrentValue( L( g_LogoColors[0].name ) );
-	logoImage.r = g_LogoColors[0].r;
-	logoImage.g = g_LogoColors[0].g;
-	logoImage.b = g_LogoColors[0].b;
+	logoImage.color = &g_LogoColors[0];
 }
 
 void CMenuPlayerSetup::WriteNewLogo( void )
@@ -386,8 +474,8 @@ void CMenuPlayerSetup::WriteNewLogo( void )
 			return;
 
 		// remap logo if needed
-		if( logoImage.r != -1 && logoImage.g != -1 && logoImage.b != -1 )
-			bmpFile->RemapLogo( logoImage.r, logoImage.g, logoImage.b );
+		if( logoImage.color->stripes >= 1 )
+			bmpFile->RemapLogo( logoImage.color->stripes, logoImage.color->rgb );
 
 		EngFuncs::COM_SaveFile( "logos/remapped.bmp", bmpFile->GetBitmap(), bmpFile->GetBitmapHdr()->fileSize );
 		EngFuncs::CvarSetString( "cl_logoext", "bmp" );
@@ -419,13 +507,16 @@ void CMenuPlayerSetup::_Init( void )
 
 	banner.SetPicture(ART_BANNER);
 
-	name.szStatusText = L( "Enter your multiplayer display name" );
+	name.szName = L( "GameUI_PlayerName" );
 	name.iMaxLength = 32;
 	name.LinkCvar( "name" );
-	name.SetRect( 320, 260, 256, 36 );
+	name.SetRect( 360, 270, 300, 36 );
+
+	view.iFlags |= addFlags;
+	view.SetRect( 700, 270, 260, 300 );
 
 	modelsModel.Update();
-	if( !modelsModel.GetRows() )
+	if( !modelsModel.GetRows( ))
 	{
 		model.SetVisibility( false );
 		hideModels = true;
@@ -435,59 +526,77 @@ void CMenuPlayerSetup::_Init( void )
 		model.Setup( &modelsModel );
 		model.LinkCvar( "model", CMenuEditable::CVAR_STRING );
 		model.onChanged = VoidCb( &CMenuPlayerSetup::UpdateModel );
-		model.SetRect( 660, 580 + UI_OUTLINE_WIDTH, 260, 32 );
+		model.SetRect( 700, 570 + UI_OUTLINE_WIDTH, 260, 32 );
 	}
 
 	topColor.iFlags |= addFlags;
-	topColor.SetNameAndStatus( L( "GameUI_PrimaryColor" ), L( "Set a player model top color" ) );
-	topColor.Setup( 0.0, 255, 1 );
+	topColor.szName = L( "Colors" );
+	topColor.Setup( 0, 255, 1 );
 	topColor.LinkCvar( "topcolor" );
 	topColor.onCvarChange = CMenuEditable::WriteCvarCb;
 	topColor.onChanged = VoidCb( &CMenuPlayerSetup::ApplyColorToImagePreview );
-	topColor.SetCoord( 340, 520 );
-	topColor.size.w = 300;
+	topColor.SetCoord( 700, 660 );
+	topColor.size.w = 260;
 
 	bottomColor.iFlags |= addFlags;
-	bottomColor.SetNameAndStatus( L( "GameUI_SecondaryColor" ), L( "Set a player model bottom color" ) );
-	bottomColor.Setup( 0.0, 255.0, 1 );
+	bottomColor.Setup( 0, 255, 1 );
 	bottomColor.LinkCvar( "bottomcolor" );
 	bottomColor.onCvarChange = CMenuEditable::WriteCvarCb;
 	bottomColor.onChanged = VoidCb( &CMenuPlayerSetup::ApplyColorToImagePreview );;
-	bottomColor.SetCoord( 340, 590 );
-	bottomColor.size.w = 300;
-
-	showModels.iFlags |= addFlags;
-	showModels.SetNameAndStatus( L( "Show 3D preview" ), L( "Show 3D player models instead of preview thumbnails" ) );
-	showModels.LinkCvar( "ui_showmodels" );
-	showModels.onCvarChange = CMenuEditable::WriteCvarCb;
-	showModels.SetCoord( 340, 380 );
-
-	hiModels.iFlags |= addFlags;
-	hiModels.SetNameAndStatus( L( "GameUI_HighModels" ), L( "Show HD models in multiplayer" ) );
-	hiModels.LinkCvar( "cl_himodels" );
-	hiModels.onCvarChange = CMenuEditable::WriteCvarCb;
-	hiModels.SetCoord( 340, 430 );
-
-	view.iFlags |= addFlags;
-	view.SetRect( 660, 260, 260, 320 );
+	bottomColor.SetCoord( 700, 700 );
+	bottomColor.size.w = 260;
 
 	msgBox.SetMessage( L( "Please, choose another player name" ) );
 	msgBox.Link( this );
 
-	AddItem( background );
 	AddItem( banner );
 
-	AddButton( L( "Done" ), L( "Go back to the Multiplayer Menu" ), PC_DONE, VoidCb( &CMenuPlayerSetup::SaveAndPopMenu ) );
-	CMenuPicButton *gameOpt = AddButton( L( "Game options" ), L( "Configure handness, fov and other advanced options" ), PC_GAME_OPTIONS );
+	AddButton( L( "Done" ), nullptr, PC_DONE, VoidCb( &CMenuPlayerSetup::SaveAndPopMenu ) );
+	CMenuPicButton *gameOpt = AddButton( L( "Game options" ), nullptr, PC_GAME_OPTIONS );
 	SET_EVENT_MULTI( gameOpt->onReleased,
 	{
 		((CMenuPlayerSetup*)pSelf->Parent())->SetConfig();
 		UI_AdvUserOptions_Menu();
 	});
 
-	AddButton( L( "Adv. Options" ), "", PC_ADV_OPT, UI_GameOptions_Menu );
+	AddButton( L( "Adv. Options" ), nullptr, PC_ADV_OPT, UI_GameOptions_Menu );
 	gameOpt->SetGrayed( !UI_AdvUserOptions_IsAvailable() );
 
+	showModels.iFlags |= addFlags;
+	showModels.szName = L( "Show 3D preview" );
+	showModels.onCvarChange = CMenuEditable::WriteCvarCb;
+	showModels.LinkCvar( "ui_showmodels" );
+	showModels.SetCoord( 77, 230 + m_iBtnsNum * 50 + 10 );
+
+	hiModels.iFlags |= addFlags;
+	hiModels.szName = L( "GameUI_HighModels" );
+	hiModels.onCvarChange = CMenuEditable::WriteCvarCb;
+	hiModels.LinkCvar( "cl_himodels" );
+	hiModels.SetCoord( 77, showModels.pos.y + 50 );
+
+	voiceEnable.szName = L( "GameUI_EnableVoice" );
+	voiceEnable.onCvarChange = CMenuEditable::WriteCvarCb;
+	voiceEnable.LinkCvar( "voice_modenable" ); // unlike engine's voice_enable, this is synchronized with server
+	voiceEnable.SetCoord( 77, hiModels.pos.y + 50 );
+
+	transmitVolume.szName = L( "GameUI_VoiceTransmitVolume" );
+	transmitVolume.onCvarChange = CMenuEditable::WriteCvarCb;
+	transmitVolume.Setup( 0, 1, 0.05f );
+	transmitVolume.LinkCvar( "voice_transmit_scale" );
+	transmitVolume.SetCoord( 77, voiceEnable.pos.y + 100 );
+	transmitVolume.size.w = 300;
+
+	receiveVolume.szName = L( "GameUI_VoiceReceiveVolume" );
+	receiveVolume.onCvarChange = CMenuEditable::WriteCvarCb;
+	receiveVolume.Setup( 0, 1, 0.05f );
+	receiveVolume.LinkCvar( "voice_scale" );
+	receiveVolume.SetCoord( 77, transmitVolume.pos.y + 50 );
+	receiveVolume.size.w = 300;
+
+	noProprietaryCodecNotice.szName = L( "* Uses Opus Codec.\nOpen, royalty-free, highly versatile audio codec." );
+	noProprietaryCodecNotice.colorBase = uiColorHelp;
+	noProprietaryCodecNotice.SetCharSize( QM_SMALLFONT );
+	noProprietaryCodecNotice.SetRect( 77, receiveVolume.pos.y + 30, 400, 100 );
 
 	if( !hideLogos )
 	{
@@ -504,21 +613,27 @@ void CMenuPlayerSetup::_Init( void )
 			for( size_t i = 0; i < V_ARRAYSIZE( g_LogoColors ); i++ )
 				itemlist[i] = L( g_LogoColors[i].name );
 
-			logoImage.SetRect( 72, 230 + m_iBtnsNum * 50 + 10, 200, 200 );
+			logoImage.szName = L( "Spraypaint image" );
+			logoImage.SetRect( 460, 370, 200, 200 );
 
 			logo.Setup( &logosModel );
 			logo.LinkCvar( "cl_logofile", CMenuEditable::CVAR_STRING );
 			logo.onChanged = VoidCb( &CMenuPlayerSetup::UpdateLogo );
-			logo.SetRect( 72, logoImage.pos.y + logoImage.size.h + UI_OUTLINE_WIDTH, 200, 32 );
+			logo.SetRect( 460, logoImage.pos.y + logoImage.size.h + UI_OUTLINE_WIDTH, 200, 32 );
 
 			logoColor.Setup( &colors );
 			logoColor.LinkCvar( "cl_logocolor", CMenuEditable::CVAR_STRING );
 			logoColor.onChanged = VoidCb( &CMenuPlayerSetup::ApplyColorToLogoPreview );;
-			logoColor.SetRect( 72, logo.pos.y + logo.size.h + UI_OUTLINE_WIDTH, 200, 32 );
+			logoColor.SetRect( 460, logo.pos.y + logo.size.h + UI_OUTLINE_WIDTH, 200, 32 );
 		}
 	}
 
 	AddItem( name );
+	AddItem( voiceEnable );
+	AddItem( transmitVolume );
+	AddItem( receiveVolume );
+	AddItem( noProprietaryCodecNotice );
+
 	if( !hideLogos )
 	{
 		UpdateLogo();

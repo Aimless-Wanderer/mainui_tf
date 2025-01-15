@@ -127,14 +127,23 @@ typedef struct
 	int		flags;		// sky or slime, no lightmap or 256 subdivision
 } mtexinfo_t;
 
-typedef struct glpoly_s
+// a1ba: changed size to avoid undefined behavior. Check your allocations if you take this header!
+// For example:
+//  before: malloc( sizeof( glpoly_t ) + ( numverts - 4 ) * VERTEXSIZE * sizeof( float ))
+//  after (C): malloc( sizeof( glpoly_t ) + numverts * VERTEXSIZE * sizeof( float ))
+//  after (C++): malloc( sizeof( glpoly_t ) + ( numverts - 1 ) * VERTEXSIZE * sizeof( float ))
+typedef struct glpoly2_s
 {
-	struct glpoly_s	*next;
-	struct glpoly_s	*chain;
+	struct glpoly2_s	*next;
+	struct glpoly2_s	*chain;
 	int		numverts;
 	int		flags;          		// for SURF_UNDERWATER
-	float		verts[4][VERTEXSIZE];	// variable sized (xyz s1t1 s2t2)
-} glpoly_t;
+#ifdef __cplusplus
+	float	verts[1][VERTEXSIZE]; // variable sized (xyz s1t1 s2t2)
+#else
+	float	verts[][VERTEXSIZE]; // variable sized (xyz s1t1 s2t2)
+#endif
+} glpoly2_t;
 
 typedef struct mnode_s
 {
@@ -173,7 +182,7 @@ struct decal_s
 	short		entityIndex;	// Entity this is attached to
 // Xash3D specific
 	vec3_t		position;		// location of the decal center in world space.
-	glpoly_t	*polys;		// precomputed decal vertices
+	glpoly2_t	*polys;		// precomputed decal vertices
 	intptr_t	reserved[4];	// just for future expansions or mod-makers
 };
 
@@ -231,6 +240,17 @@ typedef struct mextrasurf_s
 	intptr_t	reserved[32];	// just for future expansions or mod-makers
 } mextrasurf_t;
 
+#ifdef SUPPORT_HL25_EXTENDED_STRUCTS
+// additional struct at the end of msurface_t for HL25 compatibility
+typedef struct mdisplaylist_s
+{
+	unsigned int gl_displaylist;
+	int          rendermode;
+	float        scrolloffset;
+	int          renderDetailTexture;
+} mdisplaylist_t;
+#endif
+
 struct msurface_s
 {
 	int		visframe;		// should be drawn when node is crossed
@@ -246,7 +266,7 @@ struct msurface_s
 
 	int		light_s, light_t;	// gl lightmap coordinates
 
-	glpoly_t		*polys;		// multiple if warped
+	glpoly2_t		*polys;		// multiple if warped
 	struct msurface_s	*texturechain;
 
 	mtexinfo_t	*texinfo;
@@ -263,6 +283,10 @@ struct msurface_s
 
 	color24		*samples;		// note: this is the actual lightmap data for this surface
 	decal_t		*pdecals;
+
+#ifdef SUPPORT_HL25_EXTENDED_STRUCTS
+	mdisplaylist_t displaylist;
+#endif
 };
 
 typedef struct hull_s
@@ -488,7 +512,8 @@ typedef struct
 	int		flags;
 	float		size;
 
-	int		reserved[8];		// VBO offsets
+	const trivertex_t **pposeverts; // only valid during loading, used to build GL mesh
+	intptr_t	reserved[7];		// VBO offsets
 
 	int		numposes;
 	int		poseverts;
@@ -531,8 +556,10 @@ typedef struct
 #define MAX_MOVIES		8
 #define MAX_CDTRACKS	32
 #define MAX_CLIENT_SPRITES	512	// SpriteTextures (0-256 hud, 256-512 client)
-#define MAX_EFRAGS		8192	// Arcane Dimensions required
 #define MAX_REQUESTS	64
 
+STATIC_CHECK_SIZEOF( mextrasurf_t, 324, 496 );
+STATIC_CHECK_SIZEOF( decal_t, 60, 88 );
+STATIC_CHECK_SIZEOF( mfaceinfo_t, 176, 304 );
 
 #endif//COM_MODEL_H

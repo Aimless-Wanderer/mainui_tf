@@ -39,8 +39,7 @@ void CMenuPlayerModelView::VidInit()
 	colorStroke.SetDefault( uiInputFgColor );
 	colorFocus.SetDefault( uiInputTextColor );
 
-	if( iStrokeWidth == 0 )
-		iStrokeWidth = uiStatic.outlineWidth;
+	iStrokeWidth = uiStatic.outlineWidth;
 
 	CMenuBaseItem::VidInit();
 
@@ -144,12 +143,15 @@ void CMenuPlayerModelView::Draw()
 		}
 		else
 		{
-			UI_DrawString( font, m_scPos, m_scSize, "No preview", colorBase, m_scChSize, QM_CENTER, ETF_SHADOW );
+			UI_DrawString( font, m_scPos, m_scSize, L( "No preview" ), colorBase, m_scChSize, QM_CENTER, ETF_SHADOW );
 		}
 	}
 	else
 	{
 		EngFuncs::ClearScene();
+
+		if( bDrawAsPlayer )
+			ent->curstate.body = 0; // reset body, so it will be changed by cl_himodels setting
 
 		if( uiStatic.enableAlphaFactor )
 		{

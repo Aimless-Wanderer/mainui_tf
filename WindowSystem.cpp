@@ -81,7 +81,7 @@ void CWindowStack::Update( )
 	CUtlVector<CMenuBaseWindow *> drawList( 16 );
 	CUtlVector<int> removeList( 16 );
 
-	bool stop = Current()->IsMaximized();
+	bool stop = Current()->IsRoot();
 
 	// always add current window
 	drawList.AddToTail( Current() );
@@ -116,7 +116,7 @@ void CWindowStack::Update( )
 
 		// maximized, no need to go further anymore,
 		// but we need to check for closing windows, so don't break
-		if( stack[i]->IsMaximized() )
+		if( stack[i]->IsRoot() )
 		{
 			stop = true;
 		}
@@ -254,9 +254,8 @@ void CWindowStack::Add( CMenuBaseWindow *menu )
 	if( this == &uiStatic.menu ) // hack!
 	{
 		uiStatic.firstDraw = true;
-		uiStatic.enterSound = gpGlobals->time + 0.15f;	// make some delay
 
-		EngFuncs::KEY_SetDest ( KEY_MENU );
+		EngFuncs::KEY_SetDest( KEY_MENU );
 	}
 }
 
@@ -287,6 +286,9 @@ void CWindowStack::Remove( CMenuBaseWindow *menu )
 
 				if( stack[active]->IsRoot() && menu->IsRoot() )
 					stack[active]->EnableTransition( CMenuBaseWindow::ANIM_OPENING );
+
+				// notify new active window about changed mouse position
+				stack[active]->MouseMove( uiStatic.cursorX, uiStatic.cursorY );
 
 				break;
 			}

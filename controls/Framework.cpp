@@ -48,7 +48,6 @@ void CMenuFramework::Draw()
 	static int statusFadeTime;
 	static CMenuBaseItem *lastItem;
 	CMenuBaseItem *item;
-	const char *statusText;
 
 	BaseClass::Draw();
 
@@ -62,20 +61,21 @@ void CMenuFramework::Draw()
 		lastItem = item;
 	}
 
-	// todo: move to framework?
-	// draw status text
-	if( item && item == lastItem && ( ( statusText = item->szStatusText ) != NULL ) )
+	// draw status text if status text isn't rendered at right side of an item
+	// ideally, framework shouldn't even know about this but since everything
+	// WON-styled goes here, let's leave it here...
+	if( item && item == lastItem && !FBitSet( item->iFlags, QMF_NOTIFY ) && item->szStatusText != NULL )
 	{
 		float alpha = bound( 0, ((( uiStatic.realTime - statusFadeTime ) - 100 ) * 0.01f ), 1 );
 		int r, g, b, x, len;
 
-		EngFuncs::ConsoleStringLen( statusText, &len, NULL );
+		EngFuncs::ConsoleStringLen( item->szStatusText, &len, NULL );
 
 		UnpackRGB( r, g, b, uiColorHelp );
 		EngFuncs::DrawSetTextColor( r, g, b, alpha * 255 );
 		x = ( ScreenWidth - len ) * 0.5f; // centering
 
-		EngFuncs::DrawConsoleString( x, uiStatic.yOffset + 720 * uiStatic.scaleY, statusText );
+		EngFuncs::DrawConsoleString( x, uiStatic.yOffset + 720 * uiStatic.scaleY, item->szStatusText );
 	}
 	else statusFadeTime = uiStatic.realTime;
 }
@@ -125,7 +125,7 @@ CMenuPicButton * CMenuFramework::AddButton(const char *szName, const char *szSta
 	return btn;
 }
 
-CMenuPicButton * CMenuFramework::AddButton(const char *szName, const char *szStatus, const char *szButtonPath, CEventCallback onReleased, int iFlags)
+CMenuPicButton * CMenuFramework::AddButton( const char *szName, const char *szStatus, const char *szButtonPath, CEventCallback onReleased, int iFlags, int hotkey )
 {
 	if( m_iBtnsNum >= MAX_FRAMEWORK_PICBUTTONS )
 	{
@@ -136,7 +136,7 @@ CMenuPicButton * CMenuFramework::AddButton(const char *szName, const char *szSta
 	CMenuPicButton *btn = new CMenuPicButton();
 
 	btn->SetNameAndStatus( szName, szStatus );
-	btn->SetPicture( szButtonPath );
+	btn->SetPicture( szButtonPath, hotkey );
 	btn->iFlags |= iFlags;
 	btn->onReleased = onReleased;
 	btn->SetCoord( 72, 230 + m_iBtnsNum * 50 );
@@ -145,6 +145,19 @@ CMenuPicButton * CMenuFramework::AddButton(const char *szName, const char *szSta
 	m_apBtns[m_iBtnsNum++] = btn;
 
 	return btn;
+}
+
+void CMenuFramework::RealignButtons( void )
+{
+	for( int i = 0, j = 0; i < m_iBtnsNum; i++ )
+	{
+		if( !m_apBtns[i]->IsVisible())
+			continue;
+
+		m_apBtns[i]->SetCoord( 72, 230 + j * 50 );
+		m_apBtns[i]->CalcPosition();
+		j++;
+	}
 }
 
 bool CMenuFramework::KeyDown( int key )

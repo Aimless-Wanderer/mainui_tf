@@ -70,7 +70,7 @@ public:
 		return keysBind[line][0] != 0;
 	}
 
-	char name[MAX_KEYS][64];
+	char name[MAX_KEYS][64+4]; // token + two colorcodes two characters each
 	char keysBind[MAX_KEYS][64];
 	char firstKey[MAX_KEYS][20];
 	char secondKey[MAX_KEYS][20];
@@ -167,7 +167,7 @@ void CMenuKeysModel::Update( void )
 {
 	char *afile = (char *)EngFuncs::COM_LoadFile( "gfx/shell/kb_act.lst", NULL );
 	char *pfile = afile;
-	char token[1024];
+	char token[64];
 	int i = 0;
 
 	if( !afile )
@@ -218,26 +218,25 @@ void CMenuKeysModel::Update( void )
 			{
 				const char *str = EngFuncs::KeynumToString( keys[0] );
 
-				if( str )
-					if( !strnicmp( str, "MOUSE", 5 ) )
-						snprintf( firstKey[i], 20, "^5%s^7", str );
-					else snprintf( firstKey[i], 20, "^3%s^7", str );
-				else firstKey[i][0] = 0;
+				if( !str )
+					firstKey[i][0] = 0;
+				else if( !strnicmp( str, "MOUSE", 5 ))
+					snprintf( firstKey[i], sizeof( firstKey[i] ), "^5%s^7", str );
+				else
+					snprintf( firstKey[i], sizeof( firstKey[i] ), "^3%s^7", str );
 			}
 
 			if( keys[1] != -1 )
 			{
 				const char *str = EngFuncs::KeynumToString( keys[1] );
 
-				if( str )
-					if( !strnicmp( str, "MOUSE", 5 ) )
-						snprintf( secondKey[i], 20, "^5%s^7", str );
-					else snprintf( secondKey[i], 20, "^3%s^7", str );
-				else secondKey[i][0] = 0;
+				if( !str )
+					secondKey[i][0] = 0;
+				else if( !strnicmp( str, "MOUSE", 5 ))
+					snprintf( secondKey[i], sizeof( secondKey[i] ), "^5%s^7", str );
+				else
+					snprintf( secondKey[i], sizeof( secondKey[i] ), "^3%s^7", str );
 			}
-
-
-
 			i++;
 		}
 	}
@@ -353,7 +352,7 @@ void CMenuControls::EnterGrabMode()
 {
 	if( !keysListModel.IsLineUsable( keysList.GetCurrentIndex() ) )
 	{
-		PlayLocalSound( uiStatic.sounds[SND_BUZZ] );
+		PlayLocalSound( uiStatic.sounds[SND_REMOVEKEY] );
 		return;
 	}
 
@@ -393,14 +392,11 @@ void CMenuControls::_Init( void )
 	msgBox2.onPositive = VoidCb( &CMenuControls::ResetKeysList );
 	msgBox2.Link( this );
 
-	AddItem( background );
 	AddItem( banner );
-	AddButton( L( "GameUI_UseDefaults" ), L( "GameUI_KeyboardSettingsText" ), PC_USE_DEFAULTS, msgBox2.MakeOpenEvent() );
-	AddButton( L( "Adv. Controls" ), L( "Change mouse sensitivity, enable autoaim, mouselook and crosshair" ), PC_ADV_CONTROLS, UI_AdvControls_Menu );
-	AddButton( L( "GameUI_OK" ), L( "Save changed and return to configuration menu" ), PC_DONE,
-		VoidCb( &CMenuControls::SaveAndPopMenu ) );
-	AddButton( L( "GameUI_Cancel" ), L( "Discard changes and return to configuration menu" ), PC_CANCEL,
-		VoidCb( &CMenuControls::Cancel ) );
+	AddButton( L( "GameUI_UseDefaults" ), nullptr, PC_USE_DEFAULTS, msgBox2.MakeOpenEvent( ));
+	AddButton( L( "Adv. Controls" ), nullptr, PC_ADV_CONTROLS, UI_AdvControls_Menu );
+	AddButton( L( "GameUI_OK" ), nullptr, PC_OK, VoidCb( &CMenuControls::SaveAndPopMenu ));
+	AddButton( L( "GameUI_Cancel" ), nullptr, PC_CANCEL, VoidCb( &CMenuControls::Cancel ));
 	AddItem( keysList );
 }
 

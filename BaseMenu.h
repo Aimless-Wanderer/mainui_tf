@@ -27,27 +27,17 @@ GNU General Public License for more details.
 #include "BtnsBMPTable.h"
 #include "WindowSystem.h"
 #include "Image.h"
-
-#define UI_MAX_MENUDEPTH		64
-#define UI_MAX_MENUITEMS		64
+#include "utlstring.h"
 
 #define UI_PULSE_DIVISOR		75.0f
 
 #define UI_OUTLINE_WIDTH		uiStatic.outlineWidth	// outline thickness
 
-
-#if XASH_LOW_MEMORY
-#define UI_MAXGAMES			32
-#else
-#define UI_MAXGAMES			1024	// slots for savegame/demos
-#endif
-#define UI_MAX_BGMAPS		32
-
 #define MAX_HINT_TEXT		512
 
 // menu buttons dims
-#define UI_BUTTONS_WIDTH		240
-#define UI_BUTTONS_HEIGHT		40
+#define UI_BUTTONS_WIDTH  250 // ( 156 / 640 ) * 1024
+#define UI_BUTTONS_HEIGHT 42  // ( 26 / 480 ) * 768
 
 #define UI_DESCEND			"gfx/shell/down"
 #define UI_ASCEND			"gfx/shell/up"
@@ -90,12 +80,14 @@ enum EUISounds
 	SND_COUNT
 };
 
+class CMenuBackgroundBitmap;
+
 typedef struct
 {
+	CMenuBackgroundBitmap *background;
 	CWindowStack menu;
 	CWindowStack client; // separate window stack for client windows
-	char	bgmaps[UI_MAX_BGMAPS][80];
-	int		bgmapcount;
+	CUtlVector<CUtlString> bgmaps;
 
 	HIMAGE	hFont;		// legacy qfont
 
@@ -119,10 +111,8 @@ typedef struct
 	int		cursorY;
 	int		realTime;
 	int		firstDraw;
-	float	enterSound;
 	int		mouseInRect;
 	int		hideCursor;
-	int		framecount;	// how many frames menu visible
 	int		initialized;
 
 	// btns_main.bmp stuff
@@ -310,6 +300,7 @@ void UI_FileDialog_Menu( void );
 void UI_TouchButtons_GetButtonList();
 void UI_GamePad_Menu( void );
 void UI_Zoo_Menu( void );
+void UI_ServerInfo_Menu( netadr_t adr, const char *hostname, bool legacy );
 
 bool UI_AdvUserOptions_IsAvailable( void );
 void UI_AdvUserOptions_Menu( void );
@@ -326,7 +317,7 @@ class CMenu
 {
 public:
 	// Game information
-	GAMEINFO		m_gameinfo;
+	gameinfo2_t m_gameinfo;
 };
 
 typedef struct

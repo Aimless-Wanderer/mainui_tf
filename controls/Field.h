@@ -40,12 +40,17 @@ public:
 		CMenuEditable::LinkCvar( name, CVAR_STRING );
 	}
 
+	VGUI_DefaultCursor CursorAction() override
+	{
+		return dc_ibeam;
+	}
+
 	void Paste();
 	void Clear();
 
 	void SetBuffer( const char *buffer )
 	{
-		Q_strncpy( szBuffer, buffer, UI_MAX_FIELD_LINE );
+		Q_strncpy( szBuffer, buffer, sizeof( szBuffer ));
 		iCursor = strlen( szBuffer );
 		iScroll = g_FontMgr->CutText( font, szBuffer, m_scChSize, iRealWidth, true );
 		SetCvarString( szBuffer );

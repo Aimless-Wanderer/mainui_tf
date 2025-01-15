@@ -52,7 +52,7 @@ void CMenuTable::VidInit()
 	colorStroke.SetDefault( uiInputFgColor );
 	iStrokeFocusedColor.SetDefault( uiInputTextColor );
 
-	if( iStrokeWidth == 0 ) iStrokeWidth = uiStatic.outlineWidth;
+	iStrokeWidth = uiStatic.outlineWidth;
 
 	iNumRows = ( m_scSize.h - iStrokeWidth * 2 ) / m_scChSize - 1;
 
@@ -106,7 +106,7 @@ void CMenuTable::VidInit()
 	}
 
 	// calculate header size(position is table position)
-	headerSize.w = m_scSize.w - arrow.w + iStrokeWidth;
+	headerSize.w = m_scSize.w - arrow.w + iStrokeWidth * 2;
 
 	// box is lower than header
 	boxPos.x = m_scPos.x;
@@ -155,8 +155,6 @@ bool CMenuTable::MouseMove( int x, int y )
 				ac_y = 0;
 			}
 		}
-
-		iTopItem = bound( 0, iTopItem, m_pModel->GetRows() - iNumRows );
 	}
 
 	if( iScrollBarSliding )
@@ -177,12 +175,9 @@ bool CMenuTable::MouseMove( int x, int y )
 				iTopItem--;
 			}
 		}
-
-		//iTopItem = iCurItem - iNumRows + 1;
-		if( iTopItem < 0 ) iTopItem = 0;
-		if( iTopItem > ( m_pModel->GetRows() - iNumRows - 1 ))
-			iTopItem = m_pModel->GetRows() - iNumRows - 1;
 	}
+
+	iTopItem = bound( 0, iTopItem, m_pModel->GetRows() - iNumRows );
 
 	return true;
 }
@@ -332,6 +327,8 @@ bool CMenuTable::KeyUp( int key )
 						{
 							SwapOrder();
 						}
+
+						_Event( QM_CHANGED );
 					}
 				}
 			}
@@ -618,6 +615,10 @@ void CMenuTable::Draw()
 	iNumRows = ( m_scSize.h - iStrokeWidth * 2 ) / m_scChSize - 1;
 	if( iNumRows > m_pModel->GetRows() )
 		iNumRows = m_pModel->GetRows();
+
+	// HACKHACK: normalize iTopItem
+	// remove when there will be per-pixel scrolling
+	iTopItem = bound( 0, iTopItem, m_pModel->GetRows() - 1 );
 
 	if( UI_CursorInRect( boxPos, boxSize ) )
 	{

@@ -8,7 +8,7 @@ of the License, or (at your option) any later version.
 
 This program is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
 See the GNU General Public License for more details.
 
@@ -18,6 +18,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
 
+#include "build.h"
 #include "Framework.h"
 #include "Bitmap.h"
 #include "PicButton.h"
@@ -68,6 +69,8 @@ private:
 	CMenuSpinControl axisBind[6];
 
 	CMenuAction axisBind_label;
+
+	CMenuCheckBox enableOsk;
 };
 
 /*
@@ -79,6 +82,8 @@ void CMenuGamePad::GetConfig( void )
 {
 	float _side, _forward, _pitch, _yaw;
 	char binding[7] = { 0 };
+
+	enableOsk.LinkCvar( "osk_enable" );
 
 	Q_strncpy( binding, EngFuncs::GetCvarString( "joy_axis_binding"), sizeof( binding ));
 
@@ -179,6 +184,8 @@ void CMenuGamePad::SaveAndPopMenu()
 	EngFuncs::CvarSetValue( "joy_yaw", _yaw );
 	EngFuncs::CvarSetString( "joy_axis_binding", binding );
 
+	enableOsk.WriteCvar();
+
 	CMenuFramework::SaveAndPopMenu();
 }
 
@@ -194,6 +201,8 @@ void CMenuGamePad::_Init( void )
 	static CStringArrayModel model( axisNames, V_ARRAYSIZE( axisNames ) );
 
 	banner.SetPicture( ART_BANNER );
+
+	enableOsk.SetNameAndStatus( L( "Builtin on-screen keyboard" ), L( "Enable builtin on-screen keyboard in case your platform doesn't have any" ));
 
 	axisBind_label.eTextAlignment = QM_CENTER;
 	axisBind_label.iFlags = QMF_INACTIVE|QMF_DROPSHADOW;
@@ -219,17 +228,15 @@ void CMenuGamePad::_Init( void )
 	invPitch.SetNameAndStatus( L( "Invert" ), L( "Invert pitch axis" ) );
 
 	yaw.Setup( 0.0f, 200.0f, 0.1f );
-	yaw.SetNameAndStatus( L( "Look Y" ), L( "Yaw rotating sensitivity" ) );
+	yaw.SetNameAndStatus( L( "Look Y" ), L( "Vertical look sensitivity" ) );
 	invYaw.SetNameAndStatus( L( "Invert" ), L( "Invert yaw axis" ) );
 
-	AddItem( background );
 	AddItem( banner );
-	AddButton( L( "Controls" ), L( "Change keyboard and mouse settings" ), PC_CONTROLS, UI_Controls_Menu );
-	AddButton( L( "Done" ), L( "Go back to the Configuration Menu" ), PC_DONE, VoidCb( &CMenuGamePad::SaveAndPopMenu ) );	// Обе строки уже встречались ранее !!
+	AddButton( L( "Controls" ), nullptr, PC_CONTROLS, UI_Controls_Menu );
+	AddButton( L( "Done" ), nullptr, PC_DONE, VoidCb( &CMenuGamePad::SaveAndPopMenu ) );	// Обе строки уже встречались ранее !!
 	for( i = 0; i < 6; i++ )
-	{
 		AddItem( axisBind[i] );
-	}
+	AddItem( enableOsk );
 	AddItem( side );
 	AddItem( invSide );
 	AddItem( forward );
@@ -246,11 +253,14 @@ void CMenuGamePad::_VidInit()
 	axisBind_label.SetCoord( 360, 230 );
 	axisBind_label.SetCharSize( QM_SMALLFONT );
 
-	for( int i = 0, y = 280; i < 6; i++, y += 50 )
+	int y = 280;
+	for( int i = 0; i < 6; i++, y += 50 )
 	{
 		axisBind[i].SetRect( 360, y, 256, invSide.size.h );
 		axisBind[i].SetCharSize( QM_SMALLFONT );
 	}
+
+	enableOsk.SetCoord( 360, y );
 
 	int sliderAlign = invSide.size.h - side.size.h;
 

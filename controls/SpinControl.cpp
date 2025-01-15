@@ -142,7 +142,7 @@ void CMenuSpinControl::Draw( void )
 	}
 
 	int textHeight = m_scPos.y - (m_scChSize * 1.5f);
-	UI_DrawString( font, m_scPos.x - UI_OUTLINE_WIDTH, textHeight, m_scSize.w + UI_OUTLINE_WIDTH * 2, m_scChSize, szName, uiColorHelp, m_scChSize, QM_LEFT, textflags | ETF_FORCECOL );
+	UI_DrawString( font, m_scPos.x - UI_OUTLINE_WIDTH, textHeight, m_scSize.w + UI_OUTLINE_WIDTH * 2, m_scChSize, szName, uiColorHelp, m_scChSize, QM_LEFT, textflags | ETF_FORCECOL | ETF_NOSIZELIMIT );
 
 	// calculate size and position for the arrows
 	arrow.w = m_scSize.h + UI_OUTLINE_WIDTH * 2;
@@ -281,22 +281,23 @@ void CMenuSpinControl::Setup( CMenuBaseArrayModel *model )
 
 void CMenuSpinControl::SetCurrentValue( float curValue )
 {
+	bool notify = m_flCurValue != curValue;
 	m_flCurValue = curValue;
 	Display();
+
+	if( notify ) _Event( QM_CHANGED );
 }
 
 void CMenuSpinControl::SetCurrentValue( const char *stringValue )
 {
 	ASSERT( m_pModel );
 
-	if ( !m_pModel )
-	{
+	if( !m_pModel )
 		return;
-	}
 
-	int i = 0;
+	float oldValue = m_flCurValue;
 
-	for( ; i <= (int)m_flMaxValue; i++ )
+	for( int i = 0; i <= (int)m_flMaxValue; i++ )
 	{
 		if( !strcmp( m_pModel->GetText( i ), stringValue ) )
 		{
@@ -308,8 +309,10 @@ void CMenuSpinControl::SetCurrentValue( const char *stringValue )
 
 	m_flCurValue = -1;
 	SetCvarString( stringValue );
+	ForceDisplayString( stringValue );
 
-	Q_strncpy( m_szDisplay, stringValue, CS_SIZE );
+	if( oldValue != m_flCurValue )
+		_Event( QM_CHANGED );
 }
 
 void CMenuSpinControl::SetDisplayPrecision( short precision )
@@ -323,7 +326,7 @@ void CMenuSpinControl::Display()
 	{
 		SetCvarValue( m_flCurValue );
 
-		snprintf( m_szDisplay, CS_SIZE, "%.*f", m_iFloatPrecision, m_flCurValue );
+		snprintf( m_szDisplay, sizeof( m_szDisplay ), "%.*f", m_iFloatPrecision, m_flCurValue );
 	}
 	else
 	{
@@ -336,11 +339,11 @@ void CMenuSpinControl::Display()
 		case CVAR_VALUE: SetCvarValue( m_flCurValue ); break;
 		}
 
-		Q_strncpy( m_szDisplay, stringValue, CS_SIZE );
+		Q_strncpy( m_szDisplay, stringValue, sizeof( m_szDisplay ));
 	}
 }
 
-void CMenuSpinControl::ForceDisplayString(const char *display)
+void CMenuSpinControl::ForceDisplayString( const char *display )
 {
-	Q_strncpy( m_szDisplay, display, CS_SIZE );
+	Q_strncpy( m_szDisplay, display, sizeof( m_szDisplay ));
 }

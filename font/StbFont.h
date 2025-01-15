@@ -36,15 +36,13 @@ public:
 	void GetCharRGBA(int ch, Point pt, Size sz, unsigned char *rgba, Size &drawSize) override;
 	void GetCharABCWidthsNoCache( int ch, int &a, int &b, int &c ) override;
 	bool HasChar( int ch ) const override;
+	const char *GetBackendName() const override { return "stb"; }
 
 private:
-	char m_szRealFontFile[4096];
-	bool FindFontDataFile(const char *name, int tall, int weight, int flags, char *dataFile, int dataFileChars);
-
 	byte *m_pFontData;
 	stbtt_fontinfo m_fontInfo;
 
-	float scale;
+	double scale;
 
 	friend class CFontManager;
 };

@@ -50,6 +50,7 @@ private:
 	CMenuSlider	vibration;
 	CMenuSpinControl lerping;
 	CMenuCheckBox noDSP;
+	CMenuCheckBox useAlphaDSP;
 	CMenuCheckBox muteFocusLost;
 	CMenuCheckBox vibrationEnable;
 
@@ -69,7 +70,8 @@ void CMenuAudio::GetConfig( void )
 	vibration.LinkCvar( "vibration_length" );
 
 	lerping.LinkCvar( "s_lerping", CMenuEditable::CVAR_VALUE );
-	noDSP.LinkCvar( "dsp_off" );
+	noDSP.LinkCvar( "room_off" );
+	useAlphaDSP.LinkCvar( "dsp_coeff_table" );
 	muteFocusLost.LinkCvar( "snd_mute_losefocus" );
 	vibrationEnable.LinkCvar( "vibration_enable" );
 
@@ -104,6 +106,7 @@ void CMenuAudio::SaveAndPopMenu()
 	vibration.WriteCvar();
 	lerping.WriteCvar();
 	noDSP.WriteCvar();
+	useAlphaDSP.WriteCvar();
 	muteFocusLost.WriteCvar();
 	vibrationEnable.WriteCvar();
 
@@ -124,57 +127,63 @@ void CMenuAudio::_Init( void )
 
 	banner.SetPicture(ART_BANNER);
 
-	soundVolume.SetNameAndStatus( L( "GameUI_SoundEffectVolume" ), L( "Set master volume level" ) );
+	soundVolume.szName = L( "GameUI_SoundEffectVolume" );
 	soundVolume.Setup( 0.0, 1.0, 0.05f );
 	soundVolume.onChanged = CMenuEditable::WriteCvarCb;
 	soundVolume.SetCoord( 320, 280 );
+	soundVolume.size.w = 300;
 
-	musicVolume.SetNameAndStatus( L( "GameUI_MP3Volume" ), L( "Set background music volume level" ) );
+	musicVolume.szName = L( "GameUI_MP3Volume" );
 	musicVolume.Setup( 0.0, 1.0, 0.05f );
 	musicVolume.onChanged = CMenuEditable::WriteCvarCb;
 	musicVolume.SetCoord( 320, 340 );
+	musicVolume.size.w = 300;
 
-	suitVolume.SetNameAndStatus( L( "GameUI_HEVSuitVolume" ), L( "Set suit volume level" ) );
+	suitVolume.szName = L( "GameUI_HEVSuitVolume" );
 	suitVolume.Setup( 0.0, 1.0, 0.05f );
 	suitVolume.onChanged = CMenuEditable::WriteCvarCb;
 	suitVolume.SetCoord( 320, 400 );
+	suitVolume.size.w = 300;
 
 	static CStringArrayModel model( lerpingStr, V_ARRAYSIZE( lerpingStr ));
-	lerping.SetNameAndStatus( L( "Sound interpolation" ), L( "Enable/disable interpolation on sound output" ) );
+	lerping.szName = L( "Sound interpolation" );
 	lerping.Setup( &model );
 	lerping.onChanged = CMenuEditable::WriteCvarCb;
 	lerping.font = QM_SMALLFONT;
 	lerping.SetRect( 320, 470, 300, 32 );
 
-	noDSP.SetNameAndStatus( L( "Disable DSP effects" ), L( "Disable sound processing (like echo, flanger, etc)" ) );
+	noDSP.szName = L( "Disable DSP effects" );
 	noDSP.onChanged = CMenuEditable::WriteCvarCb;
 	noDSP.SetCoord( 320, 520 );
 
-	muteFocusLost.SetNameAndStatus( L( "Mute when inactive" ), L( "Disable sound when game goes into background" ) );
-	muteFocusLost.onChanged = CMenuEditable::WriteCvarCb;
-	muteFocusLost.SetCoord( 320, 570 );
+	useAlphaDSP.szName = L( "Use Alpha DSP effects" );
+	useAlphaDSP.onChanged = CMenuEditable::WriteCvarCb;
+	useAlphaDSP.SetCoord( 320, 570 );
 
-	vibrationEnable.SetNameAndStatus( L( "Enable vibration" ), L( "In-game vibration(when player injured, etc)" ) );
+	muteFocusLost.szName = L( "Mute when inactive" );
+	muteFocusLost.onChanged = CMenuEditable::WriteCvarCb;
+	muteFocusLost.SetCoord( 320, 620 );
+
+	vibrationEnable.szName = L( "Enable vibration" );
 	vibrationEnable.iMask = (QMF_GRAYED|QMF_INACTIVE);
 	vibrationEnable.bInvertMask = true;
 	vibrationEnable.onChanged = CMenuCheckBox::BitMaskCb;
 	vibrationEnable.onChanged.pExtra = &vibration.iFlags;
 	vibrationEnable.SetCoord( 700, 470 );
 
-	vibration.SetNameAndStatus( L( "Vibration" ), L( "Default vibration length" ) );
+	vibration.szName = L( "Vibration" );
 	vibration.Setup( 0.0f, 5.0f, 0.05f );
 	vibration.onChanged = VoidCb( &CMenuAudio::VibrateChanged );
 	vibration.SetCoord( 700, 570 );
 
-	AddItem( background );
 	AddItem( banner );
-	AddButton( L( "Done" ), L( "Go back to the Configuration Menu" ), PC_DONE,
-		VoidCb( &CMenuAudio::SaveAndPopMenu ) );
+	AddButton( L( "Done" ), nullptr, PC_DONE, VoidCb( &CMenuAudio::SaveAndPopMenu ));
 	AddItem( soundVolume );
 	AddItem( musicVolume );
 	AddItem( suitVolume );
 	AddItem( lerping );
 	AddItem( noDSP );
+	AddItem( useAlphaDSP );
 	AddItem( muteFocusLost );
 	AddItem( vibrationEnable );
 	AddItem( vibration );

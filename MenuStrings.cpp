@@ -20,7 +20,7 @@ GNU General Public License for more details.
 #include "MenuStrings.h"
 #include "utlhashmap.h"
 #include "generichash.h"
-#include "unicode_strtools.h"
+#include "utflib.h"
 
 #define EMPTY_STRINGS_1 ""
 #define EMPTY_STRINGS_2 EMPTY_STRINGS_1, EMPTY_STRINGS_1
@@ -134,7 +134,7 @@ static void UI_InitAliasStrings( void )
 
 		char token[1024];
 		char token2[1024];
-		sprintf( token, "StringsList_%d", aliasStrings[i].idx );
+		snprintf( token, sizeof( token ), "StringsList_%d", aliasStrings[i].idx );
 
 		const char *fmt = L( token );
 		if( fmt == token )
@@ -142,7 +142,7 @@ static void UI_InitAliasStrings( void )
 			fmt = aliasStrings[i].defAliasString;
 		}
 
-		sprintf( token2, fmt, gMenu.m_gameinfo.title );
+		snprintf( token2, sizeof( token2 ), fmt, gMenu.m_gameinfo.title );
 		MenuStrings[aliasStrings[i].idx] = StringCopy( token2 );
 
 		Dictionary_Insert( token, MenuStrings[aliasStrings[i].idx] );
@@ -266,6 +266,49 @@ int UTFToCP1251( char *out, const char *instr, int len, int maxoutlen )
 	return out - outbegin;
 }
 
+static uint Localize_ProcessString( char *dst, const char *src )
+{
+	const char *p;
+	uint i = 0;
+
+	p = src;
+
+	while( *p )
+	{
+		if( *p == '\\' )
+		{
+			char replace = 0;
+
+			switch( p[1] )
+			{
+			case '\\': replace = '\\'; break;
+			case 'n': replace = '\n'; break;
+			}
+
+			if( replace )
+			{
+				if( dst )
+					dst[i] = replace;
+				i++;
+				p += 2;
+				continue;
+			}
+		}
+
+		if( dst )
+			dst[i] = *p;
+		i++;
+		p++;
+	}
+
+	// null terminator
+	if( dst )
+		dst[i] = '\0';
+	i++;
+
+	return i;
+}
+
 static void Localize_AddToDictionary( const char *name, const char *lang )
 {
 	char filename[64], token[4096];
@@ -301,17 +344,10 @@ static void Localize_AddToDictionary( const char *name, const char *lang )
 
 	if( isUtf16 )
 	{
-		int ansiLength = len + 1;
-		uchar16 *autf16 = new uchar16[len/2 + 1];
-
-		memcpy( autf16, pFileBuf + 2, len - 1 );
-		autf16[len/2-1] = 0; //null terminator
-
+		size_t ansiLength = len + 1;
 		afile = new char[ansiLength]; // save original pointer, so we can free it later
 
-		Q_UTF16ToUTF8( autf16, afile, ansiLength, STRINGCONVERT_ASSERT_REPLACE );
-
-		delete[] autf16;
+		Q_UTF16ToUTF8( afile, ansiLength, (const uint16_t *)&pFileBuf[2], ( len / 2 ) - 1 );
 	}
 	else
 	{
@@ -367,7 +403,7 @@ static void Localize_AddToDictionary( const char *name, const char *lang )
 		goto error;
 	}
 
-	while( (pfile = EngFuncs::COM_ParseFile( pfile, token, sizeof( token ))))
+	while(( pfile = EngFuncs::COM_ParseFile( pfile, token, sizeof( token ))))
 	{
 		if( !strcmp( token, "}" ))
 			break;
@@ -381,6 +417,7 @@ static void Localize_AddToDictionary( const char *name, const char *lang )
 		if( pfile )
 		{
 			// Con_DPrintf("New token: %s %s\n", token, szLocString );
+			Localize_ProcessString( token, token );
 			Dictionary_Insert( token, szLocString );
 			i++;
 		}

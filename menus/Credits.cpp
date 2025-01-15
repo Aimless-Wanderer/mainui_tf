@@ -93,10 +93,6 @@ void CMenuCredits::Draw( void )
 	int	h = UI_MED_CHAR_HEIGHT;
 	int	color = 0;
 
-	// draw the background first
-	if( CL_IsActive() && !finalCredits )
-		background.Draw();
-
 	speed = 32.0f * ( 768.0f / ScreenHeight );	// syncronize with final background track :-)
 
 	// now draw the credits
@@ -144,10 +140,9 @@ CMenuCredits::Key
 bool CMenuCredits::KeyDown( int key )
 {
 	// final credits can't be intterupted
-	if( finalCredits )
-		return true;
+	if( !finalCredits )
+		active = false;
 
-	active = false;
 	return true;
 }
 
@@ -173,7 +168,7 @@ void CMenuCredits::_Init( void )
 				memcpy( tmp, buffer, count );
 				EngFuncs::COM_FreeFile( buffer );
 				buffer = tmp;
-				strncpy( buffer + count, "\r", 1 ); // add terminator
+				Q_strncpy( buffer + count, "\r", 2 ); // add terminator
 				count += 2; // added "\r\0"
 			}
 			p = buffer;

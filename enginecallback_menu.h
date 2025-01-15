@@ -381,14 +381,14 @@ public:
 	}
 
 	// collect info from engine
-	static inline int	GetGameInfo( GAMEINFO *pgameinfo )
+	static inline gameinfo2_t *GetGameInfo( void )
 	{
-		return engfuncs.pfnGetGameInfo( pgameinfo );
+		return textfuncs.pfnGetGameInfo( GAMEINFO_VERSION );
 	}
 
-	static inline GAMEINFO **GetGamesList( int *numGames ) // collect info about all mods
+	static inline gameinfo2_t *GetModInfo( int i ) // collect info about all mods
 	{
-		return  engfuncs.pfnGetGamesList( numGames );
+		return textfuncs.pfnGetModInfo( GAMEINFO_VERSION, i );
 	}
 
 	static inline char **GetFilesList( const char *pattern, int *numFiles, int gamedironly ) // find in files
@@ -506,7 +506,7 @@ public:
 	{
 		return textfuncs.pfnGetRenderers( num, sz1, s1, sz2, s2 ) != 0;
 	}
-	
+
 	static inline double DoubleTime()
 	{
 		return textfuncs.pfnDoubleTime();
@@ -560,9 +560,9 @@ public:
 
 // built-in memory manager
 // NOTE: not recommeded to use, because object destruction may be after engine halts
-#define MALLOC( x )		EngFuncs::MemAlloc( x, __FILE__, __LINE__ )
-#define CALLOC( x, y )	EngFuncs::MemAlloc((x) * (y), __FILE__, __LINE__ )
-#define FREE( x )		EngFuncs::MemFree( x, __FILE__, __LINE__ )
+#define Mem_Malloc( x )		EngFuncs::MemAlloc( x, __FILE__, __LINE__ )
+#define Mem_Calloc( x, y )	EngFuncs::MemAlloc((x) * (y), __FILE__, __LINE__ ) // guaranteed to be zeroed by engine
+#define Mem_Free( x )		EngFuncs::MemFree( x, __FILE__, __LINE__ )
 
 #define CL_IsActive()	(EngFuncs::ClientInGame() && !EngFuncs::GetCvarFloat( "cl_background" ))
 #define Host_Error (*EngFuncs::engfuncs.pfnHostError)

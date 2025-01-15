@@ -22,7 +22,6 @@ GNU General Public License for more details.
 
 extern "C"
 {
-    #include <fontconfig/fontconfig.h>
     #include <ft2build.h>
     #include FT_FREETYPE_H
 }
@@ -45,11 +44,11 @@ public:
 	void GetCharRGBA(int ch, Point pt, Size sz, unsigned char *rgba, Size &drawSize) override;
 	void GetCharABCWidthsNoCache( int ch, int &a, int &b, int &c ) override;
 	bool HasChar( int ch ) const override;
+	const char *GetBackendName() const override { return "ft2"; }
 private:
 	FT_Face face;
 	static FT_Library m_Library;
-	char m_szRealFontFile[4096];
-	bool FindFontDataFile(const char *name, int tall, int weight, int flags, char *dataFile, int dataFileChars);
+	byte *m_pFontData;
 
 	friend class CFontManager;
 };

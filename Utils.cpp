@@ -8,7 +8,7 @@ of the License, or (at your option) any later version.
 
 This program is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
 See the GNU General Public License for more details.
 
@@ -156,36 +156,6 @@ int ColorStrlen( const char *str )
 	return len;
 }
 
-int ColorPrexfixCount( const char *str )
-{
-	const char *p;
-
-	if( !str )
-		return 0;
-
-	int len = 0;
-	p = str;
-
-	//EngFuncs::UtfProcessChar(0);
-
-	while( *p )
-	{
-		if( IsColorString( p ))
-		{
-			len += 2;
-			p += 2;
-			continue;
-		}
-		//if(!EngFuncs::UtfProcessChar((unsigned char)*p))
-			//len++;
-		p++;
-	}
-
-	//EngFuncs::UtfProcessChar(0);
-
-	return len;
-}
-
 char *StringCopy( const char *input )
 {
 	if( !input ) return NULL;
@@ -218,42 +188,40 @@ int COM_CompareSaves( const void **a, const void **b )
 /*
 ============
 COM_FileBase
+
+Extracts the base name of a file (no path, no extension, assumes '/' as path separator)
+a1ba: adapted and simplified version from QuakeSpasm
 ============
 */
-// Extracts the base name of a file (no path, no extension, assumes '/' as path separator)
-void COM_FileBase ( const char *in, char *out )
+#define COM_CheckString( string ) ( ( !string || !*string ) ? 0 : 1 )
+void COM_FileBase( const char *in, char *out, size_t size )
 {
-	int len, start, end;
+	const char *dot, *slash, *s;
+	size_t len;
 
-	len = strlen( in );
-	
-	// scan backward for '.'
-	end = len - 1;
-	while ( end && in[end] != '.' && in[end] != '/' && in[end] != '\\' )
-		end--;
-	
-	if ( in[end] != '.' )		// no '.', copy to end
-		end = len-1;
-	else 
-		end--;			// Found ',', copy to left of '.'
+	if( unlikely( !COM_CheckString( in ) || size <= 1 ))
+	{
+		out[0] = 0;
+		return;
+	}
 
+	slash = in;
+	dot = NULL;
+	for( s = in; *s; s++ )
+	{
+		if( *s == '/' || *s == '\\' )
+			slash = s + 1;
 
-	// Scan backward for '/'
-	start = len-1;
-	while ( start >= 0 && in[start] != '/' && in[start] != '\\' )
-		start--;
+		if( *s == '.' )
+			dot = s;
+	}
 
-	if ( in[start] != '/' && in[start] != '\\' )
-		start = 0;
-	else 
-		start++;
+	if( dot == NULL || dot < slash )
+		dot = s;
 
-	// Length of new sting
-	len = end - start + 1;
+	len = Q_min( size - 1, dot - slash );
 
-	// Copy partial string
-	strncpy( out, &in[start], len );
-	// Terminate it
+	memcpy( out, slash, len );
 	out[len] = 0;
 }
 
@@ -265,34 +233,41 @@ Searches the string for the given
 key and returns the associated value, or an empty string.
 ===============
 */
+#define MAX_KV_SIZE		128
 const char *Info_ValueForKey( const char *s, const char *key )
 {
-	char	pkey[MAX_INFO_STRING];
-	static	char value[2][MAX_INFO_STRING]; // use two buffers so compares work without stomping on each other
+	char	pkey[MAX_KV_SIZE];
+	static	char value[4][MAX_KV_SIZE]; // use two buffers so compares work without stomping on each other
 	static	int valueindex;
+	int	count;
 	char	*o;
-	
-	valueindex ^= 1;
+
+	valueindex = (valueindex + 1) % 4;
 	if( *s == '\\' ) s++;
 
 	while( 1 )
 	{
+		count = 0;
 		o = pkey;
-		while( *s != '\\' && *s != '\n' )
+
+		while( count < (MAX_KV_SIZE - 1) && *s != '\\' )
 		{
 			if( !*s ) return "";
 			*o++ = *s++;
+			count++;
 		}
 
 		*o = 0;
 		s++;
 
 		o = value[valueindex];
+		count = 0;
 
-		while( *s != '\\' && *s != '\n' && *s )
+		while( count < (MAX_KV_SIZE - 1) && *s && *s != '\\' )
 		{
 			if( !*s ) return "";
 			*o++ = *s++;
+			count++;
 		}
 		*o = 0;
 
@@ -304,7 +279,7 @@ const char *Info_ValueForKey( const char *s, const char *key )
 }
 
 
-/* 
+/*
 ===================
 Key_GetKey
 ===================
@@ -367,30 +342,6 @@ void UI_EnableTextInput( bool enable )
 	uiStatic.textInput = enable;
 	EngFuncs::EnableTextInput( enable );
 }
-
-// Doesn't need anymore
-
-/*
-void *operator new( size_t a )
-{
-	return MALLOC( a );
-}
-
-void *operator new[]( size_t a )
-{
-	return MALLOC( a );
-}
-
-void operator delete( void *ptr )
-{
-	if( ptr ) FREE( ptr );
-}
-
-void operator delete[]( void *ptr )
-{
-	if( ptr ) FREE( ptr );
-}
-*/
 
 CBMP* CBMP::LoadFile( const char *filename )
 {
@@ -603,6 +554,80 @@ bool UI::Names::CheckIsNameValid(const char *name)
 	return true;
 }
 
+char *Q_pretifymem( float value, int digitsafterdecimal )
+{
+	static char	output[8][32];
+	static int	current;
+	const float onekb = 1024.0f;
+	const float onemb = onekb * onekb;
+	const char *suffix;
+	char		*out = output[current];
+	char		val[32], *i, *o, *dot;
+	int		pos;
+
+	current = ( current + 1 ) & ( 8 - 1 );
+
+	// first figure out which bin to use
+	if( value > onemb )
+	{
+		value /= onemb;
+		suffix = " Mb";
+	}
+	else if( value > onekb )
+	{
+		value /= onekb;
+		suffix = " Kb";
+	}
+	else
+	{
+		suffix = " bytes";
+	}
+
+	// clamp to >= 0
+	digitsafterdecimal = Q_max( digitsafterdecimal, 0 );
+
+	// if it's basically integral, don't do any decimals
+	if( fabs( value - (int)value ) < 0.00001f )
+	{
+		snprintf( val, sizeof( val ), "%i%s", (int)value, suffix );
+	}
+	else
+	{
+		char fmt[32];
+
+		// otherwise, create a format string for the decimals
+		snprintf( fmt, sizeof( fmt ), "%%.%if%s", digitsafterdecimal, suffix );
+		snprintf( val, sizeof( val ), fmt, (double)value );
+	}
+
+	// copy from in to out
+	i = val;
+	o = out;
+
+	// search for decimal or if it was integral, find the space after the raw number
+	dot = strchr( i, '.' );
+	if( !dot ) dot = strchr( i, ' ' );
+
+	pos = dot - i;	// compute position of dot
+	pos -= 3;		// don't put a comma if it's <= 3 long
+
+	while( *i )
+	{
+		// if pos is still valid then insert a comma every third digit, except if we would be
+		// putting one in the first spot
+		if( pos >= 0 && !( pos % 3 ))
+		{
+			// never in first spot
+			if( o != out ) *o++ = ',';
+		}
+
+		pos--;		// count down comma position
+		*o++ = *i++;	// copy rest of data as normal
+	}
+	*o = 0; // terminate
+
+	return out;
+}
 
 void Com_EscapeCommand( char *newCommand, const char *oldCommand, int len )
 {

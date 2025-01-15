@@ -69,7 +69,7 @@ void CAdvancedControls::GetConfig( )
 	if( EngFuncs::GetCvarFloat( "m_pitch" ) < 0 )
 		invertMouse.bChecked = true;
 
-	mlook = (kbutton_s *)EngFuncs::KEY_GetState( "in_mlook" );
+	mlook = (kbutton_t *)EngFuncs::KEY_GetState( "in_mlook" );
 	if( mlook )
 	{
 		if( mlook && mlook->state & 1 )
@@ -146,7 +146,7 @@ void CAdvancedControls::_Init( void )
 {
 	banner.SetPicture( ART_BANNER );
 
-	done.SetNameAndStatus( L( "Done" ), L( "save changed and go back to the Customize Menu" ) );
+	done.szName = L( "Done" );
 	done.SetPicture( PC_DONE );
 	done.onReleased = VoidCb( &CAdvancedControls::SaveAndPopMenu );
 	done.SetCoord( 72, 710 );
@@ -186,7 +186,7 @@ void CAdvancedControls::_Init( void )
 	rawinput.iFlags |= QMF_NOTIFY;
 	rawinput.SetCoord( 72, 610 );
 
-	sensitivity.SetNameAndStatus( L( "GameUI_MouseSensitivity" ), L( "Set in-game mouse sensitivity" ) );
+	sensitivity.szName = L( "GameUI_MouseSensitivity" );
 	sensitivity.Setup( 0.0, 20.0f, 0.1 );
 	sensitivity.SetCoord( 72, 690 );
 
@@ -198,7 +198,6 @@ void CAdvancedControls::_Init( void )
 	//inputDev.SetRect( 72, 230, UI_BUTTONS_WIDTH, UI_BUTTONS_HEIGHT );
 	inputDev.SetCoord( 72, 210 );
 
-	AddItem( background );
 	AddItem( banner );
 	AddItem( done );
 	AddItem( inputDev );
