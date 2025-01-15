@@ -13,7 +13,6 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 */
 
-#include "../cl_dll/IGameMenuExports.h"
 
 #include "extdll_menu.h"
 #include "BaseMenu.h"
@@ -22,7 +21,6 @@ GNU General Public License for more details.
 ui_enginefuncs_t EngFuncs::engfuncs;
 ui_extendedfuncs_t EngFuncs::textfuncs;
 ui_globalvars_t	*gpGlobals;
-IGameClientExports *g_pClient;
 CMenu gMenu;
 
 static UI_FUNCTIONS gFunctionTable = 
@@ -99,78 +97,3 @@ extern "C" EXPORT int GetExtAPI( int version, UI_EXTENDED_FUNCTIONS *pFunctionTa
 
 	return TRUE;
 }
-
-static class CGameMenuExports : public IGameMenuExports
-{
-public:
-	bool Initialize( CreateInterfaceFn factory ) override
-	{
-		g_pClient = (IGameClientExports *)factory( GAMECLIENTEXPORTS_INTERFACE_VERSION, NULL );
-
-		return g_pClient ? true : false;
-	}
-
-	const char *L( const char *szStr ) override
-	{
-		return ::L( szStr );
-	}
-
-	bool IsActive( void ) override
-	{
-		return uiStatic.client.IsActive() && !uiStatic.menu.IsActive();
-	}
-
-	bool IsMainMenuActive( void ) override
-	{
-		return uiStatic.menu.IsActive();
-	}
-
-	void Key( int key, int down ) override
-	{
-		down ? uiStatic.client.KeyDownEvent( key ) : uiStatic.client.KeyUpEvent( key );
-	}
-
-	void MouseMove( int x, int y ) override
-	{
-		uiStatic.cursorX = x;
-		uiStatic.cursorY = y;
-		uiStatic.client.MouseEvent( x, y );
-	}
-
-	HFont BuildFont( CFontBuilder &builder ) override
-	{
-		return builder.Create();
-	}
-
-	void GetCharABCWide( HFont font, int ch, int &a, int &b, int &c ) override
-	{
-		g_FontMgr->GetCharABCWide( font, ch, a, b, c );
-	}
-
-	int GetFontTall( HFont font ) override
-	{
-		return g_FontMgr->GetFontTall( font );
-	}
-
-	int GetCharacterWidth( HFont font, int ch, int charH ) override
-	{
-		return g_FontMgr->GetCharacterWidthScaled( font, ch, charH );
-	}
-
-	void GetTextSize( HFont font, const char *text, int *wide, int *height = 0, int size = -1 ) override
-	{
-		g_FontMgr->GetTextSize( font, text, wide, height, size );
-	}
-
-	int GetTextHeight( HFont font, const char *text, int size = -1 ) override
-	{
-		return g_FontMgr->GetTextHeight( font, text, size );
-	}
-
-	int DrawCharacter( HFont font, int ch, int x, int y, int charH, const unsigned int color, bool forceAdditive = false ) override
-	{
-		return g_FontMgr->DrawCharacter( font, ch, Point( x, y ), charH, color, forceAdditive );
-	}
-} s_Menu;
-
-EXPOSE_SINGLE_INTERFACE_GLOBALVAR( CGameMenuExports, IGameMenuExports, GAMEMENUEXPORTS_INTERFACE_VERSION, s_Menu );

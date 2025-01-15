@@ -43,10 +43,6 @@ file(GLOB MAINUI_MENUS_SOURCES "menus/*.cpp" "menus/dynamic/*.cpp")
 file(GLOB MAINUI_FONT_RENDER_SOURCES "font/*.cpp")
 file(GLOB MAINUI_SOURCES "miniutl/*.cpp" "*.cpp")
 
-if(NOT XASH_SDK)
-	set(XASH_SDK "../")
-endif()
-
 if(CS16CLIENT)
 	add_definitions(-DCS16CLIENT)
 	list(APPEND MAINUI_SOURCES
@@ -61,7 +57,6 @@ endif()
 list(APPEND MAINUI_SOURCES ${MAINUI_CONTROLS_SOURCES})
 list(APPEND MAINUI_SOURCES ${MAINUI_MENUS_SOURCES})
 list(APPEND MAINUI_SOURCES ${MAINUI_FONT_RENDER_SOURCES})
-list(APPEND MAINUI_SOURCES ${XASH_SDK}/public/interface.cpp)
 add_library(${MAINUI_LIBRARY} MODULE ${MAINUI_SOURCES})
 
 if(NOT ANDROID)
@@ -91,7 +86,7 @@ if(ANDROID)
 	set(MAINUI_USE_STB TRUE)
 endif()
 
-include_directories(${XASH_SDK}/common ${XASH_SDK}/engine ${XASH_SDK}/pm_shared ${XASH_SDK}/public ${XASH_SDK}/cl_dll . controls/ menus/ miniutl/ font/ model/)
+include_directories(${XASH_SDK}/common ${XASH_SDK}/engine ${XASH_SDK}/pm_shared ${XASH_SDK}/public . controls/ menus/ miniutl/ font/ model/)
 
 if(MSVC)
 	add_definitions(-D_CRT_SECURE_NO_WARNINGS)
@@ -117,9 +112,8 @@ if(MAINUI_USE_CUSTOM_FONT_RENDER)
 	add_definitions(-DMAINUI_USE_CUSTOM_FONT_RENDER)
 endif()
 
-install(TARGETS ${MAINUI_LIBRARY} DESTINATION ${GAMEDIR}/${MENU_INSTALL_DIR}/)
+install(TARGETS ${MAINUI_LIBRARY} DESTINATION "${GAME_DIR}/${CLIENT_INSTALL_DIR}/")
 
 if(MSVC)
-	install(FILES $<TARGET_PDB_FILE:${MAINUI_LIBRARY}>
-		DESTINATION ${GAMEDIR}/${MENU_INSTALL_DIR}/ OPTIONAL)
+	install(FILES $<TARGET_PDB_FILE:${MAINUI_LIBRARY}> DESTINATION "${GAME_DIR}/${CLIENT_INSTALL_DIR}/" OPTIONAL)
 endif()
