@@ -358,6 +358,10 @@ void CMenuPlayerSetup::CMenuCrosshairPreview::Draw()
 		EngFuncs::PIC_DrawAdditive(x + w / 2 + delta, y + h / 2, length, 1 );
 	}
 
+	int textHeight = m_scPos.y - ( m_scChSize * 1.5f );
+	uint textflags = ( iFlags & QMF_DROPSHADOW ) ? ETF_SHADOW : 0;
+	UI_DrawString( font, m_scPos.x, textHeight, m_scSize.w, m_scChSize, szName, uiColorHelp, m_scChSize, QM_LEFT, textflags | ETF_FORCECOL );
+
 	// draw the rectangle
 	if( eFocusAnimation == QM_HIGHLIGHTIFFOCUS && IsCurrentSelected() )
 		UI_DrawRectangle( m_scPos, m_scSize, uiInputTextColor );
@@ -612,6 +616,10 @@ void CMenuPlayerSetup::WriteNewLogo( void )
 UI_PlayerSetup_Init
 =================
 */
+
+#define CROSSHAIR_X 400
+#define LOGO_X		CROSSHAIR_X + 230
+
 void CMenuPlayerSetup::_Init( void )
 {
 	int addFlags = 0;
@@ -734,17 +742,17 @@ void CMenuPlayerSetup::_Init( void )
 				itemlist[i] = L( g_LogoColors[i].name );
 
 			logoImage.szName = L( "Spraypaint image" );
-			logoImage.SetRect( 460, 370, 200, 200 );
+			logoImage.SetRect( LOGO_X, 370, 200, 200 );
 
 			logo.Setup( &logosModel );
 			logo.LinkCvar( "cl_logofile", CMenuEditable::CVAR_STRING );
 			logo.onChanged = VoidCb( &CMenuPlayerSetup::UpdateLogo );
-			logo.SetRect( 460, logoImage.pos.y + logoImage.size.h + UI_OUTLINE_WIDTH, 200, 32 );
+			logo.SetRect( LOGO_X, logoImage.pos.y + logoImage.size.h + UI_OUTLINE_WIDTH, 200, 32 );
 
 			logoColor.Setup( &colors );
 			logoColor.LinkCvar( "cl_logocolor", CMenuEditable::CVAR_STRING );
 			logoColor.onChanged = VoidCb( &CMenuPlayerSetup::ApplyColorToLogoPreview );;
-			logoColor.SetRect( 460, logo.pos.y + logo.size.h + UI_OUTLINE_WIDTH, 200, 32 );
+			logoColor.SetRect( LOGO_X, logo.pos.y + logo.size.h + UI_OUTLINE_WIDTH, 200, 32 );
 		}
 	}
 
@@ -771,21 +779,21 @@ void CMenuPlayerSetup::_Init( void )
 	static CStringArrayModel sizes( sizelist, V_ARRAYSIZE( sizelist ));
 
 	crosshairPreview.SetNameAndStatus( "Crosshair appearance", NULL );
-	crosshairPreview.SetRect( 302, 230 + m_iBtnsNum * 50 + 10, 200, 200 );
+	crosshairPreview.SetRect( CROSSHAIR_X, 370, 200, 200 );
 	crosshairPreview.hImage = EngFuncs::PIC_Load( "gfx/vgui/crosshair.tga", 0 );
 	crosshairPreview.hWhite = EngFuncs::PIC_Load("*white");
 
 	crosshairSize.Setup( &sizes );
 	// crosshairSize.LinkCvar( "cl_crosshair_size", CMenuEditable::CVAR_VALUE );
-	crosshairSize.SetRect( 302, crosshairPreview.pos.y + crosshairPreview.size.h + UI_OUTLINE_WIDTH, 200, 32 );
+	crosshairSize.SetRect( CROSSHAIR_X, crosshairPreview.pos.y + crosshairPreview.size.h + UI_OUTLINE_WIDTH, 200, 32 );
 
 	crosshairColor.Setup( &colors );
 	// crosshairColor.LinkCvar( "cl_crosshair_color", CMenuEditable::CVAR_STRING );
-	crosshairColor.SetRect( 302, crosshairSize.pos.y + crosshairSize.size.h + UI_OUTLINE_WIDTH, 200, 32 );
+	crosshairColor.SetRect( CROSSHAIR_X, crosshairSize.pos.y + crosshairSize.size.h + UI_OUTLINE_WIDTH, 200, 32 );
 
 	crosshairTranslucent.SetNameAndStatus( "Translucent", NULL );
 	crosshairTranslucent.LinkCvar( "cl_crosshair_translucent" );
-	crosshairTranslucent.SetCoord( 302, crosshairColor.pos.y + crosshairColor.size.h + UI_OUTLINE_WIDTH );
+	crosshairTranslucent.SetCoord( CROSSHAIR_X, crosshairColor.pos.y + crosshairColor.size.h + UI_OUTLINE_WIDTH );
 
 	AddItem( crosshairPreview );
 	AddItem( crosshairSize );
